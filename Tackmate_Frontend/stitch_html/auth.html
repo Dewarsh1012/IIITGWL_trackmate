@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1a57db",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#0F172A",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: "Public Sans", sans-serif;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glow-border {
+            box-shadow: 0 0 15px rgba(26, 87, 219, 0.4);
+            border-color: #1a57db !important;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<header class="w-full px-6 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/5 backdrop-blur-md sticky top-0 z-50">
+<div class="flex items-center gap-3">
+<div class="bg-primary p-2 rounded-lg text-white">
+<span class="material-symbols-outlined block">shield_person</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">SafeTravel <span class="text-primary">v3.0</span></h1>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Home</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Safety Maps</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Emergency</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Support</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="px-5 py-2 text-sm font-bold text-white bg-primary rounded-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">Sign In</button>
+</div>
+</header>
+<main class="flex-1 flex items-center justify-center p-6 relative overflow-hidden">
+<div class="absolute top-[-10%] left-[-5%] w-72 h-72 bg-primary/10 rounded-full blur-[100px]"></div>
+<div class="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-blue-600/10 rounded-full blur-[120px]"></div>
+<div class="w-full max-w-2xl glass-card rounded-xl overflow-hidden shadow-2xl relative z-10">
+<div class="flex border-b border-slate-700/50">
+<button class="flex-1 py-4 text-center font-bold text-sm uppercase tracking-wider border-b-2 border-primary text-primary">
+                    Register
+                </button>
+<button class="flex-1 py-4 text-center font-bold text-sm uppercase tracking-wider border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-colors">
+                    Sign In
+                </button>
+</div>
+<div class="p-8">
+<h3 class="text-lg font-semibold mb-6 text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">person_search</span>
+                    Select Your Role
+                </h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+<button class="group flex flex-col items-center gap-3 p-4 rounded-xl border border-slate-700 bg-slate-800/40 glow-border transition-all">
+<span class="material-symbols-outlined text-primary text-3xl">map</span>
+<div class="text-center">
+<p class="text-sm font-bold text-white">Tourist</p>
+<p class="text-[10px] text-slate-400">Visitor</p>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-3 p-4 rounded-xl border border-slate-700 bg-slate-800/40 hover:border-slate-500 transition-all">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary text-3xl">home</span>
+<div class="text-center">
+<p class="text-sm font-bold text-white">Resident</p>
+<p class="text-[10px] text-slate-400">Local</p>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-3 p-4 rounded-xl border border-slate-700 bg-slate-800/40 hover:border-slate-500 transition-all">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary text-3xl">business_center</span>
+<div class="text-center">
+<p class="text-sm font-bold text-white">Business</p>
+<p class="text-[10px] text-slate-400">Service</p>
+</div>
+</button>
+<button class="group flex flex-col items-center gap-3 p-4 rounded-xl border border-slate-700 bg-slate-800/40 hover:border-slate-500 transition-all">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary text-3xl">policy</span>
+<div class="text-center">
+<p class="text-sm font-bold text-white">Authority</p>
+<p class="text-[10px] text-slate-400">Gov Agency</p>
+</div>
+</button>
+</div>
+<form class="space-y-5">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+<div class="flex flex-col gap-1.5">
+<label class="text-sm font-medium text-slate-300">Full Name</label>
+<input class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600" placeholder="John Doe" type="text"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-sm font-medium text-slate-300">Destination Region</label>
+<select class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
+<option>South East Asia</option>
+<option>European Union</option>
+<option>North America</option>
+<option>Middle East</option>
+</select>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+<div class="flex flex-col gap-1.5">
+<label class="text-sm font-medium text-slate-300">ID Type</label>
+<select class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
+<option>Passport</option>
+<option>Aadhaar Card</option>
+<option>Voter ID</option>
+<option>Driving License</option>
+</select>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-sm font-medium text-slate-300">ID Number</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">lock</span>
+<input class="w-full bg-slate-900/50 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600" placeholder="Enter ID number" type="text"/>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+<div class="flex flex-col gap-1.5">
+<label class="text-sm font-medium text-slate-300">Phone Number</label>
+<input class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600" placeholder="+1 234 567 890" type="tel"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-sm font-medium text-slate-300">Email Address</label>
+<input class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600" placeholder="john@example.com" type="email"/>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+<div class="flex flex-col gap-1.5">
+<label class="text-sm font-medium text-slate-300">Password</label>
+<div class="relative">
+<input class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600" placeholder="••••••••" type="password"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 cursor-pointer hover:text-white transition-colors">visibility</span>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-sm font-medium text-slate-300">Confirm Password</label>
+<input class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-5">
+<div class="flex flex-col gap-1.5">
+<label class="text-sm font-medium text-slate-300">Trip Start Date</label>
+<input class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all [color-scheme:dark]" type="date"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-sm font-medium text-slate-300">Trip End Date</label>
+<input class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all [color-scheme:dark]" type="date"/>
+</div>
+</div>
+<button class="w-full py-4 mt-6 bg-gradient-to-r from-primary to-blue-600 rounded-lg font-bold text-white shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2" type="submit">
+                        Create Account
+                        <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</form>
+</div>
+</div>
+</main>
+<footer class="w-full px-6 py-8 text-center bg-slate-900/80 backdrop-blur-md border-t border-slate-800">
+<div class="flex flex-col items-center gap-3">
+<div class="flex items-center gap-2 text-slate-500 text-xs uppercase tracking-[0.2em] mb-2">
+<span class="material-symbols-outlined text-sm">verified_user</span>
+                Secure SHA-256 Encryption
+            </div>
+<p class="text-slate-400 text-sm max-w-lg">
+                By creating an account, you agree to SafeTravel’s 
+                <a class="text-primary hover:underline" href="#">Terms of Service</a> and 
+                <a class="text-primary hover:underline" href="#">Privacy Policy</a>.
+            </p>
+<div class="mt-4 flex gap-6 text-slate-500 text-xs">
+<span>© 2024 SafeTravel v3.0</span>
+<a class="hover:text-slate-300" href="#">Contact Support</a>
+<a class="hover:text-slate-300" href="#">System Status</a>
+</div>
+</div>
+</footer>
+</body></html>

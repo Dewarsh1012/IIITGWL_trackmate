@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Authority E-FIR Filing Interface</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d59f2",
+                        "background-light": "#f5f6f8",
+                        "background-dark": "#0F172A",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<!-- Top Navigation Bar -->
+<header class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+<div class="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-primary">
+<span class="material-symbols-outlined text-3xl">security</span>
+<h2 class="text-xl font-bold tracking-tight">SafeTravel <span class="text-slate-400 font-medium text-sm">v3.0</span></h2>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors" href="#">Dashboard</a>
+<a class="text-primary text-sm font-semibold border-b-2 border-primary py-5" href="#">FIR Records</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors" href="#">Analytics</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors" href="#">Settings</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="bg-slate-100 dark:bg-slate-800 border-none rounded-lg pl-10 pr-4 py-2 text-sm w-64 focus:ring-2 focus:ring-primary" placeholder="Search records..." type="text"/>
+</div>
+<button class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-white" data-alt="User profile avatar placeholder">
+                    JD
+                </div>
+</div>
+</div>
+</header>
+<main class="max-w-[1280px] mx-auto px-6 py-8">
+<!-- Workflow Pipeline -->
+<div class="grid grid-cols-5 gap-4 mb-10">
+<div class="flex flex-col gap-2">
+<div class="h-1.5 w-full bg-primary rounded-full"></div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">radio_button_checked</span>
+<span class="text-xs font-bold uppercase tracking-wider text-primary">Draft</span>
+</div>
+<p class="text-[10px] text-slate-500 uppercase ml-6">Currently Editing</p>
+</div>
+<div class="flex flex-col gap-2">
+<div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-500 text-sm">circle</span>
+<span class="text-xs font-bold uppercase tracking-wider text-slate-500">Submitted</span>
+</div>
+<p class="text-[10px] text-slate-500 uppercase ml-6">Pending</p>
+</div>
+<div class="flex flex-col gap-2">
+<div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-500 text-sm">circle</span>
+<span class="text-xs font-bold uppercase tracking-wider text-slate-500">Under Review</span>
+</div>
+<p class="text-[10px] text-slate-500 uppercase ml-6">Pending</p>
+</div>
+<div class="flex flex-col gap-2">
+<div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-500 text-sm">circle</span>
+<span class="text-xs font-bold uppercase tracking-wider text-slate-500">Resolved</span>
+</div>
+<p class="text-[10px] text-slate-500 uppercase ml-6">Pending</p>
+</div>
+<div class="flex flex-col gap-2">
+<div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-500 text-sm">circle</span>
+<span class="text-xs font-bold uppercase tracking-wider text-slate-500">Closed</span>
+</div>
+<p class="text-[10px] text-slate-500 uppercase ml-6">Pending</p>
+</div>
+</div>
+<h1 class="text-2xl font-bold mb-8">Electronic FIR Filing <span class="text-slate-500 font-normal">#E-FIR-2024-8832</span></h1>
+<div class="grid grid-cols-12 gap-8">
+<!-- Left Column: Form Sections -->
+<div class="col-span-12 lg:col-span-8 space-y-6">
+<!-- 1. Subject Information -->
+<section class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+<div class="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">person</span>
+<h3 class="font-semibold text-lg">Subject Information</h3>
+</div>
+<span class="px-2 py-1 bg-green-500/10 text-green-500 text-[10px] font-bold rounded uppercase tracking-widest">Verified Identity</span>
+</div>
+<div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-1">
+<label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Full Name</label>
+<p class="text-lg font-medium">Raj Sharma</p>
+</div>
+<div class="space-y-1">
+<label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Blockchain ID</label>
+<div class="flex items-center gap-2">
+<code class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-primary font-mono text-sm">BC-7a3f-8891-2290</code>
+<span class="material-symbols-outlined text-slate-400 text-sm cursor-pointer">content_copy</span>
+</div>
+</div>
+<div class="space-y-1">
+<label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nationality</label>
+<p class="text-sm">Indian (Passport ending in *9921)</p>
+</div>
+<div class="space-y-1">
+<label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Contact</label>
+<p class="text-sm">+91 987xx xxxx0</p>
+</div>
+</div>
+</section>
+<!-- 2. Incident Details -->
+<section class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+<div class="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3 bg-slate-50 dark:bg-slate-900/50">
+<span class="material-symbols-outlined text-primary">report_problem</span>
+<h3 class="font-semibold text-lg">Incident Details</h3>
+</div>
+<div class="p-6 space-y-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-medium">FIR Title</label>
+<input class="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-primary focus:border-primary" type="text" value="Unauthorized Luggage Access"/>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-medium">Incident Type</label>
+<select class="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-primary focus:border-primary">
+<option>Theft/Larceny</option>
+<option>Assault</option>
+<option>Cybercrime</option>
+<option>Harassment</option>
+</select>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-medium">Description</label>
+<textarea class="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-primary focus:border-primary" placeholder="Describe the incident in detail..." rows="4"></textarea>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-medium">Location Coordinates</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">location_on</span>
+<input class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg pl-10 focus:ring-primary focus:border-primary" type="text" value="28.6139° N, 77.2090° E"/>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-medium">Incident Date &amp; Time</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">calendar_month</span>
+<input class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg pl-10 focus:ring-primary focus:border-primary" type="datetime-local" value="2024-05-24T14:30"/>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. Witness Statements -->
+<section class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+<div class="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">groups</span>
+<h3 class="font-semibold text-lg">Witness Statements</h3>
+</div>
+<button class="flex items-center gap-2 text-primary text-sm font-bold hover:bg-primary/10 px-3 py-1.5 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+                            Add Witness
+                        </button>
+</div>
+<div class="p-6 overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="border-b border-slate-100 dark:border-slate-800">
+<th class="pb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Witness Name</th>
+<th class="pb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Contact</th>
+<th class="pb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Brief Statement</th>
+<th class="pb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<tr>
+<td class="py-4 font-medium">Amit Verma</td>
+<td class="py-4 text-sm text-slate-500">+91 999xx xxxx1</td>
+<td class="py-4 text-sm max-w-xs truncate text-slate-400 italic">"Saw the suspect near the baggage carousel at 2:15 PM..."</td>
+<td class="py-4 text-right">
+<button class="text-slate-400 hover:text-red-500"><span class="material-symbols-outlined text-sm">delete</span></button>
+</td>
+</tr>
+<tr>
+<td class="py-4 font-medium">Suresh Iyer</td>
+<td class="py-4 text-sm text-slate-500">+91 999xx xxxx4</td>
+<td class="py-4 text-sm max-w-xs truncate text-slate-400 italic">"Confirmed that the bag was locked before the flight..."</td>
+<td class="py-4 text-right">
+<button class="text-slate-400 hover:text-red-500"><span class="material-symbols-outlined text-sm">delete</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+<!-- Right Column: Evidence & Submission -->
+<div class="col-span-12 lg:col-span-4 space-y-6">
+<!-- 4. Evidence -->
+<section class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+<div class="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3 bg-slate-50 dark:bg-slate-900/50">
+<span class="material-symbols-outlined text-primary">attachment</span>
+<h3 class="font-semibold text-lg">Evidence</h3>
+</div>
+<div class="p-6 space-y-4">
+<div class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-8 flex flex-col items-center justify-center gap-3 text-center bg-slate-50 dark:bg-slate-900/20">
+<span class="material-symbols-outlined text-4xl text-slate-400">cloud_upload</span>
+<div>
+<p class="text-sm font-medium">Drag &amp; drop files here</p>
+<p class="text-xs text-slate-500 mt-1">PNG, JPG or PDF up to 10MB</p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
+<div class="aspect-square bg-slate-100 dark:bg-slate-800 flex items-center justify-center" data-alt="Photo of damaged luggage bag zipper" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuClsKvnEiQD8uU0gbHoPeWF-vbcWjO9Jcw_cPZY3x8WARuI-gSB6pqKVQTGL0b9S-hOG6DwhN3Wh0VCAEptQFsGLCwceXWN20AjMxlwLNBECdh8LoiBCBpR7f-2mOdFlneUYDBY2UrGbIE1eY0cxJ5Yt5bIBypCzRZ73vDIYsBY1_E0rFIZJN5K7O4_KyfhWdk5NaeU5EKTgVV6tGXvy4K3OZDQbeZi3oaTDqSHPza6Ftkh7i-7l7GibRyIFYMn4z6JcNedilR8jJE')"></div>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="p-2 bg-white dark:bg-slate-900 rounded-full text-slate-900 dark:text-slate-100">
+<span class="material-symbols-outlined text-sm">visibility</span>
+</button>
+</div>
+</div>
+<div class="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
+<div class="aspect-square bg-slate-100 dark:bg-slate-800 flex items-center justify-center" data-alt="Airport CCTV security footage capture" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDDolBhk8HECopujScsc-CkUSZbQGBnhlykHnTyALIzrsTSSGmEhQIxegxgch0tP-7mknS532o52or40bodPGSuhMLjOaanuoqdC-nTp7xr6vsO5qIxXuFi_lxafCW2t8g-wecZutbWu05_drK5UoIAD5DTzvvT4G2J2i8Rpw9e16BrjMbsbOSrgw29klaCaZW5CEezmtKdUknpIfp70nZgKnjX1zEnKjYmmXiQDD_pAMNvPdjy22pE3rPhFOti1YDYXI_dhePpDr4')"></div>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="p-2 bg-white dark:bg-slate-900 rounded-full text-slate-900 dark:text-slate-100">
+<span class="material-symbols-outlined text-sm">visibility</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Submission UI -->
+<section class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-6">
+<div class="space-y-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined">send</span>
+                            Submit FIR
+                        </button>
+<button class="w-full border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all">
+<span class="material-symbols-outlined">save</span>
+                            Save as Draft
+                        </button>
+</div>
+<div class="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+<div class="flex items-center gap-2 text-slate-500 mb-2">
+<span class="material-symbols-outlined text-sm">hub</span>
+<span class="text-xs font-bold uppercase tracking-wider">Blockchain Verification</span>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-medium text-slate-400">Blockchain Hash (SHA-256)</label>
+<div class="flex gap-2">
+<input class="flex-1 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-mono p-2 text-slate-500" readonly="" type="text" value="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"/>
+<button class="bg-primary/10 text-primary px-3 py-1 rounded-lg hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-sm">verified</span>
+</button>
+</div>
+</div>
+<p class="text-[10px] text-slate-500 italic">This FIR will be cryptographically signed and anchored to the mainnet upon submission.</p>
+</div>
+</section>
+<!-- Map Widget -->
+<section class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+<div class="h-48 bg-slate-800 relative" data-location="New Delhi, India" style="">
+<div class="absolute inset-0 bg-cover bg-center opacity-60" data-alt="Dark stylized map of New Delhi coordinates" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC6oh3wypL_kAlwLTWhJBDjJZu8wfv0IOJ3h2M5UWjWcNqHSQzrTXx2PiuhKGpk9V79na7G84s4Fi19RJmzzqBYJ30A97IyRYvnlLuYczivEjh7LTIo6xREFTtDmKliT64FG669QrJh7wsJ1KlCaYR3q-fLGNerqhZyOA4tEtJdyg1RoF5ZR6VfIGILGPkoYftbJ7jFkZDX_WppbKp7qcvYVH354Lq-jouiD2VGD35BXhp-QYeVvhALqdLiiTUsbwac8F7eXFsnuuE')"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-8 h-8 bg-primary rounded-full animate-pulse flex items-center justify-center border-4 border-white/20">
+<div class="w-2 h-2 bg-white rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="p-3 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center">
+<span class="text-[10px] font-bold text-slate-400 uppercase">Live Location Feed</span>
+<span class="text-[10px] text-green-500 flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Active
+                        </span>
+</div>
+</section>
+</div>
+</div>
+</main>
+<footer class="max-w-[1280px] mx-auto px-6 py-8 border-t border-slate-200 dark:border-slate-800 text-center">
+<p class="text-xs text-slate-500">© 2024 SafeTravel v3.0 Authority Portal. All cryptographic records are legally binding under Electronic Signature Acts.</p>
+</footer>
+</body></html>

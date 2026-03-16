@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<title>Tourist Digital Identity &amp; Profile | SafeTravel v3.0</title>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#0df259",
+                "background-light": "#f5f8f6",
+                "background-dark": "#102216",
+              },
+              fontFamily: {
+                "display": ["Inter"]
+              },
+              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+          },
+        }
+      </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<header class="sticky top-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-primary/10">
+<div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-icons text-background-dark">shield</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight">SafeTravel <span class="text-primary">v3.0</span></h1>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="text-sm font-medium text-primary" href="#">Identity</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Safety Maps</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Documents</a>
+</nav>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-3 bg-primary/10 px-4 py-2 rounded-full border border-primary/20">
+<div class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></div>
+<span class="text-xs font-semibold uppercase tracking-wider">Safety Score: 85</span>
+</div>
+<div class="h-10 w-px bg-slate-200 dark:bg-slate-800 mx-2"></div>
+<div class="flex items-center gap-3">
+<span class="text-sm font-medium">Raj Sharma</span>
+<div class="w-10 h-10 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center font-bold text-primary">RS</div>
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-6 py-10">
+<div class="grid grid-cols-12 gap-8">
+<aside class="col-span-12 lg:col-span-4 space-y-8">
+<section class="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full -mr-16 -mt-16"></div>
+<div class="flex flex-col items-center text-center">
+<div class="relative mb-6">
+<div class="w-32 h-32 rounded-full bg-gradient-to-tr from-primary to-emerald-400 p-1">
+<div class="w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center">
+<span class="text-4xl font-bold text-slate-800 dark:text-white">RS</span>
+</div>
+</div>
+<div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
+<span class="material-icons text-xs">verified</span> VERIFIED
+                            </div>
+</div>
+<h2 class="text-2xl font-bold">Raj Sharma</h2>
+<div class="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium">
+                            TOURIST
+                        </div>
+<div class="mt-8 w-full space-y-4">
+<div class="flex items-center justify-between text-sm">
+<span class="text-slate-500">Member Since</span>
+<span class="font-medium">Jan 2024</span>
+</div>
+<div class="flex items-center justify-between text-sm">
+<span class="text-slate-500">Trips Completed</span>
+<span class="font-medium">12</span>
+</div>
+<div class="flex items-center justify-between text-sm">
+<span class="text-slate-500">Nationality</span>
+<span class="font-medium">Indian</span>
+</div>
+</div>
+</div>
+</section>
+<section class="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between mb-8">
+<h3 class="font-bold text-lg">Safety Standing</h3>
+<span class="material-icons text-primary">info</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="relative w-48 h-48 flex items-center justify-center">
+<svg class="w-full h-full -rotate-90">
+<circle class="text-slate-100 dark:text-slate-800" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-primary" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-dasharray="552.92" stroke-dashoffset="82.93" stroke-linecap="round" stroke-width="8"></circle>
+</svg>
+<div class="absolute flex flex-col items-center">
+<span class="text-4xl font-black">85%</span>
+<span class="text-[10px] uppercase font-bold tracking-widest text-primary mt-1">Good Standing</span>
+</div>
+</div>
+<div class="mt-8 w-full space-y-4">
+<div class="p-4 bg-primary/5 rounded-lg border border-primary/10">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-bold uppercase tracking-wide opacity-70">Points Breakdown</span>
+<span class="text-xs font-bold text-primary">+12 this trip</span>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between items-center text-sm">
+<span class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>Verified Identity</span>
+<span class="font-mono text-xs">+500</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>Safety Reports</span>
+<span class="font-mono text-xs">+120</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>Local Compliance</span>
+<span class="font-mono text-xs">+230</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</aside>
+<div class="col-span-12 lg:col-span-8 space-y-8">
+<section class="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-bold text-lg">Blockchain Digital ID</h3>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+<span class="material-icons text-slate-500">share</span>
+</button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+<span class="material-icons text-slate-500">download</span>
+</button>
+</div>
+</div>
+<div class="relative overflow-hidden aspect-[1.58/1] w-full max-w-2xl mx-auto rounded-2xl bg-slate-900 text-white p-8 shadow-2xl">
+<div class="absolute top-0 right-0 w-full h-full opacity-20 pointer-events-none">
+<div class="absolute top-[-20%] right-[-10%] w-[60%] h-[120%] bg-primary/30 blur-[100px] rounded-full"></div>
+<div class="absolute bottom-[-20%] left-[-10%] w-[40%] h-[80%] bg-emerald-500/20 blur-[80px] rounded-full"></div>
+</div>
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+<div class="relative z-10 h-full flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<p class="text-[10px] font-bold tracking-[0.2em] text-primary uppercase">SafeTravel Digital Identity</p>
+<h4 class="text-2xl font-bold tracking-tight">Raj Sharma</h4>
+</div>
+<div class="bg-primary/20 backdrop-blur-md border border-primary/30 px-3 py-1 rounded text-[10px] font-bold flex items-center gap-1.5">
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                                    VALID
+                                </div>
+</div>
+<div class="grid grid-cols-2 gap-8">
+<div class="space-y-4">
+<div>
+<p class="text-[9px] uppercase tracking-widest text-slate-400 mb-1">Blockchain Hash ID</p>
+<p class="font-mono text-sm">BC-7a3f9e2b1c4d5678</p>
+</div>
+<div>
+<p class="text-[9px] uppercase tracking-widest text-slate-400 mb-1">Government ID (Masked)</p>
+<p class="font-mono text-sm tracking-widest">**** **** 4523</p>
+</div>
+<div class="flex gap-8">
+<div>
+<p class="text-[9px] uppercase tracking-widest text-slate-400 mb-1">Travel Dates</p>
+<p class="text-sm font-medium">Mar 1 – Mar 15, 2026</p>
+</div>
+<div>
+<p class="text-[9px] uppercase tracking-widest text-slate-400 mb-1">Destination</p>
+<p class="text-sm font-medium">Tawang, India</p>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end justify-center">
+<div class="bg-white p-2 rounded-lg">
+<img alt="QR Code for Identity Verification" class="w-24 h-24" data-alt="QR code for digital identity verification" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1OuTFzuZqeOvW19524NNxBqPcuKwsxxyGiRHxLzoPBWJGrChq18SRxTNHENrQ10aP3r1_YJOZeRv7nXotticiyRUvRnvKDpdm36tNXzOEIRx1z0703J4N1FX3sEyjnfHVacNE3pEQhR8_VUjqzHzoVtB8P-c2qLq4UrXiAB-OvU86cUu_nQ-xZEnJVqJOltGzPvYheAYoGO-eoo2AgWbid0gXf7sYJelpS_SdU8LtaHhFpaY4GdBVH9G0CbWaypH56xzp8-ENCSw"/>
+</div>
+<p class="mt-2 text-[9px] font-mono text-slate-400">ENCRYPTED PROTOCOL V3</p>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-8 flex gap-4">
+<button class="flex-1 bg-primary text-background-dark font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:brightness-110 transition-all">
+<span class="material-icons text-xl">content_copy</span> Copy Blockchain ID
+                        </button>
+<button class="flex-1 border-2 border-slate-200 dark:border-slate-800 font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+<span class="material-icons text-xl">qr_code_scanner</span> Show Full QR
+                        </button>
+</div>
+</section>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<section class="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-bold text-lg">Emergency Contacts</h3>
+<button class="text-primary hover:bg-primary/10 p-1 rounded-md transition-colors">
+<span class="material-icons">add_circle_outline</span>
+</button>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500">
+<span class="material-icons">person</span>
+</div>
+<div>
+<p class="text-sm font-bold">Anita Sharma</p>
+<p class="text-[11px] text-slate-500 uppercase tracking-tight">Primary • Spouse</p>
+</div>
+</div>
+<button class="w-8 h-8 rounded-full bg-primary/20 text-emerald-700 dark:text-primary flex items-center justify-center">
+<span class="material-icons text-sm">phone</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500">
+<span class="material-icons">medical_services</span>
+</div>
+<div>
+<p class="text-sm font-bold">Dr. R. Patel</p>
+<p class="text-[11px] text-slate-500 uppercase tracking-tight">Medical • Family Doctor</p>
+</div>
+</div>
+<button class="w-8 h-8 rounded-full bg-primary/20 text-emerald-700 dark:text-primary flex items-center justify-center">
+<span class="material-icons text-sm">phone</span>
+</button>
+</div>
+</div>
+</section>
+<section class="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-bold text-lg">Language Preferences</h3>
+<span class="material-icons text-slate-400">translate</span>
+</div>
+<div class="space-y-6">
+<div>
+<label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 block">Primary Language</label>
+<div class="relative">
+<select class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-3 px-4 appearance-none focus:ring-primary focus:border-primary">
+<option>English (US)</option>
+<option>Hindi (भारत)</option>
+<option>Spanish (ES)</option>
+<option>French (FR)</option>
+</select>
+<span class="material-icons absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">expand_more</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-primary/10 border border-primary/20 text-emerald-700 dark:text-primary rounded-full text-xs font-medium">English</span>
+<span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs font-medium">Hindi</span>
+<span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs font-medium">+ Add Language</span>
+</div>
+</div>
+</section>
+</div>
+<section class="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-bold text-lg">Recent Trip Security Activity</h3>
+<a class="text-primary text-xs font-bold uppercase tracking-wider hover:underline" href="#">View All Logs</a>
+</div>
+<div class="space-y-6">
+<div class="flex items-start gap-4">
+<div class="w-2 h-2 rounded-full bg-primary mt-2"></div>
+<div>
+<p class="text-sm font-bold">Identity Verification via Blockchain</p>
+<p class="text-xs text-slate-500 mt-1">Guwahati Airport Checkpoint • Mar 01, 2026, 09:45 AM</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-2 h-2 rounded-full bg-primary mt-2"></div>
+<div>
+<p class="text-sm font-bold">Emergency Contact Shared</p>
+<p class="text-xs text-slate-500 mt-1">Hotel Blue Pine, Tawang • Mar 02, 2026, 06:12 PM</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 mt-2"></div>
+<div>
+<p class="text-sm font-bold">Safety Score Recalculated</p>
+<p class="text-xs text-slate-500 mt-1">System Update • Feb 28, 2026, 12:00 AM</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<footer class="mt-20 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-12">
+<div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 bg-primary rounded flex items-center justify-center">
+<span class="material-icons text-background-dark text-sm">shield</span>
+</div>
+<h1 class="text-lg font-bold">SafeTravel</h1>
+</div>
+<p class="text-xs text-slate-500">Empowering secure global travel through blockchain.</p>
+</div>
+<div class="flex gap-8 text-xs font-medium text-slate-500">
+<a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="hover:text-primary transition-colors" href="#">Emergency Protocol</a>
+</div>
+<p class="text-[10px] font-mono text-slate-400">© 2026 SAFETRAVEL FOUNDATION. ALL RIGHTS RESERVED.</p>
+</div>
+</footer>
+
+```</body></html>

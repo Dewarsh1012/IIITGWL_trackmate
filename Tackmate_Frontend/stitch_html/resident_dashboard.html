@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1a57db",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111621",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<title>Resident Neighborhood Safety Dashboard</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<div class="relative flex h-screen flex-col overflow-hidden">
+<!-- Top Header Navigation -->
+<header class="flex h-16 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 shrink-0 z-20">
+<div class="flex items-center gap-3">
+<div class="text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl font-bold">shield_with_heart</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">SafeTravel <span class="text-primary font-medium text-sm">v3.0</span></h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full border border-primary/20">
+<span class="material-symbols-outlined text-primary text-sm">location_on</span>
+<span class="text-sm font-semibold text-primary">Tawang Ward</span>
+</div>
+<div class="relative cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-400">notifications</span>
+<span class="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border-2 border-white dark:border-slate-900"></span>
+</span>
+</div>
+<div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-bold leading-tight">Priya Devi</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Resident</p>
+</div>
+<div class="size-10 rounded-full bg-slate-200 bg-cover bg-center ring-2 ring-primary/20" data-alt="Portrait of resident Priya Devi" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBAGuu7Rc06hbp0Hu4kz7XnyqidMpa_0LXenO72ATiSgx5dfRWwempvG7p34Ce1mSfxSKH2BALEXRSRWGZxwYkxBMyyVFgeBXnuAtXy7pk73O6WvsosxsHrgXBFZFKM2ITOjPAp9LWlDS6KWjiDyQQtpXD3-XAc88fvFMIzyUWME3D9pV7figfF0u1KNEnWDQ6Es0UWRC5-hGWJcCq31otSftKN-O0Z-GqrUHC6EiF8G7pk-2dgjp59LhTg4EcT5OfyPSFlh2-Eqlo')"></div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark p-6 space-y-6">
+<!-- Ward Overview Card -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<div class="md:col-span-3 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex items-center justify-between">
+<div class="space-y-1">
+<h2 class="text-2xl font-bold text-slate-900 dark:text-white">Tawang Ward Overview</h2>
+<p class="text-slate-500 dark:text-slate-400 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">update</span> 
+                                Updated 5 minutes ago • Arunachal Pradesh
+                            </p>
+</div>
+<div class="flex items-center gap-6">
+<div class="text-right">
+<p class="text-sm font-semibold text-red-500 flex items-center justify-end gap-1">
+<span class="material-symbols-outlined text-base">trending_down</span> ↓ 3 points
+                                </p>
+<p class="text-xs text-slate-400 uppercase tracking-wider font-bold">Safety Score</p>
+</div>
+<div class="relative flex items-center justify-center">
+<svg class="size-20 transform -rotate-90">
+<circle class="text-slate-100 dark:text-slate-800" cx="40" cy="40" fill="transparent" r="34" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-amber-500" cx="40" cy="40" fill="transparent" r="34" stroke="currentColor" stroke-dasharray="213.6" stroke-dashoffset="59.8" stroke-width="8"></circle>
+</svg>
+<span class="absolute text-xl font-black text-slate-800 dark:text-white">72</span>
+</div>
+</div>
+</div>
+<div class="bg-primary rounded-xl shadow-lg shadow-primary/20 p-6 flex flex-col justify-between text-white">
+<div class="flex justify-between items-start">
+<span class="material-symbols-outlined text-3xl opacity-80">volunteer_activism</span>
+<span class="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Active Watch</span>
+</div>
+<div>
+<p class="text-2xl font-bold">14</p>
+<p class="text-sm opacity-90">Neighbors On Duty</p>
+</div>
+</div>
+</section>
+<!-- Interactive Map Section -->
+<section class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden h-[400px] relative">
+<div class="absolute inset-0 z-0 bg-slate-200 dark:bg-slate-800" data-alt="Dynamic map of Tawang Ward with safety markers" data-location="Tawang Arunachal Pradesh" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC7FJVmbeB3twxsjCl05-tzNtswkOAFzbmNKlCPbbgBzLo5eO8dvSlMxcV_QzFa4Mt8wVKuBwJKj6LKqZHvszbx_q38MQi7T6ejmVoNPRPL2TX1Jd7rdB1qsI4rU02kk-AsjAhNhQkHZnrQhH6dOV7XDyNu4q1ilpi203Fw2frFZxgGw9g0rpDmG9Gg1PuGvIIq_VVj7QJjKpNifSiH5vMLR2YdNOTx6r9JuvQz5TFLVjzWFGQkneUfQ-tEtYc9WaIc0sJx_35Dke8'); background-size: cover; background-position: center;">
+<!-- Abstract Overlay Elements (Dashed boundaries, dots) -->
+<div class="absolute inset-10 border-4 border-dashed border-primary/40 rounded-[2rem] pointer-events-none"></div>
+<div class="absolute top-1/4 left-1/3 size-4 bg-red-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-white text-[10px]">warning</span>
+</div>
+<div class="absolute top-1/2 left-1/2 size-4 bg-primary rounded-full border-2 border-white shadow-[0_0_15px_rgba(26,87,219,0.6)] animate-pulse"></div>
+<div class="absolute bottom-1/3 right-1/4 size-4 bg-slate-400 rounded-full border-2 border-white opacity-80"></div>
+<div class="absolute top-1/4 right-1/3 px-4 py-2 bg-green-500/20 border border-green-500/40 rounded-full backdrop-blur-sm flex items-center gap-2">
+<span class="size-2 bg-green-500 rounded-full"></span>
+<span class="text-[10px] font-bold text-green-700">SAFE ZONE</span>
+</div>
+</div>
+<!-- Map Controls -->
+<div class="absolute right-4 top-4 flex flex-col gap-2 z-10">
+<button class="size-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="size-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">remove</span>
+</button>
+<button class="mt-2 size-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg flex items-center justify-center text-primary transition-colors">
+<span class="material-symbols-outlined">my_location</span>
+</button>
+</div>
+<!-- Map Legend -->
+<div class="absolute left-4 bottom-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur shadow-lg border border-slate-200 dark:border-slate-800 rounded-lg p-3 z-10">
+<div class="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-red-500"></span> Incident
+                            </div>
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-slate-400"></span> Resolved
+                            </div>
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-primary"></span> You
+                            </div>
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-green-500"></span> Safe Zone
+                            </div>
+</div>
+</div>
+</section>
+<!-- Dual Column Layout -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">
+<!-- Left Column: Recent Incidents -->
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="text-lg font-bold">Recent Incidents</h3>
+<button class="text-primary text-sm font-semibold hover:underline">View All</button>
+</div>
+<div class="space-y-3">
+<!-- Incident Card 1 -->
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex items-start gap-4 hover:border-red-200 dark:hover:border-red-900 transition-all cursor-pointer">
+<div class="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-2.5 rounded-lg">
+<span class="material-symbols-outlined">car_crash</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-slate-800 dark:text-white">Road Accident near Market</h4>
+<span class="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Critical</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Two-wheeler collision at Tawang Market intersection.</p>
+<p class="text-xs text-slate-400 mt-2 flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-xs">schedule</span> 23 min ago
+                                    </p>
+</div>
+</div>
+<!-- Incident Card 2 -->
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex items-start gap-4 hover:border-slate-300 transition-all cursor-pointer">
+<div class="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2.5 rounded-lg">
+<span class="material-symbols-outlined">report_problem</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-slate-800 dark:text-white">Street Light Outage</h4>
+<span class="bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Moderate</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Poor visibility on Link Road due to 3 non-functional lights.</p>
+<p class="text-xs text-slate-400 mt-2 flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-xs">schedule</span> 1 hour ago
+                                    </p>
+</div>
+</div>
+<!-- Incident Card 3 -->
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex items-start gap-4 hover:border-slate-300 transition-all cursor-pointer opacity-75">
+<div class="bg-slate-100 dark:bg-slate-800 text-slate-500 p-2.5 rounded-lg">
+<span class="material-symbols-outlined">security</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-slate-800 dark:text-white font-medium italic">Suspicious Activity Reported</h4>
+<span class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Resolved</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Verification complete. No security threat found.</p>
+<p class="text-xs text-slate-400 mt-2 flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-xs">schedule</span> 4 hours ago
+                                    </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Zone Status -->
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="text-lg font-bold">Zone Status</h3>
+<div class="flex gap-2">
+<span class="bg-green-100 text-green-700 text-[10px] px-2 py-1 rounded-full font-bold">4 Safe</span>
+<span class="bg-red-100 text-red-700 text-[10px] px-2 py-1 rounded-full font-bold">1 High Risk</span>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden">
+<!-- Zone 1 -->
+<div class="p-4 flex items-center justify-between group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400">temple_buddhist</span>
+<div>
+<p class="font-bold text-slate-800 dark:text-white">Tawang Monastery</p>
+<p class="text-xs text-slate-500">Quiet • High Visibility</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="text-right">
+<span class="text-green-600 dark:text-green-400 text-xs font-bold bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full">Safe</span>
+</div>
+<p class="text-xs font-bold text-slate-400 w-12 text-center">0 Inc.</p>
+</div>
+</div>
+<!-- Zone 2 -->
+<div class="p-4 flex items-center justify-between group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400">landscape</span>
+<div>
+<p class="font-bold text-slate-800 dark:text-white">Sela Pass</p>
+<p class="text-xs text-slate-500">Icy Road Conditions</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="text-right">
+<span class="text-amber-600 dark:text-amber-400 text-xs font-bold bg-amber-50 dark:bg-amber-900/20 px-3 py-1 rounded-full">Moderate</span>
+</div>
+<p class="text-xs font-bold text-slate-400 w-12 text-center">2 Inc.</p>
+</div>
+</div>
+<!-- Zone 3 -->
+<div class="p-4 flex items-center justify-between group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400">shopping_bag</span>
+<div>
+<p class="font-bold text-slate-800 dark:text-white">Main Market Square</p>
+<p class="text-xs text-slate-500">Heavy Traffic Congestion</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="text-right">
+<span class="text-red-600 dark:text-red-400 text-xs font-bold bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-full">High</span>
+</div>
+<p class="text-xs font-bold text-red-500 w-12 text-center">5 Inc.</p>
+</div>
+</div>
+<!-- Zone 4 -->
+<div class="p-4 flex items-center justify-between group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400">forest</span>
+<div>
+<p class="font-bold text-slate-800 dark:text-white">War Memorial Park</p>
+<p class="text-xs text-slate-500">Well Lit • Active Patrol</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="text-right">
+<span class="text-green-600 dark:text-green-400 text-xs font-bold bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full">Safe</span>
+</div>
+<p class="text-xs font-bold text-slate-400 w-12 text-center">0 Inc.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+<!-- Floating Action Button -->
+<button class="fixed bottom-24 right-8 group z-30">
+<div class="bg-gradient-to-br from-primary to-blue-700 text-white shadow-xl shadow-primary/40 p-4 rounded-full flex items-center gap-3 group-hover:pr-6 transition-all duration-300">
+<span class="material-symbols-outlined text-2xl font-bold">add</span>
+<span class="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 font-bold uppercase text-xs tracking-widest">Report Incident</span>
+</div>
+</button>
+<!-- Bottom Navigation Bar -->
+<nav class="h-16 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-2 z-20 shrink-0">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Dashboard</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">campaign</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Report</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">rss_feed</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Feed</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Profile</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-red-500/80 hover:text-red-500 transition-colors" href="#">
+<span class="material-symbols-outlined">emergency</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Emergency</span>
+</a>
+</nav>
+</div>
+</body></html>

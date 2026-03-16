@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Authority Safety Analytics Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d59f2",
+                        "background-light": "#f5f6f8",
+                        "background-dark": "#0F172A",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .chart-gradient-blue {
+            background: linear-gradient(180deg, rgba(13, 89, 242, 0.2) 0%, rgba(13, 89, 242, 0) 100%);
+        }
+        .chart-gradient-green {
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0) 100%);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex flex-col min-h-screen">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 px-8 py-4 backdrop-blur-md sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3">
+<div class="bg-primary p-1.5 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-2xl">shield_with_heart</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight">SafeTravel <span class="text-primary">v3.0</span> Authority</h1>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-primary text-sm font-semibold border-b-2 border-primary pb-1" href="#">Dashboard</a>
+<a class="text-slate-500 dark:text-slate-400 text-sm font-medium hover:text-primary transition-colors" href="#">Zones</a>
+<a class="text-slate-500 dark:text-slate-400 text-sm font-medium hover:text-primary transition-colors" href="#">Reports</a>
+<a class="text-slate-500 dark:text-slate-400 text-sm font-medium hover:text-primary transition-colors" href="#">Personnel</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+<input class="bg-slate-100 dark:bg-slate-800 border-none rounded-lg pl-10 pr-4 py-2 text-sm w-64 focus:ring-2 focus:ring-primary/50 transition-all" placeholder="Global system search..." type="text"/>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined text-lg">ios_share</span>
+                    Export Data
+                </button>
+<div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden border-2 border-primary/20">
+<img alt="User" class="w-full h-full object-cover" data-alt="Administrator profile portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhbnVrURkW7igbt4QKYxGTwFWKHZQNpCteiYSeAVP9AUhl8cCXnT7zsVRfJiUm5itHUsGbzqz45I6ZpPWPjjA4L9ljrKAUG6omH76aVSvtOWdS9OdG20nOHLKmeJnYpuuIrbc5Zz16j4lslMZD0TeuA4ArqBIqgJZ2Mt2YhlStjI3qKa5SzfLHH5LGn8sTUDKk-tQseZ-Pft0AtNWDIQu1M7Pq3QeAHlk5Q6YavFN5VPjUW1MTcXyeK8Lt1VVfmK6FVkxCYBeo_wc"/>
+</div>
+</div>
+</header>
+<main class="flex-1 p-8 max-w-[1600px] mx-auto w-full">
+<!-- Filter Bar -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<span class="material-symbols-outlined text-slate-400">calendar_today</span>
+                        Last 30 Days
+                        <span class="material-symbols-outlined text-slate-400 text-sm">expand_more</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<span class="material-symbols-outlined text-slate-400">location_on</span>
+                        All Zones
+                        <span class="material-symbols-outlined text-slate-400 text-sm">expand_more</span>
+</button>
+</div>
+<div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm italic">
+<span class="material-symbols-outlined text-sm animate-pulse text-primary">sync</span>
+                    Live updates active — Last refreshed 2 mins ago
+                </div>
+</div>
+<!-- Visualization Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+<!-- 1. Daily Incident Count -->
+<div class="glass-card rounded-xl p-6 flex flex-col">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400">Daily Incident Count</h3>
+<div class="flex gap-2">
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+<span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+</div>
+</div>
+<div class="flex-1 flex flex-col">
+<div class="relative h-48 w-full">
+<svg class="w-full h-full" viewbox="0 0 100 50">
+<path d="M0 45 Q 15 10, 30 35 T 60 15 T 100 40" fill="none" stroke="#ef4444" stroke-width="2"></path>
+<path d="M0 40 Q 20 20, 40 45 T 70 30 T 100 35" fill="none" stroke="#3b82f6" stroke-width="2"></path>
+<path d="M0 35 Q 25 30, 50 15 T 80 40 T 100 10" fill="none" stroke="#eab308" stroke-width="2"></path>
+</svg>
+</div>
+<div class="flex justify-between mt-4 text-[10px] text-slate-500 font-bold">
+<span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span>
+</div>
+</div>
+</div>
+<!-- 2. Average Response Time -->
+<div class="glass-card rounded-xl p-6 flex flex-col">
+<h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-6">Avg Response Time (Min)</h3>
+<div class="flex-1 flex flex-col justify-end gap-3">
+<div class="flex items-center gap-4">
+<span class="text-xs text-slate-400 w-16">Crime</span>
+<div class="h-6 flex-1 bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-red-500" style="width: 85%"></div>
+</div>
+<span class="text-xs font-bold">12.4m</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-xs text-slate-400 w-16">Accident</span>
+<div class="h-6 flex-1 bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-blue-500" style="width: 60%"></div>
+</div>
+<span class="text-xs font-bold">8.1m</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-xs text-slate-400 w-16">Medical</span>
+<div class="h-6 flex-1 bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-emerald-500" style="width: 45%"></div>
+</div>
+<span class="text-xs font-bold">6.5m</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-xs text-slate-400 w-16">Hazard</span>
+<div class="h-6 flex-1 bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-amber-500" style="width: 70%"></div>
+</div>
+<span class="text-xs font-bold">10.2m</span>
+</div>
+</div>
+</div>
+<!-- 3. Incidents by Zone -->
+<div class="glass-card rounded-xl p-6 flex flex-col">
+<h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-6">Incidents by Zone</h3>
+<div class="flex-1 flex items-center gap-6">
+<div class="relative w-32 h-32">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<circle cx="18" cy="18" fill="none" r="16" stroke="#1e293b" stroke-width="4"></circle>
+<circle cx="18" cy="18" fill="none" r="16" stroke="#3b82f6" stroke-dasharray="40 100" stroke-width="4"></circle>
+<circle cx="18" cy="18" fill="none" r="16" stroke="#ef4444" stroke-dasharray="25 100" stroke-dashoffset="-40" stroke-width="4"></circle>
+<circle cx="18" cy="18" fill="none" r="16" stroke="#10b981" stroke-dasharray="15 100" stroke-dashoffset="-65" stroke-width="4"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-xl font-bold">150</span>
+<span class="text-[8px] text-slate-400">TOTAL</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-sm bg-blue-500"></span>
+<span class="text-xs text-slate-300">Downtown (40%)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-sm bg-red-500"></span>
+<span class="text-xs text-slate-300">South (25%)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-sm bg-emerald-500"></span>
+<span class="text-xs text-slate-300">West (15%)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 4. Safety Score Trends -->
+<div class="glass-card rounded-xl p-6 flex flex-col">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400">Safety Score Trend</h3>
+<span class="text-emerald-400 font-bold text-lg">88.4%</span>
+</div>
+<div class="flex-1 chart-gradient-green rounded-lg relative overflow-hidden">
+<svg class="absolute bottom-0 w-full" preserveaspectratio="none" viewbox="0 0 100 40">
+<path d="M0 40 L0 30 Q 25 10, 50 25 T 100 5 L 100 40 Z" fill="#10b98133"></path>
+<path d="M0 30 Q 25 10, 50 25 T 100 5" fill="none" stroke="#10b981" stroke-width="2"></path>
+</svg>
+</div>
+<div class="flex justify-between mt-3 text-[10px] text-slate-500 font-bold">
+<span>W1</span><span>W2</span><span>W3</span><span>W4</span>
+</div>
+</div>
+<!-- 5. Tourist Activity -->
+<div class="glass-card rounded-xl p-6 flex flex-col">
+<h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-6">Tourist Activity</h3>
+<div class="flex-1 flex items-end gap-1.5 h-32">
+<div class="flex-1 bg-primary/20 hover:bg-primary transition-colors h-[40%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary transition-colors h-[55%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary transition-colors h-[85%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary transition-colors h-[70%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary transition-colors h-[95%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary transition-colors h-[80%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary transition-colors h-[60%] rounded-t-sm"></div>
+</div>
+<div class="flex justify-between mt-4 text-[10px] text-slate-500 font-bold px-1">
+<span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+</div>
+</div>
+<!-- 6. Incident Lifecycle Funnel -->
+<div class="glass-card rounded-xl p-6 flex flex-col">
+<h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-6">Lifecycle Funnel</h3>
+<div class="flex-1 flex flex-col gap-4">
+<div class="flex flex-col gap-1">
+<div class="flex justify-between text-[10px] text-slate-400 px-1">
+<span>REPORTED</span>
+<span>100%</span>
+</div>
+<div class="h-3 bg-primary w-full rounded-full"></div>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between text-[10px] text-slate-400 px-1">
+<span>VERIFIED</span>
+<span>82%</span>
+</div>
+<div class="h-3 bg-primary/80 w-[82%] rounded-full"></div>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between text-[10px] text-slate-400 px-1">
+<span>ASSIGNED</span>
+<span>65%</span>
+</div>
+<div class="h-3 bg-primary/60 w-[65%] rounded-full"></div>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between text-[10px] text-slate-400 px-1">
+<span>CLOSED</span>
+<span>58%</span>
+</div>
+<div class="h-3 bg-primary/40 w-[58%] rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Summary Row -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl flex flex-col gap-2">
+<span class="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-tight">Total Incidents</span>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-bold">150</span>
+<span class="text-red-500 text-xs font-bold mb-1 flex items-center">
+<span class="material-symbols-outlined text-sm">trending_up</span> 5%
+                        </span>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl flex flex-col gap-2">
+<span class="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-tight">Avg Response</span>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-bold">10m</span>
+<span class="text-emerald-500 text-xs font-bold mb-1 flex items-center">
+<span class="material-symbols-outlined text-sm">trending_down</span> 10%
+                        </span>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl flex flex-col gap-2">
+<span class="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-tight">Resolution Rate</span>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-bold">85%</span>
+<span class="text-emerald-500 text-xs font-bold mb-1 flex items-center">
+<span class="material-symbols-outlined text-sm">trending_up</span> 2%
+                        </span>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl flex flex-col gap-2">
+<span class="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-tight">Active Zones</span>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-bold">6</span>
+<span class="text-slate-400 text-xs font-bold mb-1">Stable</span>
+</div>
+</div>
+</div>
+</main>
+<footer class="border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 py-6 px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500 dark:text-slate-400 text-sm">
+<div class="flex items-center gap-6">
+<a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="hover:text-primary transition-colors" href="#">System Status</a>
+</div>
+<p>© 2023 SafeTravel Authority Analytics. Confidential Information.</p>
+</footer>
+</div>
+</body></html>
