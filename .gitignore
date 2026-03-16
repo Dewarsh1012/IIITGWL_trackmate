@@ -1,0 +1,6 @@
+.DS_Store
+Trackmate_Backend/node_modules/
+Trackmate_Backend/dist/
+Trackmate_Backend/.env
+Trackmate_Backend/uploads/
+*.log
