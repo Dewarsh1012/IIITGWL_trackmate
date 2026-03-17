@@ -1,19 +1,83 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { ShieldAlert, Users, AlertTriangle, Map, Navigation, Shield, UserX, Building2, Bell, FileText, Settings, BarChart3, ChevronRight } from 'lucide-react';
+import { useSocket } from '../../context/SocketContext';
+import api from '../../lib/api';
+import { 
+  AlertTriangle, RefreshCw, Loader2,
+  TrendingUp
+} from "lucide-react";
 
 export default function AuthorityDashboard() {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const [incidents, setIncidents] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any>({
+    totalUsers: 0,
+    openIncidents: 0,
+    sosLastHour: 0,
+    activeUsersToday: 0
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mock incidents for now
-    setIncidents([
-      { id: '1', title: 'Emergency SOS Triggered', location: 'Sector 4 - Central Metro Station', reporter: 'Aria Thompson', time: '2m ago', severity: 'critical', type: 'sos' },
-      { id: '2', title: 'AI Zone Breach Detected', location: 'Restricted Govt Area - Block B', reporter: 'System AI (Auto)', time: '12m ago', severity: 'high', type: 'breach' },
-      { id: '3', title: 'Community Report: Theft', location: 'Grand Plaza Marketplace', reporter: 'Johnathan Doe', time: '25m ago', severity: 'medium', type: 'report' }
-    ]);
-  }, []);
+    fetchDashboardData();
+    
+    // Refresh every 60 seconds as fallback
+    const interval = setInterval(fetchDashboardData, 60000);
+
+    if (socket) {
+        socket.on('new-incident', (incident: any) => {
+            console.log('Live Incident Received:', incident);
+            setIncidents(prev => [incident, ...prev.slice(0, 9)]);
+            // Update summary if needed, or just re-fetch
+            fetchDashboardData();
+        });
+    }
+
+    return () => {
+        clearInterval(interval);
+        if (socket) socket.off('new-incident');
+    };
+  }, [socket]);
+
+  const fetchDashboardData = async () => {
+    try {
+      const [incidentsRes, summaryRes] = await Promise.all([
+        api.get('/incidents?limit=10'),
+        api.get('/analytics/summary')
+      ]);
+      
+      if (incidentsRes.data.success) {
+        setIncidents(incidentsRes.data.data);
+      }
+      
+      if (summaryRes.data.success) {
+        setSummary(summaryRes.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getSeverityColor = (sev: string) => {
+    switch (sev?.toLowerCase()) {
+      case 'critical': return 'bg-red-600 text-white';
+      case 'high': return 'bg-amber-500 text-white';
+      case 'medium': return 'bg-blue-500 text-white';
+      default: return 'bg-slate-500 text-white';
+    }
+  };
+
+  const getSourceIcon = (source: string) => {
+    switch (source?.toLowerCase()) {
+      case 'sos_panic': return 'sos';
+      case 'ai_anomaly': return 'smart_toy';
+      case 'resident_report': return 'forum';
+      default: return 'report';
+    }
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0A0F1E] text-slate-100 font-['Public_Sans',_sans-serif]">
@@ -31,17 +95,19 @@ export default function AuthorityDashboard() {
           </div>
 
           <div className="flex items-center gap-3 p-3 bg-[#0F172A] rounded-xl border border-[#1E293B]">
-            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center border border-[#1E293B]">
-              <span className="font-bold text-slate-300">KD</span>
+            <div className="size-10 rounded-full bg-slate-700 flex items-center justify-center border border-[#1E293B]">
+              <span className="font-bold text-slate-300">
+                {user?.full_name?.split(' ').map(n => n[0]).join('') || 'KD'}
+              </span>
             </div>
-            <div className="flex flex-col">
-              <p className="text-white text-sm font-semibold m-0">{user?.name || 'Inspector K. Das'}</p>
-              <p className="text-primary text-[10px] font-bold m-0 leading-tight">Badge #9921</p>
+            <div className="flex flex-col overflow-hidden">
+              <p className="text-white text-sm font-semibold m-0 truncate">{user?.full_name || 'Inspector K. Das'}</p>
+              <p className="text-primary text-[10px] font-bold m-0 leading-tight">{user?.designation || 'Special Duty'}</p>
             </div>
           </div>
 
           <nav className="flex flex-col gap-1">
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary text-white no-underline" href="#">
+            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary text-white no-underline" href="/authority/dashboard">
               <span className="material-symbols-outlined text-[20px] m-0">dashboard</span>
               <span className="text-sm font-medium">Dashboard</span>
             </a>
@@ -69,7 +135,7 @@ export default function AuthorityDashboard() {
               <span className="material-symbols-outlined text-[20px] m-0">description</span>
               <span className="text-sm font-medium">E-FIR System</span>
             </a>
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all no-underline" href="#">
+            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all no-underline" href="/authority/analytics">
               <span className="material-symbols-outlined text-[20px] m-0">bar_chart</span>
               <span className="text-sm font-medium">Analytics</span>
             </a>
@@ -97,12 +163,12 @@ export default function AuthorityDashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-tight m-0">Active Users</p>
-                <h3 className="text-2xl font-bold m-0 mt-1 text-white">247</h3>
+                <h3 className="text-2xl font-bold m-0 mt-1 text-white">{summary.activeUsersToday}</h3>
               </div>
               <span className="material-symbols-outlined text-primary bg-primary/20 p-2 rounded-lg m-0 leading-none">person_pin_circle</span>
             </div>
             <div className="mt-2 text-[10px] text-green-400 flex items-center gap-1">
-              <span className="material-symbols-outlined text-xs m-0">trending_up</span> +12% from last hour
+              <TrendingUp className="size-3" /> Real-time tracking active
             </div>
           </div>
           
@@ -110,39 +176,43 @@ export default function AuthorityDashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-tight m-0">Open Incidents</p>
-                <h3 className="text-2xl font-bold m-0 mt-1 text-red-500">18</h3>
+                <h3 className="text-2xl font-bold m-0 mt-1 text-red-500">{summary.openIncidents}</h3>
               </div>
               <span className="material-symbols-outlined text-red-500 bg-red-500/20 p-2 rounded-lg m-0 leading-none">warning</span>
             </div>
             <div className="mt-2 text-[10px] text-red-400 flex items-center gap-1">
-              <span className="material-symbols-outlined text-xs m-0">trending_up</span> +2 New Unassigned
+              <AlertTriangle className="size-3" /> Needs Attention
             </div>
           </div>
           
           <div className="bg-[#1E293B]/40 backdrop-blur-sm p-4 rounded-xl border border-white/5 border-l-4 border-l-red-500 relative overflow-hidden">
-            <div className="absolute inset-0 bg-red-500/5 animate-pulse"></div>
+            <div className={`absolute inset-0 bg-red-500/5 ${summary.sosLastHour > 0 ? 'animate-pulse' : ''}`}></div>
             <div className="flex justify-between items-start relative z-10">
               <div>
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-tight m-0">SOS Alerts</p>
-                <h3 className="text-2xl font-bold m-0 mt-1 text-red-400">2</h3>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-tight m-0">SOS (Last Hr)</p>
+                <h3 className="text-2xl font-bold m-0 mt-1 text-red-400">{summary.sosLastHour}</h3>
               </div>
-              <span className="material-symbols-outlined text-red-500 bg-red-500/30 p-2 rounded-lg m-0 leading-none animate-bounce">sos</span>
+              <span className={`material-symbols-outlined text-red-500 bg-red-500/30 p-2 rounded-lg m-0 leading-none ${summary.sosLastHour > 0 ? 'animate-bounce' : ''}`}>sos</span>
             </div>
             <div className="mt-2 text-[10px] text-red-500 font-bold flex items-center gap-1 relative z-10">
-              <span className="size-1.5 rounded-full bg-red-500"></span> IMMEDIATE RESPONSE REQ.
+              {summary.sosLastHour > 0 ? (
+                <><span className="size-1.5 rounded-full bg-red-500"></span> IMMEDIATE RESPONSE REQ.</>
+              ) : (
+                <><span className="size-1.5 rounded-full bg-slate-500"></span> No active panics</>
+              )}
             </div>
           </div>
           
           <div className="bg-[#1E293B]/40 backdrop-blur-sm p-4 rounded-xl border border-white/5 border-l-4 border-l-amber-500">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-tight m-0">Zone Breaches</p>
-                <h3 className="text-2xl font-bold m-0 mt-1 text-amber-500">5</h3>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-tight m-0">Total Profiles</p>
+                <h3 className="text-2xl font-bold m-0 mt-1 text-amber-500">{summary.totalUsers}</h3>
               </div>
               <span className="material-symbols-outlined text-amber-500 bg-amber-500/20 p-2 rounded-lg m-0 leading-none">gpp_maybe</span>
             </div>
             <div className="mt-2 text-[10px] text-amber-400 flex items-center gap-1">
-              <span className="material-symbols-outlined text-xs m-0">priority_high</span> 3 Geo-fence Violations
+              Verified System Database
             </div>
           </div>
         </div>
@@ -157,15 +227,6 @@ export default function AuthorityDashboard() {
                 <path d="M20,20 L50,15 L80,30 L70,70 L30,80 Z" fill="#1a57db" stroke="#1a57db" strokeWidth="0.5"></path>
                 <path d="M10,60 L30,55 L40,85 L15,90 Z" fill="#ef4444" stroke="#ef4444" strokeWidth="0.5"></path>
               </svg>
-              <div className="absolute top-[30%] left-[45%] size-3 bg-green-500 rounded-full border-2 border-white shadow-lg shadow-green-500/50"></div>
-              <div className="absolute top-[42%] left-[38%] size-3 bg-primary rounded-full border-2 border-white shadow-lg shadow-primary/50"></div>
-              <div className="absolute top-[55%] left-[62%] size-3 bg-amber-400 rounded-full border-2 border-white shadow-lg shadow-amber-400/50"></div>
-              <div className="absolute top-[25%] left-[70%] flex items-center justify-center">
-                <div className="absolute size-8 bg-red-600 rounded-full animate-ping opacity-75"></div>
-                <div className="relative size-4 bg-red-600 rounded-full border-2 border-white flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[8px] text-white font-bold m-0 leading-none">priority_high</span>
-                </div>
-              </div>
             </div>
 
             <div className="absolute top-4 left-4 flex gap-2">
@@ -181,7 +242,7 @@ export default function AuthorityDashboard() {
             </div>
 
             <div className="absolute bottom-4 left-4 bg-[#1E293B]/40 backdrop-blur-sm border border-white/5 p-3 rounded-lg flex flex-col gap-2 min-w-[140px]">
-              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest m-0">Map Legend</h4>
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest m-0 text-left">Map Legend</h4>
               <div className="flex items-center gap-2 text-xs">
                 <span className="size-2 rounded-full bg-primary"></span> Resident
               </div>
@@ -213,79 +274,78 @@ export default function AuthorityDashboard() {
               Live Alert Feed
             </h2>
             <div className="flex gap-2">
+              <button 
+                onClick={fetchDashboardData}
+                className="size-8 flex items-center justify-center bg-[#0F172A] border border-[#1E293B] rounded text-slate-400 hover:text-white transition-all"
+              >
+                <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
               <button className="text-xs bg-[#0F172A] border border-[#1E293B] px-3 py-1.5 rounded text-slate-400 hover:text-white outline-none">Filter</button>
-              <button className="text-xs bg-[#0F172A] border border-[#1E293B] px-3 py-1.5 rounded text-slate-400 hover:text-white outline-none">History</button>
             </div>
           </div>
           
           <div className="flex-1 overflow-y-auto rounded-xl border border-[#1E293B] bg-[#0F172A]/30">
-            <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 bg-[#0F172A] z-10 border-b border-[#1E293B]">
-                <tr>
-                  <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Severity</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Source</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Incident Title</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reporter</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Time</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1E293B]/50">
-                {incidents.map((incident) => (
-                  <tr key={incident.id} className={`transition-colors ${
-                    incident.severity === 'critical' ? 'hover:bg-red-500/5' :
-                    incident.severity === 'high' ? 'hover:bg-amber-500/5' :
-                    'hover:bg-blue-500/5'
-                  }`}>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded text-white text-[9px] font-bold uppercase ${
-                        incident.severity === 'critical' ? 'bg-red-600' :
-                        incident.severity === 'high' ? 'bg-amber-500' :
-                        'bg-blue-500'
-                      }`}>
-                        {incident.severity}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`material-symbols-outlined text-lg m-0 leading-none ${
-                        incident.type === 'sos' ? 'text-red-500' :
-                        incident.type === 'breach' ? 'text-primary' :
-                        'text-slate-400'
-                      }`}>
-                        {incident.type === 'sos' ? 'sos' : incident.type === 'breach' ? 'smart_toy' : 'forum'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-sm font-semibold text-white m-0">{incident.title}</p>
-                      <p className="text-[10px] text-slate-500 m-0 mt-0.5">{incident.location}</p>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-300">{incident.reporter}</td>
-                    <td className="px-4 py-3 text-xs text-slate-500">{incident.time}</td>
-                    <td className="px-4 py-3 text-right">
-                       <div className="flex justify-end gap-2">
-                        {incident.severity === 'critical' ? (
-                          <>
-                            <button className="px-3 py-1 rounded bg-primary text-white text-[10px] font-bold outline-none border-none">Acknowledge</button>
-                            <button className="px-3 py-1 rounded bg-slate-700 text-white text-[10px] font-bold outline-none border-none">Assign</button>
-                            <button className="px-3 py-1 rounded border border-red-500/50 text-red-500 text-[10px] font-bold bg-transparent outline-none">Escalate</button>
-                          </>
-                        ) : incident.severity === 'high' ? (
-                          <>
-                            <button className="px-3 py-1 rounded bg-primary text-white text-[10px] font-bold outline-none border-none">Acknowledge</button>
-                            <button className="px-3 py-1 rounded bg-slate-800 text-slate-400 text-[10px] font-bold outline-none border-none">Generate e-FIR</button>
-                          </>
-                        ) : (
-                          <>
-                            <button className="px-3 py-1 rounded bg-primary text-white text-[10px] font-bold outline-none border-none">Acknowledge</button>
-                            <button className="px-3 py-1 rounded bg-slate-700 text-white text-[10px] font-bold outline-none border-none">Assign</button>
-                          </>
-                        )}
-                       </div>
-                    </td>
+            {loading && incidents.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-3">
+                <Loader2 className="animate-spin size-8" />
+                <p className="text-sm font-mono tracking-widest">CONNECTING TO NODE FEED...</p>
+              </div>
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <thead className="sticky top-0 bg-[#0F172A] z-10 border-b border-[#1E293B]">
+                  <tr>
+                    <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Severity</th>
+                    <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Source</th>
+                    <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Incident Title</th>
+                    <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reporter</th>
+                    <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[#1E293B]/50">
+                  {incidents.map((incident) => (
+                    <tr key={incident._id} className={`transition-colors`}>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded text-[9px] font-bold uppercase ${getSeverityColor(incident.severity)}`}>
+                          {incident.severity}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`material-symbols-outlined text-lg m-0 leading-none ${
+                          incident.source === 'sos_panic' ? 'text-red-500' :
+                          incident.source === 'ai_anomaly' ? 'text-primary' :
+                          'text-slate-400'
+                        }`}>
+                          {getSourceIcon(incident.source)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-semibold text-white m-0">{incident.title}</p>
+                        <p className="text-[10px] text-slate-500 m-0 mt-0.5">
+                          {incident.zone?.name || 'Unknown Location'}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-xs text-slate-300 m-0">{incident.reporter?.full_name || 'System'}</p>
+                        <p className="text-[9px] text-slate-500 font-mono m-0">{incident.reporter?.blockchain_id || 'LOCAL-AI'}</p>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button className="px-3 py-1 rounded bg-primary text-white text-[10px] font-bold outline-none border-none hover:bg-primary/80 transition-all">Acknowledge</button>
+                          <button className="px-3 py-1 rounded bg-slate-800 text-slate-400 text-[10px] font-bold outline-none border-none hover:bg-slate-700 hover:text-white transition-all">Assign</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {incidents.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-10 text-center text-slate-500 italic text-sm">
+                        No active incidents detected in this sector.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </main>

@@ -3,9 +3,13 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/safetravel';
-
 export const connectDatabase = async (): Promise<void> => {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+        console.error('❌ MONGODB_URI is not defined in .env');
+        process.exit(1);
+    }
+
     try {
         mongoose.set('strictQuery', false);
 
@@ -21,7 +25,8 @@ export const connectDatabase = async (): Promise<void> => {
             console.log('⚠️  MongoDB disconnected');
         });
 
-        await mongoose.connect(MONGODB_URI, {
+        console.log('⏳ Connecting to MongoDB...');
+        await mongoose.connect(uri, {
             maxPoolSize: 10,
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,

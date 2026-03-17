@@ -4,6 +4,8 @@ export interface User {
   id: string;
   email: string;
   full_name: string;
+  business_name?: string;
+  is_active?: boolean;
   role: UserRole;
   blockchain_id?: string;
   safety_score?: number;

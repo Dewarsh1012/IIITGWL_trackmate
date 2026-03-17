@@ -28,12 +28,10 @@ const profileSchema = new Schema<IProfile>(
 );
 
 // Hash password before saving
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-profileSchema.pre('save', async function (this: any, next: any) {
-    if (!this.isModified('password')) { next(); return; }
+profileSchema.pre('save', async function (this: any) {
+    if (!this.isModified('password')) return;
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
 });
 
 // Compare password method
@@ -44,6 +42,5 @@ profileSchema.methods.comparePassword = async function (password: string): Promi
 // Index for queries
 profileSchema.index({ role: 1 });
 profileSchema.index({ ward: 1 });
-profileSchema.index({ blockchain_id: 1 });
 
 export const Profile = mongoose.model<IProfile>('Profile', profileSchema);

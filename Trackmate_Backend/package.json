@@ -8,6 +8,7 @@
         "start": "node dist/server.js",
         "build": "tsc",
         "seed": "ts-node src/scripts/seed.ts",
+        "register": "ts-node src/scripts/register-user.ts",
         "test": "echo \"No tests yet\" && exit 0"
     },
     "keywords": [],
