@@ -42,13 +42,14 @@ export default function AuthPage() {
       setErrorMsg('');
       const payload: any = { ...data, role };
       if (role === 'tourist') {
-        payload.trip = {
-          destination_region: data.destination_region,
-          start_date: data.trip_start_date,
-          end_date: data.trip_end_date
-        };
+        payload.start_date = data.trip_start_date;
+        payload.end_date = data.trip_end_date;
+        delete payload.trip_start_date;
+        delete payload.trip_end_date;
       }
-      const { user, blockchainId: newBcId } = await authRegister(payload);
+      // Remove confirm_password — backend doesn't expect it
+      delete payload.confirm_password;
+      const { blockchainId: newBcId } = await authRegister(payload);
       setBlockchainId(newBcId);
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || 'Registration failed');
@@ -130,7 +131,7 @@ export default function AuthPage() {
                   <RoleSelectCard active={role === 'business'} icon="business_center" title="Business" subtitle="Service" onClick={() => setRole('business')} />
                   <RoleSelectCard active={role === 'authority'} icon="policy" title="Authority" subtitle="Gov Agency" onClick={() => setRole('authority')} />
                 </div>
-                <RegisterForm role={role} onSubmit={onRegister} />
+                <RegisterForm key={role} role={role} onSubmit={onRegister} />
               </>
             )}
           </div>
