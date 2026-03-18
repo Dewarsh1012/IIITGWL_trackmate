@@ -292,11 +292,7 @@ function RegisterForm({ role, onSubmit }: { role: string, onSubmit: (data: any) 
 
       {role === 'authority' && (
         <div className="space-y-5 p-5 bg-slate-900/30 rounded-xl border border-slate-700/50">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-purple-400">Government Authority Code</label>
-            <input {...register('authority_code')} type="password" className={InputClass} placeholder="Secure Access Token" />
-            {errors.authority_code && <span className="text-xs text-red-400">{errors.authority_code.message as string}</span>}
-          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-purple-400">Department</label>

@@ -44,7 +44,6 @@ const businessExtras = z.object({
 const authorityExtras = z.object({
     designation: z.string().min(2),
     department: z.string().min(2),
-    authority_code: z.string(),
 });
 
 const loginSchema = z.object({
@@ -77,10 +76,6 @@ router.post('/register', authRateLimiter, async (req, res: Response, next) => {
             extras = businessExtras.parse(req.body);
         } else if (base.role === UserRole.AUTHORITY) {
             extras = authorityExtras.parse(req.body);
-            if (extras.authority_code !== AUTHORITY_CODE) {
-                res.status(403).json({ success: false, message: 'Invalid authority code' });
-                return;
-            }
         }
 
         const existing = await Profile.findOne({ email: base.email });
