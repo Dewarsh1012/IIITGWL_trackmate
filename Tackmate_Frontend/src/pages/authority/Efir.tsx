@@ -142,7 +142,7 @@ export default function AuthorityEfir() {
         <div className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link to="/authority/dashboard" className="flex items-center gap-3 text-primary no-underline text-2xl font-bold italic">
-              SafeTravel
+              Trackmate
             </Link>
             <nav className="hidden md:flex items-center gap-6">
               <Link to="/authority/dashboard" className="text-slate-600 dark:text-slate-400 hover:text-primary text-sm font-medium no-underline">Dashboard</Link>
@@ -348,7 +348,7 @@ export default function AuthorityEfir() {
       </main>
       
       <footer className="max-w-[1280px] mx-auto px-6 py-8 border-t border-slate-200 dark:border-slate-800 text-center">
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">SafeTravel Cryptographic Protocol • Legal System Access Only</p>
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">Trackmate Cryptographic Protocol • Legal System Access Only</p>
       </footer>
     </div>
   );

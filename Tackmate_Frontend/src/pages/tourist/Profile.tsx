@@ -108,7 +108,7 @@ export default function TouristProfile() {
               <div className="relative z-10 h-full flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold tracking-[0.2em] text-primary uppercase m-0">SafeTravel Digital Identity</p>
+                    <p className="text-[10px] font-bold tracking-[0.2em] text-primary uppercase m-0">Trackmate Digital Identity</p>
                     <h4 className="text-2xl font-bold tracking-tight m-0">{user?.name || 'Raj Sharma'}</h4>
                   </div>
                   <div className="bg-primary/20 backdrop-blur-md border border-primary/30 px-3 py-1 rounded text-[10px] font-bold flex items-center gap-1.5">
@@ -141,7 +141,7 @@ export default function TouristProfile() {
                     <div className="bg-white p-2 rounded-lg flex items-center justify-center">
                        <span className="material-symbols-outlined text-[80px] text-slate-900 m-0">qr_code_2</span>
                     </div>
-                    <p className="mt-2 text-[9px] font-mono text-slate-400 m-0">ENCRYPTED PROTOCOL V3</p>
+                    <p className="mt-2 text-[9px] font-mono text-slate-400 m-0">ENCRYPTED PROTOCOL</p>
                   </div>
                 </div>
               </div>

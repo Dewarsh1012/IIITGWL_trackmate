@@ -45,7 +45,7 @@ export default function VerifyPage() {
             <div className="mx-auto w-16 h-16 bg-[#0a1628] border border-[rgba(0,212,170,0.3)] rounded-full flex items-center justify-center mb-4 text-[#00d4aa] shadow-[0_0_15px_rgba(0,212,170,0.2)]">
               <Shield className="w-8 h-8" />
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">SafeTravel ID Verification</h1>
+            <h1 className="text-2xl font-bold text-white mb-2">Trackmate ID Verification</h1>
             <p className="text-[#8892b0] font-mono text-sm">Blockchain Identity Lookup</p>
           </div>
 
@@ -104,7 +104,7 @@ export default function VerifyPage() {
               <div className="bg-[#ff4757]/10 border border-[#ff4757]/30 rounded-xl p-6 text-center">
                 <XCircle className="w-16 h-16 text-[#ff4757] mx-auto mb-4" />
                 <h2 className="text-xl font-bold text-white mb-2">Verification Failed</h2>
-                <p className="text-[#8892b0] mb-4">The provided SafeTravel ID could not be found or has expired trip validity.</p>
+                <p className="text-[#8892b0] mb-4">The provided Trackmate ID could not be found or has expired trip validity.</p>
                 <div className="bg-[#0a1628] border border-[#ff4757]/20 p-3 rounded font-mono text-xs text-[#ff4757]">
                   ID: {blockchainId || 'Unknown'}
                 </div>

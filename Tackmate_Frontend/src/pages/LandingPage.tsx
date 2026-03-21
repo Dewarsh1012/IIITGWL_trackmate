@@ -11,7 +11,7 @@ export default function LandingPage() {
             <div className="flex items-center justify-center size-10 rounded-lg bg-primary text-white shadow-lg shadow-primary/30">
               <span className="material-symbols-outlined text-2xl font-bold">shield_person</span>
             </div>
-            <h2 className="text-slate-100 text-xl font-extrabold tracking-tight">SafeTravel <span className="text-primary font-medium text-sm align-top">v3.0</span></h2>
+            <h2 className="text-slate-100 text-xl font-extrabold tracking-tight">Trackmate</h2>
           </div>
           <nav className="hidden md:flex items-center gap-8">
             <a className="text-slate-400 hover:text-white transition-colors text-sm font-semibold" href="#">Solutions</a>
@@ -175,7 +175,7 @@ export default function LandingPage() {
                 <div className="flex items-center justify-center size-8 rounded bg-primary text-white">
                   <span className="material-symbols-outlined text-lg">shield_person</span>
                 </div>
-                <h2 className="text-slate-100 text-lg font-bold tracking-tight">SafeTravel</h2>
+                <h2 className="text-slate-100 text-lg font-bold tracking-tight">Trackmate</h2>
               </div>
               <p className="text-slate-500 max-w-sm leading-relaxed">Building the foundation for safe, resilient cities of tomorrow. Empowering individuals and communities through technology.</p>
             </div>
@@ -197,7 +197,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-8 border-t border-white/5">
-            <p className="text-slate-600 text-xs font-semibold uppercase tracking-wider">© 2026 SafeTravel v3.0 Civic OS. All rights reserved.</p>
+            <p className="text-slate-600 text-xs font-semibold uppercase tracking-wider">© 2026 Trackmate Civic OS. All rights reserved.</p>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5 px-3 py-1 rounded bg-green-500/10 text-green-500 text-[10px] font-bold tracking-widest border border-green-500/20">
                 <span className="size-1.5 rounded-full bg-green-500 animate-pulse"></span> SYSTEM ONLINE

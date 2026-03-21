@@ -89,8 +89,8 @@ export default function AuthorityDashboard() {
               <span className="material-symbols-outlined text-white text-2xl leading-none m-0">shield_person</span>
             </div>
             <div>
-              <h1 className="text-white text-lg font-bold leading-none m-0">SafeTravel</h1>
-              <p className="text-slate-400 text-[10px] uppercase tracking-widest font-bold m-0 mt-1">v3.0 Command Center</p>
+              <h1 className="text-white text-lg font-bold leading-none m-0">Trackmate</h1>
+              <p className="text-slate-400 text-[10px] uppercase tracking-widest font-bold m-0 mt-1">Command Center</p>
             </div>
           </div>
 

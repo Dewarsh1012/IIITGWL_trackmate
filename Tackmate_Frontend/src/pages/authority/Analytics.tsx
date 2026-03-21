@@ -59,7 +59,7 @@ export default function AuthorityAnalytics() {
           <div className="flex items-center gap-8">
             <Link to="/authority/dashboard" className="flex items-center gap-3 text-primary no-underline">
               <Shield className="size-8" />
-              <h1 className="text-xl font-bold tracking-tight m-0 text-slate-900 dark:text-white italic">SafeTravel Authority</h1>
+              <h1 className="text-xl font-bold tracking-tight m-0 text-slate-900 dark:text-white italic">Trackmate Authority</h1>
             </Link>
           </div>
           <div className="flex items-center gap-4">

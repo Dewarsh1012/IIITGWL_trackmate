@@ -91,7 +91,7 @@ export default function AuthPage() {
           <div className="bg-primary p-2 rounded-lg text-white">
             <span className="material-symbols-outlined block">shield_person</span>
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">SafeTravel <span className="text-primary text-sm align-top">v3.0</span></h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Trackmate</h1>
         </Link>
         <Link to="/" className="text-sm font-medium hover:text-primary transition-colors text-slate-400 hidden sm:block">Back to Home</Link>
       </header>

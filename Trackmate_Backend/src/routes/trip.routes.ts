@@ -85,12 +85,22 @@ router.patch('/trips/:id', authenticate, async (req: AuthRequest, res: Response,
 router.get('/trips/active', authenticate, async (req: AuthRequest, res: Response, next) => {
     try {
         const now = new Date();
-        const trip = await Trip.findOne({
+        // 1. Try to find a trip currently in progress
+        let trip = await Trip.findOne({
             tourist: req.user!.userId,
             is_active: true,
             start_date: { $lte: now },
             end_date: { $gte: now },
         }).lean();
+
+        // 2. Fallback: most recent active trip (upcoming or past)
+        if (!trip) {
+            trip = await Trip.findOne({
+                tourist: req.user!.userId,
+                is_active: true,
+            }).sort({ created_at: -1 }).lean();
+        }
+
         res.json({ success: true, data: trip });
     } catch (err) {
         next(err);

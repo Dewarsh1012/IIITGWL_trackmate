@@ -24,7 +24,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
       newSocket.on('connect', () => {
         setIsConnected(true);
-        console.log('Connected to SafeTravel Real-time Engine');
+        console.log('Connected to Trackmate Real-time Engine');
         
         // Join role-specific rooms
         newSocket.emit('join-room', `role:${user.role}`);

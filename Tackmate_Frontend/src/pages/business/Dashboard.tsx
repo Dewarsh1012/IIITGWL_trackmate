@@ -216,7 +216,7 @@ export default function BusinessDashboard() {
                   <Fingerprint className="size-7 text-amber-500" />
                   Blockchain Identity Proof
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 m-0">Validate traveler credentials against the SafeTravel decentralized ledger.</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 m-0">Validate traveler credentials against the Trackmate decentralized ledger.</p>
               </div>
               <div className="flex gap-3">
                 <div className="relative flex-1">

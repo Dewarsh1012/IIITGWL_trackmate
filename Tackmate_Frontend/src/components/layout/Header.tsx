@@ -17,7 +17,7 @@ export default function Header() {
       <div className="flex items-center gap-12">
         <Globe2 size={24} className="text-primary" />
         <h2 style={{ fontSize: '1.2rem', margin: 0, letterSpacing: '1px' }}>
-          SafeTravel <span style={{ color: 'var(--color-primary)' }}>v3</span>
+          Trackmate
         </h2>
       </div>
 
