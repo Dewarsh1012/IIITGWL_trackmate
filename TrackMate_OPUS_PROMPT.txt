@@ -1,0 +1,1599 @@
+================================================================================
+   TRACKMATE — COMPLETE SYSTEM BUILD PROMPT FOR CLAUDE OPUS
+   Real-Time Tourist & Resident Safety Monitoring Platform
+   Version: 1.0 | Author: System Architect | Target AI: Claude Opus 4
+================================================================================
+
+YOU ARE A SENIOR FULL-STACK ARCHITECT, PRINCIPAL PRODUCT DESIGNER, AND SYSTEMS
+ENGINEER WITH 15+ YEARS OF PRODUCTION EXPERIENCE. Your task is to design and
+deliver the COMPLETE, PRODUCTION-READY implementation of TrackMate — a real-time
+safety monitoring platform for tourists, residents, and businesses, governed by
+an authority (government/control center).
+
+DO NOT give vague, placeholder, or partial answers. Every module must be
+implemented in full. Every button must trigger real logic. Every API must have
+complete request/response schema. Every database table must have full column
+definitions. You are building a REAL PRODUCT, not a demo or prototype.
+
+================================================================================
+SECTION 1: SYSTEM IDENTITY & OVERVIEW
+================================================================================
+
+PRODUCT NAME: TrackMate
+TAGLINE: "Know Where. Stay Safe."
+
+MISSION:
+TrackMate enables government authorities to monitor the real-time safety of
+tourists, residents, and businesses within a geographic jurisdiction. It provides
+geo-fencing, incident reporting, safety scoring, alert broadcasting, FIR (First
+Information Report) management, and full audit reporting — all in real time.
+
+USER ROLES (4 total):
+┌──────────────┬────────────────────────────────────────────────────────────────┐
+│ Role         │ Description                                                    │
+├──────────────┼────────────────────────────────────────────────────────────────┤
+│ Authority    │ Government/Admin/Control Center. Full system access.           │
+│ Tourist      │ Visiting individual. Tracked, alerted, can file incidents.     │
+│ Resident     │ Local permanent resident. Tracked, alerted, can file incidents.│
+│ Business     │ Local business entity. Tracked, alerted, can file incidents.   │
+└──────────────┴────────────────────────────────────────────────────────────────┘
+
+================================================================================
+SECTION 2: COMPLETE FEATURE LIST WITH EXACT SPECIFICATIONS
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+FEATURE 1: REAL-TIME LOCATION TRACKING
+────────────────────────────────────────────────────────────────────────────────
+
+DESCRIPTION:
+Every non-authority user (Tourist, Resident, Business) must continuously share
+their GPS coordinates. The Authority dashboard must display ALL active users on
+a live interactive map with colored role-based pins/markers.
+
+SPECIFICATIONS:
+- Location update interval: every 5 seconds (configurable)
+- Map provider: Leaflet.js (OSM) or Mapbox GL JS
+- Marker colors:
+    Tourist  → Blue pin  (#3B82F6)
+    Resident → Green pin (#10B981)
+    Business → Orange pin (#F59E0B)
+    Danger zone users → Red blinking pulse overlay
+- Map must support zoom, pan, cluster markers when zoomed out
+- Clicking a marker opens a sidebar panel with:
+    • User name, role, Blockchain ID
+    • Current coordinates (lat/lng)
+    • Safety Score (live)
+    • Current zone (safe/medium/high-risk)
+    • Last seen timestamp
+    • Button: "Send Alert to This User"
+    • Button: "View Full Profile"
+- Location data is streamed via WebSockets (Socket.IO)
+- Each user's browser/device sends location via Geolocation API every 5s
+- If GPS unavailable → use IP-based fallback (ip-api.com or similar)
+- Authority sees a "Live Users" counter in the header (updates in real time)
+
+OFFLINE HANDLING:
+- If a tracked user goes offline (no ping for 30 seconds):
+    • Their marker turns gray
+    • Badge shows "OFFLINE"
+    • Authority is notified in a toast notification
+    • Last known location retained on map
+
+IMPLEMENTATION STACK:
+- Frontend: Socket.IO client (emit location every 5 seconds)
+- Backend: Socket.IO server (broadcast to authority room)
+- Storage: Redis (live location cache, TTL=60s) + PostgreSQL (location history)
+
+────────────────────────────────────────────────────────────────────────────────
+FEATURE 2: INCIDENT REPORTING SYSTEM
+────────────────────────────────────────────────────────────────────────────────
+
+DESCRIPTION:
+Tourists, Residents, and Businesses can file incident reports. These appear
+instantly on the Authority dashboard with all details.
+
+INCIDENT FORM FIELDS:
+- Incident Type (dropdown):
+    • Theft / Robbery
+    • Medical Emergency
+    • Natural Disaster
+    • Harassment
+    • Infrastructure Damage
+    • Suspicious Activity
+    • Other (with text input)
+- Title (text, max 100 chars)
+- Description (textarea, max 1000 chars)
+- Location (auto-filled from GPS, but user can override with map pin drag)
+- Severity: Low / Medium / High / Critical
+- Attach Photo (optional, max 5MB, jpg/png)
+- Anonymous report toggle (default: off)
+
+AUTHORITY INCIDENT PANEL:
+- Real-time list of all incidents (newest first)
+- Filterable by: Role, Severity, Date, Status, Zone
+- Each incident card shows:
+    • Reporter name (or "Anonymous"), role badge, timestamp
+    • Incident type icon, title, description snippet
+    • Map pin button (jump to location on map)
+    • Status badge: Open / Under Investigation / Resolved / Dismissed
+    • Assigned Officer field (authority can assign)
+    • Notes field (authority-only internal notes)
+    • Action buttons: [Investigate] [Resolve] [Dismiss] [Create FIR from Incident]
+
+REAL-TIME FLOW:
+1. User submits incident form
+2. POST /api/incidents creates record
+3. Socket.IO emits "new_incident" event to all authority sockets
+4. Authority dashboard appends incident card without page reload
+5. Notification badge counter increments on Authority nav
+
+────────────────────────────────────────────────────────────────────────────────
+FEATURE 3: ZONE MANAGEMENT SYSTEM (GEO-FENCING)
+────────────────────────────────────────────────────────────────────────────────
+
+DESCRIPTION:
+Authority can draw, edit, and manage geographic zones on the map. Zones have
+risk levels and automatically trigger alerts when users enter or exit them.
+
+ZONE CREATION:
+- Authority opens "Zone Manager" panel
+- Draws polygon on map using Leaflet.Draw plugin
+- Fills zone metadata form:
+    • Zone Name (e.g., "Old City Market", "Industrial North")
+    • Zone Type: Residential / Commercial / Tourist / Restricted / Industrial
+    • Risk Level: LOW / MEDIUM / HIGH (with color coding)
+        LOW    → Green fill  (#10B981, 20% opacity)
+        MEDIUM → Yellow fill (#F59E0B, 20% opacity)
+        HIGH   → Red fill    (#EF4444, 20% opacity)
+    • Safety Index: numeric 0–100 (auto-calculated but editable)
+    • Description / Notes
+    • Active: toggle (disabled zones are grayed out)
+- Save button → POST /api/zones
+- Zone appears on map immediately for all users (broadcast via Socket.IO)
+
+ZONE EDITING:
+- Authority clicks existing zone → edit mode
+- Can drag polygon vertices to resize
+- Can change risk level, name, or deactivate zone
+- PUT /api/zones/:id
+
+ZONE DELETION:
+- Soft delete (isDeleted flag)
+- Removed from map, retained in audit history
+
+GEO-FENCE TRIGGER ENGINE (BACKEND):
+- Every time a user location is updated:
+    1. Check which zones contain the new coordinates (point-in-polygon algorithm)
+    2. Compare with user's previous zone set
+    3. If user ENTERED a new zone:
+        → Log zone_entry event
+        → If zone risk ≥ HIGH → emit "zone_alert" to user's socket
+        → Decrease safety score by 2 points per minute in HIGH zone
+        → Notify authority: "User X entered HIGH-RISK zone: [Zone Name]"
+    4. If user EXITED a zone:
+        → Log zone_exit event
+        → Recalculate dwell time
+        → Update safety score accordingly
+
+SAFETY INDEX CALCULATION (per zone):
+    Safety Index = 100 - (incident_rate * 30) - (avg_severity * 20) - (high_risk_users_pct * 50)
+    Range: 0–100, updated every 15 minutes via cron job
+
+────────────────────────────────────────────────────────────────────────────────
+FEATURE 4: ALERT SYSTEM
+────────────────────────────────────────────────────────────────────────────────
+
+DESCRIPTION:
+Authority can broadcast alerts to individual users or groups. Alerts appear
+as real-time notifications on the recipient's dashboard.
+
+ALERT COMPOSITION PANEL (Authority):
+- Alert Title (text, max 80 chars)
+- Alert Message (textarea, max 500 chars)
+- Alert Type (dropdown):
+    • Emergency / Safety Warning / Weather Advisory / Traffic Update
+    • Zone Update / Curfew / Evacuation / General Information
+- Priority: LOW / MEDIUM / HIGH / CRITICAL
+    CRITICAL → Red banner with siren icon + forced popup modal
+    HIGH     → Orange banner
+    MEDIUM   → Yellow toast
+    LOW      → Gray toast
+- Target Audience (multi-select checkboxes):
+    ☐ All Users
+    ☐ All Tourists
+    ☐ All Residents
+    ☐ All Businesses
+    ☐ Specific User (autocomplete search by name/ID)
+    ☐ Users in Zone (dropdown of zones)
+- Schedule Alert toggle: send now OR schedule for date/time
+- [Send Alert] button → POST /api/alerts
+
+ALERT DELIVERY:
+1. Backend identifies all target user socket IDs
+2. Emits "new_alert" event to each user's socket
+3. Stores alert record in database
+4. If user offline → alert queued and delivered on reconnection
+
+RECIPIENT DASHBOARD (Tourist/Resident/Business):
+- Notification bell icon with unread count badge
+- Alert panel slides in from right
+- Each alert shows:
+    • Type icon + priority color
+    • Title, message
+    • Timestamp
+    • "Mark as Read" button
+    • "Acknowledge" button (for CRITICAL alerts — required action)
+- CRITICAL alerts trigger a modal popup that cannot be dismissed until acknowledged
+
+ALERT HISTORY (Authority):
+- Full log of all sent alerts
+- Columns: Alert ID, Type, Priority, Target, Sent At, Read Count / Total
+- Filter by type, date range, priority
+- Ability to resend or cancel scheduled alerts
+
+────────────────────────────────────────────────────────────────────────────────
+FEATURE 5: USER PROFILE + TOURIST ROSTER
+────────────────────────────────────────────────────────────────────────────────
+
+DESCRIPTION:
+Every user has a detailed profile. Authority can view all profiles in a
+"Tourist Roster" (term covers all non-authority users).
+
+USER PROFILE FIELDS:
+- Full Name
+- Email
+- Phone Number
+- Role (Tourist / Resident / Business)
+- Avatar / Photo
+- Date of Registration
+- Blockchain ID (unique hash, generated on registration — format: TM-[SHA256 prefix 12 chars])
+- Nationality / Location (for tourists)
+- Business Registration Number (for businesses)
+- Aadhar / National ID (optional, encrypted at rest)
+- Emergency Contact (name + phone)
+- Current Safety Score (0–100)
+- Zone History (list of zones visited with timestamps)
+- Incident History (list of incidents filed by this user)
+- Alert History (list of alerts received)
+- Status: Active / Suspended / Flagged
+
+TOURIST ROSTER (Authority view):
+- Table with search + filter + sort
+- Columns: Avatar, Name, Role, Blockchain ID, Safety Score, Current Zone, Status, Actions
+- Filters: Role, Safety Score range, Zone, Status, Date Joined
+- Sort: by name, safety score, last seen
+- Row actions: [View Profile] [Send Alert] [Flag User] [Suspend User] [Download Profile PDF]
+- Bulk actions: Select multiple → Send Group Alert / Export CSV
+
+────────────────────────────────────────────────────────────────────────────────
+FEATURE 6: DYNAMIC SAFETY SCORE SYSTEM
+────────────────────────────────────────────────────────────────────────────────
+
+DESCRIPTION:
+Each user has a Safety Score from 0 to 100 that changes dynamically based
+on their real-world behavior within the platform.
+
+DEFAULT SCORE: 100 (on registration)
+
+SCORE REDUCTION RULES:
+┌─────────────────────────────────────────────────────┬──────────────────────┐
+│ Behavior                                            │ Score Change         │
+├─────────────────────────────────────────────────────┼──────────────────────┤
+│ Entering HIGH-RISK zone                             │ -2 per minute stayed │
+│ Entering MEDIUM-RISK zone                           │ -0.5 per minute      │
+│ Filing a CRITICAL severity incident                 │ -5 (one-time)        │
+│ Being flagged by Authority                          │ -10                  │
+│ Account suspended                                   │ Set to 0             │
+│ Ignoring CRITICAL alert (not acknowledged in 5 min) │ -3                   │
+└─────────────────────────────────────────────────────┴──────────────────────┘
+
+SCORE RECOVERY RULES:
+┌─────────────────────────────────────────────────────┬──────────────────────┐
+│ Behavior                                            │ Score Change         │
+├─────────────────────────────────────────────────────┼──────────────────────┤
+│ Staying in LOW-RISK zone (per hour)                 │ +1                   │
+│ Acknowledging CRITICAL alert promptly (< 2 min)     │ +2                   │
+│ Incident resolved favorably (filed by user)         │ +3                   │
+│ Account in good standing for 7 days                 │ +5 (weekly bonus)    │
+│ Unflagged by Authority                              │ +5                   │
+└─────────────────────────────────────────────────────┴──────────────────────┘
+
+SCORE DISPLAY:
+- Color coded gauge/ring on all dashboards:
+    90–100 → Green  (Safe)
+    70–89  → Teal   (Mostly Safe)
+    50–69  → Yellow (Caution)
+    30–49  → Orange (At Risk)
+    0–29   → Red    (Danger)
+- Animated score transitions (smooth number count-up/down)
+- Score history chart (line graph, last 30 days) visible in user profile
+
+CALCULATION ENGINE:
+- Node.js worker process (or cron job every 60 seconds)
+- Reads Redis for live zone dwell times
+- Applies scoring rules
+- Writes updated score to PostgreSQL users table
+- Emits "score_update" via Socket.IO to user and authority
+
+────────────────────────────────────────────────────────────────────────────────
+FEATURE 7: SAFETY ANALYTICS DASHBOARD
+────────────────────────────────────────────────────────────────────────────────
+
+DESCRIPTION:
+Authority dashboard has a dedicated Analytics page with charts and KPIs
+showing system-wide safety data in real time.
+
+KPI CARDS (top of page):
+┌──────────────────┬──────────────────┬──────────────────┬──────────────────┐
+│ Total Active     │ In High-Risk     │ Incidents Today  │ Avg Safety Score │
+│ Users: [N]       │ Zones: [N]       │ [N]              │ [0–100]          │
+└──────────────────┴──────────────────┴──────────────────┴──────────────────┘
+
+CHARTS (using Chart.js or Recharts):
+
+Chart 1: Users by Zone Risk Level (Donut/Pie)
+- Segments: Safe Zone Users / Medium Zone Users / High Risk Zone Users / No Zone
+- Live update every 30 seconds
+
+Chart 2: Safety Score Distribution (Histogram / Bar)
+- X-axis: Score ranges (0–20, 21–40, 41–60, 61–80, 81–100)
+- Y-axis: Number of users per range
+- Split by role (Tourist/Resident/Business) — stacked bars
+
+Chart 3: Incident Trends (Line chart)
+- X-axis: Last 30 days (daily), or last 24 hours (hourly)
+- Y-axis: Count of incidents
+- Lines: Total / Critical / High / Medium / Low severity
+- Toggle between Daily / Weekly / Monthly view
+
+Chart 4: Zone Activity Heatmap (map-based)
+- Overlay on mini-map
+- Color intensity = number of users currently in zone
+- Useful for crowd control
+
+Chart 5: Movement Trend (Area chart)
+- Shows user counts over time entering/exiting high-risk zones
+- Time slider to view historical data
+
+Chart 6: Alert Response Rate (Radial gauge or bar)
+- % of critical alerts acknowledged within 5 min
+- % of medium alerts read within 30 min
+
+ALL CHARTS:
+- Exportable as PNG (download icon per chart)
+- Date range picker (filter all charts simultaneously)
+- Auto-refresh toggle (refresh every 30s or manual)
+
+────────────────────────────────────────────────────────────────────────────────
+FEATURE 8: E-FIR SYSTEM (ELECTRONIC FIRST INFORMATION REPORT)
+────────────────────────────────────────────────────────────────────────────────
+
+DESCRIPTION:
+The Authority can manage First Information Reports (FIRs). FIRs can be created
+from scratch or generated from existing incident reports.
+
+FIR FORM FIELDS:
+- FIR Number (auto-generated: FIR-YYYY-MMDD-XXXX)
+- Related Incident ID (optional, auto-links if created from incident)
+- Complainant Name (auto-filled from user, editable)
+- Complainant Role
+- Date of Occurrence
+- Location of Occurrence (map pin + address text)
+- Nature of Offense (text)
+- Detailed Description (rich text, min 100 chars)
+- Accused Details (name, description, if known)
+- Witnesses (repeatable field: name + contact)
+- Evidence Attached (file upload: images, PDFs)
+- Assigned Officer (dropdown of authority officers)
+- Status (auto-set to "Submitted" on creation)
+
+FIR STATUSES:
+- Submitted   → Initial state (blue badge)
+- Under Review → Authority is processing (yellow badge)
+- Refused     → Authority declined to proceed (red badge, requires reason note)
+- Resolved    → Case successfully closed (green badge)
+- Closed      → Administratively closed (gray badge)
+
+STATUS TRANSITIONS:
+- Only Authority can change status
+- Status change requires a mandatory note field
+- Every status change is timestamped and logged in an audit trail
+- Status change triggers Socket.IO event → user's dashboard updates badge instantly
+
+FIR LIST VIEW (Authority):
+- Table: FIR No. | Complainant | Offense Type | Assigned Officer | Date | Status | Actions
+- Filter: Status, Assigned Officer, Date Range, Role of Complainant
+- Sort: By date, by status, by FIR number
+- Row actions: [View Details] [Change Status] [Download PDF] [Create Alert from FIR]
+- Bulk: Export selected as CSV or PDF batch
+
+FIR DETAIL VIEW:
+- Full form in read mode
+- Activity log / audit trail at bottom (who changed what, when)
+- Internal comments section (authority-only)
+- Link to related incident (if any)
+- Link to user profile of complainant
+- PDF download of individual FIR
+
+USER VIEW (Tourist/Resident/Business):
+- "My FIRs" tab in their dashboard
+- Can see their filed FIRs and current status
+- Cannot edit after submission
+- Receive real-time status update notifications
+
+────────────────────────────────────────────────────────────────────────────────
+FEATURE 9: AUDIT REPORT (PDF DOWNLOAD)
+────────────────────────────────────────────────────────────────────────────────
+
+DESCRIPTION:
+Authority can generate a comprehensive system audit report as a downloadable
+PDF document covering a configurable time period.
+
+REPORT GENERATION UI:
+- "Generate Audit Report" button on Authority dashboard
+- Date range selector (from — to)
+- Report sections selector (checkboxes):
+    ☑ Executive Summary
+    ☑ User Activity Summary
+    ☑ Incident Report Log
+    ☑ Zone Activity Analysis
+    ☑ FIR Status Summary
+    ☑ Alert Log
+    ☑ Safety Score Distribution
+    ☑ Movement Heatmap (screenshot embed)
+- Format: PDF only (A4, print-ready)
+- [Generate & Download] button
+
+PDF CONTENT STRUCTURE:
+1. Cover Page
+   - TrackMate logo + report title
+   - Report period: [From Date] – [To Date]
+   - Generated by: [Authority Name]
+   - Generated on: [Timestamp]
+   - Confidentiality notice
+
+2. Executive Summary
+   - Total users monitored
+   - Total incidents: N (breakdown by severity)
+   - Total FIRs: N (breakdown by status)
+   - Zones: N total (N high-risk, N medium, N low)
+   - Average system safety score
+   - Critical events timeline
+
+3. User Activity Summary
+   - Table: Role | Count | Avg Safety Score | Total Zone Entries | Incidents Filed
+   - Top 10 most active users (by zone entries)
+   - Users with Safety Score < 30 (flagged)
+
+4. Incident Log
+   - Table: ID | Type | Reporter Role | Severity | Location | Date | Status
+   - Grouped by severity
+   - Map thumbnail showing incident cluster locations
+
+5. Zone Activity Analysis
+   - Table: Zone Name | Risk Level | Safety Index | Total User-Hours | Incidents in Zone
+   - Zone with most activity highlighted
+
+6. FIR Summary
+   - Table: FIR No. | Offense | Status | Assigned Officer | Date Filed | Date Resolved
+   - Pie chart: FIRs by status
+
+7. Alert Log
+   - Table: Alert ID | Type | Priority | Target | Sent At | Read % | Acknowledged %
+
+8. Safety Analytics
+   - Embed of score distribution chart
+   - Embed of incident trend chart
+
+IMPLEMENTATION:
+- Backend generates PDF using pdfkit (Node.js) or WeasyPrint (Python)
+- Charts embedded as base64 PNG images (rendered server-side via Chart.js + Canvas)
+- PDF streamed to client as download
+- Saved to server for 30 days (with download history log)
+
+────────────────────────────────────────────────────────────────────────────────
+FEATURE 10: FULL FUNCTIONALITY REQUIREMENT
+────────────────────────────────────────────────────────────────────────────────
+
+CRITICAL: Every single button in every dashboard MUST trigger real logic.
+No "coming soon", no console.log placeholders, no disabled states without reason.
+
+TOURIST DASHBOARD — Required working buttons:
+[ Report Incident ]     → Opens incident form modal, submits to API
+[ View My Alerts ]      → Opens alerts panel with real data
+[ View My FIRs ]        → Shows list of user's submitted FIRs
+[ View Safety Score ]   → Opens score detail panel with history chart
+[ Update Profile ]      → Editable profile form, saves to API
+[ SOS / Emergency ]     → Immediately sends CRITICAL alert to all Authority
+                          users with user's current location + "SOS" message
+[ View Zone Map ]       → Opens map view showing current zone of user + risk
+[ Share Location ]      → Toggle to enable/disable live tracking consent
+
+RESIDENT DASHBOARD — Required working buttons:
+[ Report Incident ]     → Same as Tourist
+[ View Alerts ]         → Same as Tourist
+[ View FIRs ]           → Same as Tourist
+[ Safety Score ]        → Same as Tourist
+[ Zone Status ]         → Shows current zone risk level + advisory
+[ Emergency Contact ]   → One-tap call/message to registered emergency contact
+[ Neighborhood Report ] → Special incident type: community safety report
+[ Update Profile ]      → Same as Tourist
+
+BUSINESS DASHBOARD — Required working buttons:
+[ Report Incident ]     → Same as Tourist (business-specific incident types added)
+[ Alerts ]              → Same
+[ Safety Compliance ]   → View business-specific safety compliance checklist
+[ Staff Tracking ]      → If business has registered staff, see staff on map
+[ Zone Risk for Venue ] → See risk level of business's registered location
+[ File FIR ]            → Business-specific FIR form
+[ Download Safety Certificate ] → PDF of current business safety status
+
+AUTHORITY DASHBOARD — Required working buttons:
+[ Live Map ]            → Full interactive map with all user pins
+[ Incidents ]           → Incident management panel
+[ Zones ]               → Zone CRUD + geo-fence editor
+[ Send Alert ]          → Alert composition + send panel
+[ Tourist Roster ]      → User list with search/filter/profile view
+[ E-FIR ]               → FIR management
+[ Analytics ]           → Charts and KPI dashboard
+[ Audit Report ]        → Report generation + download
+[ System Settings ]     → Manage role permissions, alert templates, cron settings
+[ User Management ]     → Create/edit/suspend user accounts
+
+================================================================================
+SECTION 3: COMPLETE ARCHITECTURE DESIGN
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+3A. TECH STACK (PRODUCTION-LEVEL)
+────────────────────────────────────────────────────────────────────────────────
+
+FRONTEND:
+- Framework:     React 18 + TypeScript
+- State:         Zustand (global) + React Query (server state)
+- Routing:       React Router v6
+- Maps:          Leaflet.js + Leaflet.Draw + react-leaflet
+- Charts:        Recharts (primary) + Chart.js (PDF exports)
+- Real-time:     Socket.IO Client v4
+- UI Library:    Custom components (Tailwind CSS v3)
+- Forms:         React Hook Form + Zod validation
+- PDF:           jsPDF (client-side lightweight PDFs)
+- Notifications: react-hot-toast + custom alert modal system
+- Build:         Vite 5
+
+BACKEND:
+- Runtime:       Node.js 20 LTS
+- Framework:     Express.js 5 + TypeScript
+- Real-time:     Socket.IO Server v4
+- Auth:          JWT (access token 15min) + Refresh Token (7 days, HTTP-only cookie)
+- Validation:    Zod
+- PDF Generation:pdfkit
+- Scheduler:     node-cron (safety score updates, zone checks)
+- File Upload:   Multer + Cloudinary (image hosting)
+- Logging:       Winston + Morgan
+- Environment:   dotenv
+
+DATABASE:
+- Primary DB:    PostgreSQL 16 (relational, ACID-compliant)
+- ORM:           Prisma (type-safe, migrations)
+- Cache/Realtime:Redis 7 (live location cache, socket rooms, session store)
+- Search:        PostgreSQL full-text search (TSVECTOR for incident/FIR search)
+
+INFRASTRUCTURE:
+- Hosting:       AWS EC2 (backend) + Vercel (frontend) OR Docker Compose (self-hosted)
+- Object Storage:AWS S3 or Cloudinary (images, PDFs)
+- SSL:           Let's Encrypt / AWS ACM
+- Reverse Proxy: Nginx
+- Process Mgr:   PM2 (Node.js clustering)
+- Monitoring:    Sentry (error tracking) + UptimeRobot
+
+────────────────────────────────────────────────────────────────────────────────
+3B. SYSTEM ARCHITECTURE DIAGRAM (TEXT REPRESENTATION)
+────────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            TRACKMATE SYSTEM                                 │
+├─────────────────┬─────────────────┬─────────────────┬───────────────────────┤
+│ Tourist Client  │ Resident Client │ Business Client │ Authority Client      │
+│ (React/Browser) │ (React/Browser) │ (React/Browser) │ (React/Browser)       │
+└────────┬────────┴────────┬────────┴────────┬────────┴──────────┬────────────┘
+         │                 │                 │                   │
+         └────────────────┬┘                 │                   │
+                          │ HTTPS + WSS      │                   │
+                          │                 │                   │
+              ┌───────────▼─────────────────▼───────────────────▼────────────┐
+              │                      NGINX (Reverse Proxy + SSL)              │
+              └─────────────────────────────┬──────────────────────────────┘
+                                            │
+              ┌─────────────────────────────▼──────────────────────────────┐
+              │              EXPRESS.JS API SERVER (Node.js)                │
+              │  ┌──────────────┐ ┌──────────────┐ ┌────────────────────┐ │
+              │  │ REST API     │ │ Socket.IO    │ │ Cron Workers       │ │
+              │  │ /api/v1/*    │ │ Server       │ │ (Score, Zones,     │ │
+              │  │              │ │              │ │  Analytics)        │ │
+              │  └──────┬───────┘ └──────┬───────┘ └────────────────────┘ │
+              └─────────┼────────────────┼──────────────────────────────────┘
+                        │                │
+         ┌──────────────▼────┐    ┌──────▼──────────┐
+         │   PostgreSQL 16   │    │    Redis 7       │
+         │  (Prisma ORM)     │    │  Live Locations  │
+         │  - users          │    │  Socket Rooms    │
+         │  - zones          │    │  Session Cache   │
+         │  - incidents      │    │  Alert Queue     │
+         │  - firs           │    └─────────────────┘
+         │  - alerts         │
+         │  - safety_scores  │    ┌─────────────────┐
+         │  - locations_log  │    │  Cloudinary/S3  │
+         │  - zone_events    │    │  Images / PDFs  │
+         └───────────────────┘    └─────────────────┘
+
+================================================================================
+SECTION 4: COMPLETE DATABASE DESIGN
+================================================================================
+
+All tables are PostgreSQL. Use Prisma schema format.
+
+────────────────────────────────────────────────────────────────────────────────
+TABLE: users
+────────────────────────────────────────────────────────────────────────────────
+model User {
+  id                  String    @id @default(uuid())
+  blockchainId        String    @unique  // TM-[SHA256 prefix, 12 chars]
+  name                String
+  email               String    @unique
+  phone               String?
+  passwordHash        String
+  role                Role      // AUTHORITY | TOURIST | RESIDENT | BUSINESS
+  avatar              String?   // Cloudinary URL
+  nationality         String?   // for tourists
+  businessRegNumber   String?   // for businesses
+  nationalId          String?   // encrypted at rest
+  emergencyContact    Json?     // { name: string, phone: string }
+  safetyScore         Float     @default(100)
+  status              UserStatus @default(ACTIVE) // ACTIVE | SUSPENDED | FLAGGED
+  lastSeenAt          DateTime?
+  lastLat             Float?
+  lastLng             Float?
+  currentZoneId       String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  incidents           Incident[]
+  alerts              UserAlert[]
+  firs                FIR[]
+  locationLogs        LocationLog[]
+  zoneEvents          ZoneEvent[]
+  safetyScoreLogs     SafetyScoreLog[]
+  refreshTokens       RefreshToken[]
+}
+
+enum Role { AUTHORITY TOURIST RESIDENT BUSINESS }
+enum UserStatus { ACTIVE SUSPENDED FLAGGED }
+
+────────────────────────────────────────────────────────────────────────────────
+TABLE: location_logs
+────────────────────────────────────────────────────────────────────────────────
+model LocationLog {
+  id          String   @id @default(uuid())
+  userId      String
+  lat         Float
+  lng         Float
+  accuracy    Float?   // GPS accuracy in meters
+  source      String   @default("gps")  // gps | ip | manual
+  zoneId      String?  // zone user was in at this timestamp
+  recordedAt  DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+  zone        Zone?    @relation(fields: [zoneId], references: [id])
+
+  @@index([userId, recordedAt])
+}
+
+────────────────────────────────────────────────────────────────────────────────
+TABLE: zones
+────────────────────────────────────────────────────────────────────────────────
+model Zone {
+  id              String     @id @default(uuid())
+  name            String
+  description     String?
+  zoneType        ZoneType   // RESIDENTIAL | COMMERCIAL | TOURIST | RESTRICTED | INDUSTRIAL
+  riskLevel       RiskLevel  // LOW | MEDIUM | HIGH
+  safetyIndex     Float      @default(100) // 0-100
+  polygonGeoJSON  Json       // GeoJSON Polygon feature
+  isActive        Boolean    @default(true)
+  isDeleted       Boolean    @default(false)
+  createdBy       String     // Authority user ID
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  incidents       Incident[]
+  zoneEvents      ZoneEvent[]
+  locationLogs    LocationLog[]
+}
+
+enum ZoneType  { RESIDENTIAL COMMERCIAL TOURIST RESTRICTED INDUSTRIAL }
+enum RiskLevel { LOW MEDIUM HIGH }
+
+────────────────────────────────────────────────────────────────────────────────
+TABLE: incidents
+────────────────────────────────────────────────────────────────────────────────
+model Incident {
+  id              String           @id @default(uuid())
+  reporterId      String
+  incidentType    IncidentType
+  title           String
+  description     String
+  severity        Severity         // LOW | MEDIUM | HIGH | CRITICAL
+  lat             Float
+  lng             Float
+  zoneId          String?
+  imageUrl        String?
+  isAnonymous     Boolean          @default(false)
+  status          IncidentStatus   @default(OPEN)
+  assignedTo      String?          // Authority officer user ID
+  authorityNotes  String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  reporter        User             @relation(fields: [reporterId], references: [id])
+  zone            Zone?            @relation(fields: [zoneId], references: [id])
+  fir             FIR?
+}
+
+enum IncidentType  { THEFT MEDICAL DISASTER HARASSMENT INFRASTRUCTURE SUSPICIOUS OTHER }
+enum Severity      { LOW MEDIUM HIGH CRITICAL }
+enum IncidentStatus { OPEN UNDER_INVESTIGATION RESOLVED DISMISSED }
+
+────────────────────────────────────────────────────────────────────────────────
+TABLE: firs (First Information Reports)
+────────────────────────────────────────────────────────────────────────────────
+model FIR {
+  id                  String     @id @default(uuid())
+  firNumber           String     @unique  // FIR-YYYY-MMDD-XXXX
+  relatedIncidentId   String?    @unique
+  complainantId       String
+  dateOfOccurrence    DateTime
+  locationText        String
+  lat                 Float?
+  lng                 Float?
+  offenseNature       String
+  description         String     // rich text stored as HTML string
+  accusedDetails      String?
+  witnesses           Json?      // [{ name, contact }]
+  evidenceUrls        String[]   // array of file URLs
+  assignedOfficerId   String?
+  status              FIRStatus  @default(SUBMITTED)
+  statusNote          String?    // required on status change
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  statusLogs          FIRStatusLog[]
+  complainant         User       @relation(fields: [complainantId], references: [id])
+  relatedIncident     Incident?  @relation(fields: [relatedIncidentId], references: [id])
+}
+
+enum FIRStatus { SUBMITTED UNDER_REVIEW REFUSED RESOLVED CLOSED }
+
+model FIRStatusLog {
+  id          String    @id @default(uuid())
+  firId       String
+  changedBy   String    // Authority user ID
+  fromStatus  FIRStatus
+  toStatus    FIRStatus
+  note        String
+  changedAt   DateTime  @default(now())
+
+  fir         FIR       @relation(fields: [firId], references: [id])
+}
+
+────────────────────────────────────────────────────────────────────────────────
+TABLE: alerts
+────────────────────────────────────────────────────────────────────────────────
+model Alert {
+  id            String       @id @default(uuid())
+  createdBy     String       // Authority user ID
+  title         String
+  message       String
+  alertType     AlertType
+  priority      Priority     // LOW | MEDIUM | HIGH | CRITICAL
+  targetGroup   TargetGroup  // ALL | TOURISTS | RESIDENTS | BUSINESSES | USER | ZONE
+  targetUserId  String?      // if targetGroup == USER
+  targetZoneId  String?      // if targetGroup == ZONE
+  scheduledFor  DateTime?    // null = send immediately
+  sentAt        DateTime?
+  createdAt     DateTime     @default(now())
+
+  recipients    UserAlert[]
+}
+
+enum AlertType   { EMERGENCY SAFETY_WARNING WEATHER TRAFFIC ZONE_UPDATE CURFEW EVACUATION GENERAL }
+enum Priority    { LOW MEDIUM HIGH CRITICAL }
+enum TargetGroup { ALL TOURISTS RESIDENTS BUSINESSES USER ZONE }
+
+model UserAlert {
+  id            String    @id @default(uuid())
+  alertId       String
+  userId        String
+  isRead        Boolean   @default(false)
+  isAcknowledged Boolean  @default(false)
+  readAt        DateTime?
+  acknowledgedAt DateTime?
+  deliveredAt   DateTime  @default(now())
+
+  alert         Alert     @relation(fields: [alertId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@unique([alertId, userId])
+}
+
+────────────────────────────────────────────────────────────────────────────────
+TABLE: safety_score_logs
+────────────────────────────────────────────────────────────────────────────────
+model SafetyScoreLog {
+  id          String   @id @default(uuid())
+  userId      String
+  oldScore    Float
+  newScore    Float
+  delta       Float    // positive = gain, negative = loss
+  reason      String   // e.g. "Entered HIGH zone: Old City Market"
+  triggeredBy String   // "zone_engine" | "alert_system" | "authority_action"
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+────────────────────────────────────────────────────────────────────────────────
+TABLE: zone_events
+────────────────────────────────────────────────────────────────────────────────
+model ZoneEvent {
+  id          String          @id @default(uuid())
+  userId      String
+  zoneId      String
+  eventType   ZoneEventType   // ENTER | EXIT
+  lat         Float
+  lng         Float
+  recordedAt  DateTime        @default(now())
+
+  user        User            @relation(fields: [userId], references: [id])
+  zone        Zone            @relation(fields: [zoneId], references: [id])
+
+  @@index([userId, zoneId, recordedAt])
+}
+
+enum ZoneEventType { ENTER EXIT }
+
+────────────────────────────────────────────────────────────────────────────────
+TABLE: refresh_tokens
+────────────────────────────────────────────────────────────────────────────────
+model RefreshToken {
+  id          String   @id @default(uuid())
+  userId      String
+  token       String   @unique
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+================================================================================
+SECTION 5: COMPLETE API DESIGN
+================================================================================
+
+BASE URL: https://api.trackmate.com/api/v1
+AUTH: Bearer JWT token in Authorization header (except /auth/* routes)
+
+────────────────────────────────────────────────────────────────────────────────
+5A. AUTHENTICATION ENDPOINTS
+────────────────────────────────────────────────────────────────────────────────
+
+POST   /auth/register
+  Body:  { name, email, phone, password, role, nationality?, businessRegNumber? }
+  Resp:  { user: UserDTO, accessToken, message }
+  Logic: Hash password (bcrypt 12 rounds), generate blockchainId (TM-SHA256),
+         set safetyScore=100, send welcome email
+
+POST   /auth/login
+  Body:  { email, password }
+  Resp:  { user: UserDTO, accessToken }
+  Cookie: refreshToken (HTTP-only, 7 days)
+  Logic: Verify password, issue JWT (15min), store refresh token in Redis
+
+POST   /auth/refresh
+  Cookie: refreshToken
+  Resp:  { accessToken }
+
+POST   /auth/logout
+  Cookie: refreshToken
+  Logic: Revoke refresh token
+
+GET    /auth/me
+  Resp:  { user: UserDTO }
+
+────────────────────────────────────────────────────────────────────────────────
+5B. LOCATION ENDPOINTS
+────────────────────────────────────────────────────────────────────────────────
+
+POST   /location/update
+  Auth:  Tourist | Resident | Business
+  Body:  { lat, lng, accuracy?, source? }
+  Logic: 
+    1. Store in Redis: SET user:{userId}:location {lat,lng,timestamp} EX 60
+    2. Insert LocationLog record
+    3. Run point-in-polygon check against all active zones
+    4. Emit socket event: "user_location" to authority room
+    5. Handle zone entry/exit events
+    6. Trigger safety score adjustment if zone risk changed
+  Resp:  { success: true, currentZone: ZoneDTO | null }
+
+GET    /location/history/:userId
+  Auth:  Authority
+  Query: { from, to, limit }
+  Resp:  { locations: LocationLog[], totalCount }
+
+GET    /location/live-all
+  Auth:  Authority
+  Resp:  { users: [{ userId, name, role, lat, lng, safetyScore, zoneId, lastSeen }] }
+  Note:  Reads from Redis for live data, not PostgreSQL
+
+────────────────────────────────────────────────────────────────────────────────
+5C. INCIDENT ENDPOINTS
+────────────────────────────────────────────────────────────────────────────────
+
+POST   /incidents
+  Auth:  Tourist | Resident | Business
+  Body:  { incidentType, title, description, severity, lat, lng, isAnonymous, image? }
+  Logic:
+    1. Create Incident record
+    2. Determine zoneId from coordinates
+    3. Apply safety score penalty if CRITICAL severity
+    4. Emit "new_incident" to authority socket room
+    5. If severity=CRITICAL, auto-send alert to authority
+  Resp:  { incident: IncidentDTO }
+
+GET    /incidents
+  Auth:  Authority
+  Query: { status, severity, role, zoneId, from, to, page, limit }
+  Resp:  { incidents: IncidentDTO[], total, page, totalPages }
+
+GET    /incidents/my
+  Auth:  Tourist | Resident | Business
+  Resp:  { incidents: IncidentDTO[] }
+
+GET    /incidents/:id
+  Auth:  All
+  Resp:  { incident: IncidentDTO }
+
+PATCH  /incidents/:id
+  Auth:  Authority
+  Body:  { status?, assignedTo?, authorityNotes? }
+  Logic: Update record, emit "incident_updated" to reporter socket
+  Resp:  { incident: IncidentDTO }
+
+────────────────────────────────────────────────────────────────────────────────
+5D. ZONE ENDPOINTS
+────────────────────────────────────────────────────────────────────────────────
+
+POST   /zones
+  Auth:  Authority
+  Body:  { name, description, zoneType, riskLevel, safetyIndex, polygonGeoJSON }
+  Logic: 
+    1. Create Zone record
+    2. Emit "zone_created" to all connected sockets
+  Resp:  { zone: ZoneDTO }
+
+GET    /zones
+  Auth:  All
+  Query: { isActive, riskLevel }
+  Resp:  { zones: ZoneDTO[] }
+
+GET    /zones/:id
+  Auth:  All
+  Resp:  { zone: ZoneDTO, currentUsers: UserDTO[], recentIncidents: IncidentDTO[] }
+
+PUT    /zones/:id
+  Auth:  Authority
+  Body:  { name?, riskLevel?, safetyIndex?, polygonGeoJSON?, isActive? }
+  Logic: Update, emit "zone_updated" to all sockets
+  Resp:  { zone: ZoneDTO }
+
+DELETE /zones/:id
+  Auth:  Authority
+  Logic: Soft delete (isDeleted=true), emit "zone_deleted"
+  Resp:  { success: true }
+
+GET    /zones/:id/users
+  Auth:  Authority
+  Resp:  { users: UserDTO[], count }
+
+────────────────────────────────────────────────────────────────────────────────
+5E. ALERT ENDPOINTS
+────────────────────────────────────────────────────────────────────────────────
+
+POST   /alerts
+  Auth:  Authority
+  Body:  { title, message, alertType, priority, targetGroup, targetUserId?, targetZoneId?, scheduledFor? }
+  Logic:
+    1. Create Alert record
+    2. Resolve target user IDs based on targetGroup
+    3. Create UserAlert records for each recipient
+    4. If scheduledFor is null (immediate):
+       → Emit "new_alert" to each recipient's socket room
+       → Update sentAt = now()
+    5. If scheduledFor set: add to Redis queue for scheduled delivery
+  Resp:  { alert: AlertDTO, recipientCount: number }
+
+GET    /alerts
+  Auth:  Authority
+  Query: { priority, alertType, from, to, page }
+  Resp:  { alerts: AlertDTO[] }
+
+GET    /alerts/my
+  Auth:  Tourist | Resident | Business
+  Query: { unreadOnly }
+  Resp:  { alerts: UserAlertDTO[] }
+
+PATCH  /alerts/my/:alertId/read
+  Auth:  Tourist | Resident | Business
+  Logic: Set isRead=true, readAt=now()
+  Resp:  { success: true }
+
+PATCH  /alerts/my/:alertId/acknowledge
+  Auth:  Tourist | Resident | Business
+  Logic: Set isAcknowledged=true, acknowledgedAt=now(), +2 safety score if < 2min
+  Resp:  { success: true }
+
+────────────────────────────────────────────────────────────────────────────────
+5F. FIR ENDPOINTS
+────────────────────────────────────────────────────────────────────────────────
+
+POST   /firs
+  Auth:  Authority | Tourist | Resident | Business
+  Body:  { relatedIncidentId?, dateOfOccurrence, locationText, lat?, lng?,
+           offenseNature, description, accusedDetails?, witnesses?, evidenceFiles? }
+  Logic: 
+    1. Generate firNumber (FIR-YYYY-MMDD-increment)
+    2. Create FIR record (status=SUBMITTED)
+    3. Emit "new_fir" to authority socket room
+  Resp:  { fir: FIRDTO }
+
+GET    /firs
+  Auth:  Authority
+  Query: { status, assignedOfficerId, from, to, page, limit }
+  Resp:  { firs: FIRDTO[], total, totalPages }
+
+GET    /firs/my
+  Auth:  Tourist | Resident | Business
+  Resp:  { firs: FIRDTO[] }
+
+GET    /firs/:id
+  Auth:  All (authority sees internal notes, users see own FIR only)
+  Resp:  { fir: FIRDTO, statusLogs: FIRStatusLog[] }
+
+PATCH  /firs/:id/status
+  Auth:  Authority
+  Body:  { status, note }
+  Logic:
+    1. Validate status transition is legal
+    2. Create FIRStatusLog entry
+    3. Update FIR status
+    4. Emit "fir_status_updated" to complainant socket
+    5. Create alert notification for complainant
+  Resp:  { fir: FIRDTO }
+
+GET    /firs/:id/download
+  Auth:  Authority
+  Logic: Generate PDF, stream as response
+  Headers: Content-Disposition: attachment; filename="FIR-XXXX.pdf"
+
+────────────────────────────────────────────────────────────────────────────────
+5G. USER MANAGEMENT ENDPOINTS
+────────────────────────────────────────────────────────────────────────────────
+
+GET    /users
+  Auth:  Authority
+  Query: { role, status, safetyScoreMin, safetyScoreMax, zoneId, search, page, limit, sortBy }
+  Resp:  { users: UserDTO[], total, totalPages }
+
+GET    /users/:id
+  Auth:  Authority
+  Resp:  { user: UserDTO, recentLocations, incidentHistory, firHistory, alertHistory, scoreHistory }
+
+PATCH  /users/:id
+  Auth:  Authority (status/flag changes) | Self (profile updates)
+  Body:  { status?, name?, phone?, avatar?, emergencyContact? }
+  Resp:  { user: UserDTO }
+
+GET    /users/:id/safety-score
+  Auth:  Authority | Self
+  Resp:  { currentScore, history: SafetyScoreLog[], trend: "up"|"down"|"stable" }
+
+────────────────────────────────────────────────────────────────────────────────
+5H. ANALYTICS ENDPOINTS
+────────────────────────────────────────────────────────────────────────────────
+
+GET    /analytics/overview
+  Auth:  Authority
+  Resp:  {
+    totalUsers: { tourist, resident, business, total },
+    usersInHighRiskZone: number,
+    usersInMediumZone: number,
+    usersInSafeZone: number,
+    incidentsToday: number,
+    avgSafetyScore: number,
+    activeFIRs: number,
+    criticalAlertsLast24h: number
+  }
+
+GET    /analytics/zone-distribution
+  Auth:  Authority
+  Resp:  { zones: [{ zoneId, name, riskLevel, userCount }] }
+
+GET    /analytics/score-distribution
+  Auth:  Authority
+  Resp:  { 
+    ranges: [
+      { range: "0-20", tourist: N, resident: N, business: N },
+      { range: "21-40", ... },
+      ...
+    ]
+  }
+
+GET    /analytics/incident-trends
+  Auth:  Authority
+  Query: { period: "24h" | "7d" | "30d", groupBy: "hour" | "day" }
+  Resp:  { labels: string[], datasets: [{ severity, data: number[] }] }
+
+GET    /analytics/movement-trends
+  Auth:  Authority
+  Query: { zoneId?, from, to }
+  Resp:  { labels: string[], entriesPerPeriod: number[], exitsPerPeriod: number[] }
+
+GET    /analytics/alert-response-rate
+  Auth:  Authority
+  Query: { from, to }
+  Resp:  { criticalReadPct, criticalAckPct, mediumReadPct, avgResponseTimeMin }
+
+────────────────────────────────────────────────────────────────────────────────
+5I. AUDIT REPORT ENDPOINT
+────────────────────────────────────────────────────────────────────────────────
+
+POST   /reports/audit
+  Auth:  Authority
+  Body:  { from, to, sections: string[] }
+  Logic:
+    1. Fetch all data for date range
+    2. Generate charts as base64 images (server-side canvas)
+    3. Assemble PDF with pdfkit
+    4. Store PDF in S3/Cloudinary
+    5. Return download URL + stream PDF
+  Resp:  PDF file stream
+  Headers: Content-Disposition: attachment; filename="TrackMate-Audit-[from]-[to].pdf"
+
+================================================================================
+SECTION 6: REAL-TIME IMPLEMENTATION (SOCKET.IO)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+6A. SOCKET ROOMS ARCHITECTURE
+────────────────────────────────────────────────────────────────────────────────
+
+Room Strategy:
+- Each user joins room: "user:{userId}" (for personal events)
+- Authority users join room: "authority" (for all system events)
+- Zone rooms: "zone:{zoneId}" (for zone-specific events)
+- Role rooms: "role:tourist", "role:resident", "role:business"
+
+────────────────────────────────────────────────────────────────────────────────
+6B. SOCKET EVENTS (COMPLETE LIST)
+────────────────────────────────────────────────────────────────────────────────
+
+CLIENT → SERVER EVENTS:
+  "join"                { userId, role }             → Join appropriate rooms
+  "location_update"     { lat, lng, accuracy }       → Send location to server
+  "ping"                {}                           → Heartbeat every 15s
+
+SERVER → CLIENT EVENTS (Authority):
+  "user_location"       { userId, name, role, lat, lng, zoneId, safetyScore }
+  "new_incident"        { incident: IncidentDTO }
+  "incident_updated"    { incidentId, status, assignedTo }
+  "zone_created"        { zone: ZoneDTO }
+  "zone_updated"        { zone: ZoneDTO }
+  "zone_deleted"        { zoneId }
+  "new_fir"             { fir: FIRDTO }
+  "fir_status_updated"  { firId, newStatus }
+  "user_entered_zone"   { userId, userName, zoneId, zoneName, riskLevel }
+  "user_exited_zone"    { userId, zoneId }
+  "user_offline"        { userId, lastLat, lastLng, lastSeen }
+  "user_online"         { userId }
+  "score_update"        { userId, oldScore, newScore, reason }
+
+SERVER → CLIENT EVENTS (Tourist/Resident/Business):
+  "new_alert"           { alert: UserAlertDTO }
+  "zone_alert"          { zoneId, zoneName, riskLevel, message }
+  "fir_status_updated"  { firId, newStatus, note }
+  "score_update"        { oldScore, newScore, delta, reason }
+  "sos_acknowledged"    { message, authorityName }  (response to SOS)
+
+────────────────────────────────────────────────────────────────────────────────
+6C. LOCATION BROADCAST LOOP (Server-side pseudocode)
+────────────────────────────────────────────────────────────────────────────────
+
+socket.on("location_update", async ({ lat, lng, accuracy }) => {
+  const userId = socket.userId;  // set on auth middleware
+  
+  // 1. Cache in Redis (60s TTL)
+  await redis.setex(`user:${userId}:location`, 60, JSON.stringify({ lat, lng, ts: Date.now() }));
+  
+  // 2. Log to PostgreSQL (every 5th update to reduce DB writes = every 25 seconds)
+  if (socket.locationCounter % 5 === 0) {
+    await prisma.locationLog.create({ data: { userId, lat, lng, accuracy } });
+  }
+  socket.locationCounter++;
+  
+  // 3. Zone detection
+  const zones = await getActiveZones();  // cached in Redis, refreshed every 60s
+  const currentZones = zones.filter(z => pointInPolygon([lat, lng], z.polygon));
+  const prevZones = socket.currentZones || [];
+  
+  // 4. Detect entry/exit
+  const entered = currentZones.filter(z => !prevZones.includes(z.id));
+  const exited = prevZones.filter(id => !currentZones.map(z => z.id).includes(id));
+  
+  for (const zone of entered) {
+    await handleZoneEntry(userId, zone);  // log event, adjust score, send alert
+    io.to("authority").emit("user_entered_zone", { userId, zoneId: zone.id, riskLevel: zone.riskLevel });
+  }
+  for (const zoneId of exited) {
+    await handleZoneExit(userId, zoneId);
+    io.to("authority").emit("user_exited_zone", { userId, zoneId });
+  }
+  socket.currentZones = currentZones.map(z => z.id);
+  
+  // 5. Broadcast to authority
+  const user = await getUserFromCache(userId);
+  io.to("authority").emit("user_location", {
+    userId, name: user.name, role: user.role,
+    lat, lng, safetyScore: user.safetyScore,
+    zoneId: currentZones[0]?.id || null
+  });
+});
+
+================================================================================
+SECTION 7: UI/UX DESIGN SPECIFICATION
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+7A. DESIGN SYSTEM
+────────────────────────────────────────────────────────────────────────────────
+
+COLOR PALETTE:
+  Primary:      #0F172A  (Dark Navy)
+  Secondary:    #1E293B  (Slate Dark)
+  Accent:       #38BDF8  (Sky Blue)
+  Danger:       #EF4444  (Red)
+  Warning:      #F59E0B  (Amber)
+  Success:      #10B981  (Emerald)
+  Text Primary: #F8FAFC  (near white, for dark backgrounds)
+  Text Muted:   #94A3B8  (slate 400)
+  
+  BUTTON VISIBILITY RULE (FIX):
+  - NEVER use same color for text and background
+  - All buttons must pass WCAG AA contrast ratio (4.5:1 minimum)
+  - Primary button: bg=#38BDF8, text=#0F172A (dark text on light button)
+  - Danger button:  bg=#EF4444, text=#FFFFFF
+  - Success button: bg=#10B981, text=#FFFFFF
+  - Ghost button:   bg=transparent, border=1px #38BDF8, text=#38BDF8
+
+TYPOGRAPHY:
+  Display:  "Space Grotesk" (headings, dashboard KPIs)
+  Body:     "Inter" (paragraphs, form labels)
+  Mono:     "JetBrains Mono" (IDs, coordinates, code)
+
+────────────────────────────────────────────────────────────────────────────────
+7B. DASHBOARD LAYOUTS
+────────────────────────────────────────────────────────────────────────────────
+
+AUTHORITY DASHBOARD:
+  - Full-screen layout, dark theme
+  - Left sidebar: navigation icons (collapsible)
+  - Top header: Logo | "Live Users: N" counter | Notification bell | Avatar menu
+  - Main content: switches between Map | Incidents | Zones | Alerts | Roster | FIR | Analytics | Reports
+  - Map view takes up 70% width, with a slide-in panel on the right for details
+
+TOURIST / RESIDENT / BUSINESS DASHBOARD:
+  - Centered card-based layout
+  - Safety Score ring (prominent, top center)
+  - Current Zone status card
+  - Quick action buttons: Report Incident | View Alerts | SOS
+  - Alert feed below
+  - Bottom navigation tabs (mobile-friendly): Home | Map | Alerts | Profile
+
+================================================================================
+SECTION 8: EDGE CASE HANDLING
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+8A. OFFLINE USERS
+────────────────────────────────────────────────────────────────────────────────
+- If no location update for 30 seconds → mark user as OFFLINE in Redis
+- Run a cron every 30s: scan Redis for stale location keys → emit "user_offline"
+- Authority sees grayed-out marker with "OFFLINE" badge
+- Queued alerts are delivered when user reconnects (read from UserAlert table)
+- Safety score does NOT change while offline (no zone dwell calculation)
+
+────────────────────────────────────────────────────────────────────────────────
+8B. FAKE/SPOOFED LOCATION
+────────────────────────────────────────────────────────────────────────────────
+- Velocity check: if user teleports > 500km/h between updates → flag as suspicious
+  → Authority notified: "Possible location spoofing: [User]"
+  → Log event without updating displayed location
+- GPS vs IP cross-check: if GPS city differs from IP geolocation city by > 100km
+  → Flag for authority review (not automatic action)
+- Accuracy threshold: if accuracy > 500m (low precision GPS) → show with accuracy ring
+  → Authority sees low-accuracy badge on marker
+
+────────────────────────────────────────────────────────────────────────────────
+8C. HIGH LOAD SCENARIOS
+────────────────────────────────────────────────────────────────────────────────
+- Location updates: rate-limited to 1 per 5 seconds per user (Redis sliding window)
+- Socket connections: Socket.IO with Redis adapter for horizontal scaling
+- Location broadcast: authority receives batched updates (50ms debounce aggregation)
+  Instead of emitting 1000 individual events, batch them into a single "bulk_location_update"
+  payload every 100ms
+- Database: Location logs written in batches (every 5th socket update)
+- Zone polygon checks: cache all zone polygons in Redis as arrays, run in-memory
+  (not a DB query per location update)
+- API rate limiting: 100 req/min per user (express-rate-limit)
+- Read replicas: Add PostgreSQL read replica for analytics queries (don't hit primary)
+
+================================================================================
+SECTION 9: FRONTEND COMPONENT TREE
+================================================================================
+
+src/
+├── main.tsx
+├── App.tsx                          (routing + auth guard)
+├── store/
+│   ├── authStore.ts                 (Zustand: user, tokens)
+│   ├── socketStore.ts               (Socket.IO instance + listeners)
+│   ├── alertStore.ts                (unread alerts count, alert list)
+│   └── mapStore.ts                  (live users, zones on map)
+├── hooks/
+│   ├── useSocket.ts                 (connect/disconnect, event handlers)
+│   ├── useLocation.ts               (Geolocation API + emit to socket)
+│   ├── useZoneCheck.ts              (listen for zone alerts)
+│   └── useAlerts.ts                 (listen for new alerts)
+├── pages/
+│   ├── LoginPage.tsx
+│   ├── RegisterPage.tsx
+│   ├── authority/
+│   │   ├── AuthorityDashboard.tsx   (layout wrapper with sidebar)
+│   │   ├── LiveMapView.tsx          (Leaflet map + user markers + zones)
+│   │   ├── IncidentsPanel.tsx       (incident list + detail)
+│   │   ├── ZoneManager.tsx          (zone CRUD + Leaflet.Draw)
+│   │   ├── AlertComposer.tsx        (compose + send alerts)
+│   │   ├── TouristRoster.tsx        (user table + profile view)
+│   │   ├── FIRManager.tsx           (FIR list + detail + status change)
+│   │   ├── AnalyticsDashboard.tsx   (all charts + KPIs)
+│   │   └── AuditReport.tsx          (report gen UI)
+│   ├── tourist/
+│   │   ├── TouristDashboard.tsx
+│   │   ├── ReportIncident.tsx
+│   │   ├── MyAlerts.tsx
+│   │   ├── MyFIRs.tsx
+│   │   ├── SafetyScore.tsx
+│   │   └── Profile.tsx
+│   ├── resident/
+│   │   └── [same structure as tourist]
+│   └── business/
+│       └── [same structure as tourist + BusinessSpecific.tsx]
+├── components/
+│   ├── Map/
+│   │   ├── TrackMateMap.tsx         (base Leaflet map component)
+│   │   ├── UserMarker.tsx           (animated role-based markers)
+│   │   ├── ZonePolygon.tsx          (colored zone overlay)
+│   │   ├── ZoneDrawer.tsx           (Leaflet.Draw wrapper)
+│   │   └── UserDetailPanel.tsx      (sidebar on marker click)
+│   ├── Alerts/
+│   │   ├── AlertBell.tsx            (notification icon + badge)
+│   │   ├── AlertPanel.tsx           (slide-in panel)
+│   │   ├── CriticalAlertModal.tsx   (force-acknowledge modal)
+│   │   └── AlertCard.tsx
+│   ├── Charts/
+│   │   ├── ZoneDistributionDonut.tsx
+│   │   ├── ScoreDistributionBar.tsx
+│   │   ├── IncidentTrendLine.tsx
+│   │   ├── MovementAreaChart.tsx
+│   │   └── AlertResponseGauge.tsx
+│   ├── SafetyScore/
+│   │   ├── ScoreRing.tsx            (animated circular gauge)
+│   │   └── ScoreHistory.tsx         (line chart last 30 days)
+│   ├── FIR/
+│   │   ├── FIRForm.tsx
+│   │   ├── FIRDetailView.tsx
+│   │   ├── FIRStatusBadge.tsx
+│   │   └── FIRStatusChangeModal.tsx
+│   ├── Incidents/
+│   │   ├── IncidentForm.tsx         (modal with full fields)
+│   │   └── IncidentCard.tsx
+│   └── UI/
+│       ├── Button.tsx               (enforces contrast rules)
+│       ├── Modal.tsx
+│       ├── Badge.tsx
+│       ├── Toast.tsx
+│       ├── DataTable.tsx            (sortable, filterable)
+│       └── Sidebar.tsx
+
+================================================================================
+SECTION 10: BACKEND FILE STRUCTURE
+================================================================================
+
+server/
+├── src/
+│   ├── index.ts                     (Express + Socket.IO setup)
+│   ├── config/
+│   │   ├── database.ts              (Prisma client)
+│   │   ├── redis.ts                 (ioredis client)
+│   │   └── env.ts                   (zod-validated env vars)
+│   ├── middleware/
+│   │   ├── auth.ts                  (JWT verification)
+│   │   ├── roleGuard.ts             (role-based access)
+│   │   ├── rateLimiter.ts
+│   │   └── errorHandler.ts
+│   ├── routes/
+│   │   ├── auth.routes.ts
+│   │   ├── location.routes.ts
+│   │   ├── incident.routes.ts
+│   │   ├── zone.routes.ts
+│   │   ├── alert.routes.ts
+│   │   ├── fir.routes.ts
+│   │   ├── user.routes.ts
+│   │   ├── analytics.routes.ts
+│   │   └── report.routes.ts
+│   ├── controllers/
+│   │   └── [one per route file]
+│   ├── services/
+│   │   ├── zoneEngine.ts            (point-in-polygon, zone entry/exit)
+│   │   ├── safetyScore.ts           (score calculation + update)
+│   │   ├── alertDelivery.ts         (resolve targets + emit)
+│   │   ├── pdfGenerator.ts          (pdfkit report generation)
+│   │   └── blockchainId.ts          (generate TM-[SHA256] ID)
+│   ├── socket/
+│   │   ├── index.ts                 (Socket.IO server setup)
+│   │   ├── auth.middleware.ts       (authenticate socket connection)
+│   │   ├── locationHandler.ts       (handle location_update event)
+│   │   └── roomManager.ts           (join/leave rooms)
+│   ├── workers/
+│   │   ├── scoreWorker.ts           (cron: recalculate scores every 60s)
+│   │   ├── zoneIndexWorker.ts       (cron: update zone safety index every 15min)
+│   │   └── offlineDetector.ts       (cron: detect offline users every 30s)
+│   └── utils/
+│       ├── geoUtils.ts              (point-in-polygon, distance calc)
+│       ├── firNumberGen.ts
+│       └── responseHelper.ts
+
+================================================================================
+SECTION 11: EXPERT-LEVEL IMPROVEMENTS TO IMPLEMENT
+================================================================================
+
+1. SOS BUTTON (highest priority UX feature)
+   - Single large red button on all non-authority dashboards
+   - One tap → immediately emits CRITICAL alert to all authority users
+   - Includes exact GPS coordinates + user identity
+   - Authority sees "SOS RECEIVED" modal with "Acknowledge SOS" button
+   - SOS tracked separately in database (not just as an incident)
+
+2. BLOCKCHAIN ID VERIFICATION
+   - Each user gets a unique TM-[SHA256-prefix] ID on registration
+   - Displayed on their profile as a QR code
+   - Authority can scan QR to instantly pull up user profile
+   - Useful for physical identity verification at checkpoints
+
+3. EMERGENCY BROADCAST (Mass Alert)
+   - Authority can trigger city-wide emergency broadcast
+   - Different from regular alert: full-screen takeover on all dashboards
+   - Cannot be dismissed until acknowledged by user
+   - Different alert tone / color (flashing red border)
+
+4. MULTI-LANGUAGE SUPPORT
+   - Alert messages auto-translated (use i18next)
+   - Support: English, Hindi, French, Spanish, Arabic (at minimum)
+   - User sets preferred language in profile
+
+5. HEATMAP ANALYSIS
+   - Overlay on authority map showing density of users per area
+   - Built with Leaflet.heat plugin
+   - Time-slider to see historical heatmaps
+
+6. OFFLINE PWA SUPPORT
+   - Service Worker for tourist/resident apps
+   - Cache last known map state offline
+   - Queue incident reports offline → sync when reconnected
+
+7. ROLE-BASED PERMISSIONS MATRIX
+   - Configurable in System Settings by Authority admin
+   - Example: "Can residents view zone names?" toggle
+   - Stored in database, checked on every protected API call
+
+8. EXPORT CAPABILITIES
+   - Tourist Roster → CSV export
+   - Incident list → CSV/Excel export
+   - Zone data → GeoJSON export (for use in GIS tools)
+
+================================================================================
+SECTION 12: IMPLEMENTATION INSTRUCTIONS FOR OPUS
+================================================================================
+
+STEP-BY-STEP BUILD ORDER:
+
+Phase 1 — Foundation
+1. Set up Prisma schema with all tables above
+2. Implement auth routes (register, login, refresh, logout, /me)
+3. Set up Socket.IO server with room management
+4. Build JWT auth middleware (REST + Socket)
+
+Phase 2 — Core Real-Time
+5. Implement POST /location/update with Redis caching
+6. Implement zone engine (point-in-polygon checks)
+7. Build location broadcast to authority room
+8. Implement offline detection cron
+
+Phase 3 — Incidents & FIRs
+9. Build incident CRUD + real-time emit
+10. Build FIR CRUD + status management + status log
+11. Connect "Create FIR from Incident" flow
+
+Phase 4 — Alerts
+12. Build alert composition + delivery
+13. Implement targeted sending (by group, zone, individual)
+14. Implement scheduled alert queue
+
+Phase 5 — Safety Score Engine
+15. Build cron-based score worker
+16. Implement all score rules (zone dwell, alert ack, etc.)
+17. Emit real-time score updates via socket
+
+Phase 6 — Analytics & Reports
+18. Build all analytics endpoints
+19. Implement chart data aggregation
+20. Build PDF audit report generator
+
+Phase 7 — Frontend
+21. Build design system (colors, typography, Button, Badge, Modal)
+22. Build auth pages (login/register)
+23. Build authority dashboard + all sub-pages
+24. Build tourist/resident/business dashboards
+25. Connect all buttons to real API + socket events
+
+Phase 8 — Polish
+26. Fix all button contrast issues
+27. Add loading states, error boundaries
+28. Add Sentry error tracking
+29. Add PM2 config for production deployment
+30. Write README with setup instructions
+
+================================================================================
+FINAL NOTES FOR OPUS
+================================================================================
+
+- Build this as a MONOREPO with /client (React) and /server (Node.js) folders
+- Use TypeScript strictly (no any types except where unavoidable)
+- All API responses follow { success: boolean, data: any, message: string } shape
+- All errors follow { success: false, error: string, code: string } shape
+- Every Socket.IO event must be typed (create a shared types package)
+- Never store plain text passwords — always bcrypt with 12 rounds
+- Encrypt sensitive fields (nationalId) using AES-256 before DB storage
+- All file uploads go through Multer, validated for type + size before Cloudinary
+- Zone polygons stored as GeoJSON in PostgreSQL JSONB column
+- Point-in-polygon algorithm: use @turf/boolean-point-in-polygon (proven, fast)
+- PDF generation: pdfkit (Node.js) — not Puppeteer (too heavy for serverless)
+- Generate exactly what is described. Do not omit features due to complexity.
+- Every button MUST be wired to real logic. No placeholders.
+
+================================================================================
+END OF PROMPT — TRACKMATE SYSTEM BUILD SPECIFICATION v1.0
+================================================================================

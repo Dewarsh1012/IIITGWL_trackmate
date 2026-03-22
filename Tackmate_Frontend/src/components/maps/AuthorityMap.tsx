@@ -1,6 +1,7 @@
 import { MapContainer, TileLayer, CircleMarker, Circle, Popup, useMap, Marker, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEffect } from 'react';
+import 'leaflet-draw/dist/leaflet.draw.css';
+import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import type { ZoneData } from './TouristMap';
 
@@ -54,9 +55,10 @@ interface AuthorityMapProps {
   incidents: any[];
   userLocations: Record<string, { lat: number; lng: number; role?: string; name?: string; timestamp?: number }>;
   focusLocation?: { lat: number; lng: number } | null;
+  onZoneCreated?: (layer: any) => void;
 }
 
-export default function AuthorityMap({ zones, incidents, userLocations, focusLocation }: AuthorityMapProps) {
+export default function AuthorityMap({ zones, incidents, userLocations, focusLocation, onZoneCreated }: AuthorityMapProps) {
   const safeZones = zones || [];
   const safeIncidents = incidents || [];
   const safeUserLocations = userLocations || {};
@@ -68,16 +70,16 @@ export default function AuthorityMap({ zones, incidents, userLocations, focusLoc
   const centerLng = focusLocation?.lng || defaultCenter[1];
 
   return (
-    <div style={{ height: '100%', width: '100%', minHeight: '500px', borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid #1E293B' }}>
+    <div style={{ height: '100%', width: '100%', minHeight: '500px', borderRadius: '0', overflow: 'hidden', border: '3px solid #0A0A0A' }}>
       <MapContainer 
         center={[centerLat, centerLng] as [number, number]} 
         zoom={focusLocation ? 16 : 12} 
-        style={{ height: '100%', width: '100%', background: '#0a0f1e' }}
+        style={{ height: '100%', width: '100%', background: '#FFFBF0' }}
       >
         <MapResizer />
         <TileLayer
           attribution='&copy; OpenStreetMap'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
 
         <RecenterMap lat={centerLat} lng={centerLng} zoom={focusLocation ? 16 : undefined} />
@@ -101,7 +103,7 @@ export default function AuthorityMap({ zones, incidents, userLocations, focusLoc
               <Popup>
                 <div style={{ minWidth: 140 }}>
                   <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{zone.name}</div>
-                  <div style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#fff', background: color }}>
+                  <div style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: (zone.risk_level === 'safe' || zone.risk_level === 'moderate') ? '#000' : '#fff', background: color }}>
                     {zone.risk_level}
                   </div>
                 </div>
@@ -145,20 +147,87 @@ export default function AuthorityMap({ zones, incidents, userLocations, focusLoc
               icon={incidentIcon}
             >
               <Popup>
-                <div className="text-sm">
+                <div className="text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                   <div className="font-bold text-red-600 mb-1">{incident.title}</div>
-                  <div className="text-xs font-semibold mb-2 p-1 bg-red-100 text-red-700 rounded uppercase inline-block">
+                  <div className="text-xs font-semibold mb-2 p-1 bg-red-100 text-red-700 rounded uppercase inline-block border border-red-700">
                     {incident.severity}
                   </div>
                   {incident.description && (
-                    <div className="text-xs text-slate-600 border-t pt-1 mt-1">{incident.description}</div>
+                    <div className="text-xs text-slate-800 border-t border-slate-300 pt-1 mt-1">{incident.description}</div>
+                  )}
+                  {incident.reporter?.full_name && (
+                    <div className="text-[10px] text-slate-500 mt-2">Reported by: {incident.reporter.full_name}</div>
                   )}
                 </div>
               </Popup>
             </Marker>
           );
         })}
+
+        <DrawControl onZoneCreated={onZoneCreated} />
       </MapContainer>
     </div>
   );
 }
+
+// Separate component for drawing tools to use map context
+function DrawControl({ onZoneCreated }: { onZoneCreated?: (layer: L.Layer) => void }) {
+  const map = useMap();
+  const onZoneCreatedRef = useRef(onZoneCreated);
+
+  useEffect(() => {
+    onZoneCreatedRef.current = onZoneCreated;
+  }, [onZoneCreated]);
+
+  useEffect(() => {
+    let drawControl: any;
+    let drawnItems: L.FeatureGroup;
+    let handleDrawCreated: any;
+    let isMounted = true;
+
+    // Dynamic import to avoid SSR issues if ever ported to Next.js
+    import('leaflet-draw').then(() => {
+      if (!isMounted) return;
+      
+      drawnItems = new L.FeatureGroup();
+      map.addLayer(drawnItems);
+
+      drawControl = new (L.Control as any).Draw({
+        edit: { featureGroup: drawnItems },
+        draw: {
+          polygon: {
+            shapeOptions: { color: '#FF0033', weight: 2, fillOpacity: 0.2 },
+            allowIntersection: false,
+          },
+          circle: {
+            shapeOptions: { color: '#FF0033', weight: 2, fillOpacity: 0.2 },
+          },
+          rectangle: false,
+          marker: false,
+          circlemarker: false,
+          polyline: false,
+        }
+      });
+      map.addControl(drawControl);
+
+      handleDrawCreated = (e: any) => {
+        const layer = e.layer;
+        // Don't add to drawnItems so it vanishes immediately, 
+        // because the Dashboard will add the true Zone to the map.
+        if (onZoneCreatedRef.current) onZoneCreatedRef.current(layer);
+      };
+
+      map.on((L.Draw as any).Event.CREATED, handleDrawCreated);
+    });
+
+    return () => {
+      isMounted = false;
+      if (drawControl) map.removeControl(drawControl);
+      if (handleDrawCreated) map.off((L.Draw as any).Event.CREATED, handleDrawCreated);
+      if (drawnItems) map.removeLayer(drawnItems);
+    };
+  }, [map]);
+  
+  return null;
+}
+

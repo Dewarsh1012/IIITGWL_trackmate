@@ -1,29 +1,34 @@
 import { useState, useEffect } from 'react';
-import { 
-  Trash2, Upload, Eye, 
-  Send, Save, MapPin, 
-  Calendar, FileText, Loader2, Fingerprint,
-  Users, Mail, Phone, Info,
-  AlertTriangle
-} from 'lucide-react';
+import { Trash2, Upload, Eye, Send, Save, MapPin, Calendar, FileText, Loader2, Fingerprint, Users, Mail, Phone, Info, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../lib/api';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import AuthoritySidebar from '../../components/layout/AuthoritySidebar';
+
+const NB = { black: '#FFFBF0', yellow: '#FFE500', red: '#FF3B3B', blue: '#2B6FFF', mint: '#00D084', orange: '#FF7A00', cream: '#0A0A0A', white: '#111111' };
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '10px 14px', background: NB.cream, border: `2px solid ${NB.black}`,
+  fontFamily: "'Space Grotesk', sans-serif", fontSize: '0.88rem', fontWeight: 500, outline: 'none',
+  boxShadow: '2px 2px 0 #0A0A0A', color: NB.black, borderRadius: 0,
+};
+
+const labelS: React.CSSProperties = {
+  fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6B6B6B', display: 'block', marginBottom: 6,
+};
 
 export default function AuthorityEfir() {
-  const { user: authUser } = useAuth();
+  const { } = useAuth();
   const [params] = useSearchParams();
   const incidentId = params.get('incidentId');
-  
+
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState('draft');
   const [witnesses, setWitnesses] = useState<any[]>([]);
   const [subject, setSubject] = useState<any>(null);
-  const [incident, setIncident] = useState<any>(null);
   const [searchId, setSearchId] = useState('');
-  
-  // Form fields
+  const [evidenceUrls, setEvidenceUrls] = useState<string[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [incidentType, setIncidentType] = useState('Theft/Larceny');
@@ -31,11 +36,7 @@ export default function AuthorityEfir() {
   const [incidentTime, setIncidentTime] = useState('');
 
   useEffect(() => {
-    if (incidentId) {
-      fetchIncident(incidentId);
-    } else {
-      setLoading(false);
-    }
+    if (incidentId) { fetchIncident(incidentId); } else { setLoading(false); }
   }, [incidentId]);
 
   const fetchIncident = async (id: string) => {
@@ -43,7 +44,6 @@ export default function AuthorityEfir() {
       const res = await api.get(`/incidents/${id}`);
       if (res.data.success) {
         const inc = res.data.data;
-        setIncident(inc);
         setTitle(`eFIR: ${inc.title}`);
         setDescription(inc.description || '');
         setIncidentType(inc.incident_type || 'General');
@@ -51,305 +51,214 @@ export default function AuthorityEfir() {
         setIncidentTime(new Date(inc.created_at).toISOString().slice(0, 16));
         if (inc.reporter) setSubject(inc.reporter);
       }
-    } catch (err) {
-      console.error('Failed to fetch incident:', err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
   const findSubject = async () => {
     if (!searchId) return;
     try {
       const res = await api.get(`/profiles?search=${searchId}`);
-      if (res.data.success && res.data.data.length > 0) {
-        setSubject(res.data.data[0]);
-      }
-    } catch (err) {
-      console.error('Failed to find subject:', err);
-    }
+      if (res.data.success && res.data.data.length > 0) { setSubject(res.data.data[0]); }
+      else { alert('Subject not found with that ID or email.'); }
+    } catch { alert('Error searching for subject.'); }
   };
 
-  const addWitness = () => {
-    setWitnesses([...witnesses, { name: '', contact: '', statement: '' }]);
-  };
+  const addWitness = () => setWitnesses([...witnesses, { name: '', contact: '', statement: '' }]);
+  const updateWitness = (i: number, field: string, value: string) => { const w = [...witnesses]; w[i][field] = value; setWitnesses(w); };
+  const removeWitness = (i: number) => setWitnesses(witnesses.filter((_, idx) => idx !== i));
 
-  const updateWitness = (index: number, field: string, value: string) => {
-    const newWitnesses = [...witnesses];
-    newWitnesses[index][field] = value;
-    setWitnesses(newWitnesses);
-  };
-
-  const removeWitness = (index: number) => {
-    setWitnesses(witnesses.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async (submitStatus: string) => {
-    if (!subject || !title || !description) {
-      alert('Subject, Title, and Description are required.');
-      return;
-    }
-
+  const handleSubmit = async (_submitStatus: string) => {
+    if (!subject) { alert('Please select a subject first.'); return; }
+    if (!title || title.length < 5) { alert('Title is required and must be at least 5 characters.'); return; }
+    if (!description || description.length < 20) { alert('Description is required and must be at least 20 characters.'); return; }
     try {
       setIsSubmitting(true);
-      const payload = {
-        user: subject._id,
-        title,
-        description,
-        incident_type: incidentType,
-        incident_location: location,
-        incident_time: incidentTime,
-        incident: incidentId || undefined,
-        witness_statements: witnesses.filter(w => w.name && w.statement),
-        status: submitStatus
-      };
-
+      const payload: Record<string, any> = { user: subject._id, title, description, incident_type: incidentType };
+      if (location) payload.incident_location = location;
+      if (incidentTime) payload.incident_time = incidentTime;
+      if (incidentId) payload.incident = incidentId;
+      const validWitnesses = witnesses.filter(w => w.name && w.statement && w.statement.length >= 10);
+      if (validWitnesses.length > 0) payload.witness_statements = validWitnesses;
+      if (evidenceUrls.length > 0) payload.evidence_urls = evidenceUrls;
       const res = await api.post('/efirs', payload);
-      if (res.data.success) {
-        alert(`eFIR ${submitStatus === 'submitted' ? 'filed and anchored to blockchain' : 'saved as draft'}.`);
-        setStatus(submitStatus);
-        if (submitStatus === 'submitted') {
-          // Reset or navigate
-        }
+      if (res.data.success) { alert(`eFIR saved as draft successfully.`); setStatus('draft'); }
+    } catch (err: any) {
+      let msg = err.response?.data?.message || err.message || 'Submission failed.';
+      if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+        msg += '\n' + err.response.data.errors.map((e: any) => `${e.field || e.path}: ${e.message}`).join('\n');
       }
-    } catch (err) {
-      console.error('Failed to submit eFIR:', err);
-      alert('Submission failed. Check your connection.');
-    } finally {
-      setIsSubmitting(false);
-    }
+      alert(`Submission Error: ${msg}`);
+    } finally { setIsSubmitting(false); }
   };
 
-  const steps = [
-    { id: 'draft', label: 'Draft' },
-    { id: 'submitted', label: 'Submitted' },
-    { id: 'review', label: 'Under Review' },
-    { id: 'resolved', label: 'Resolved' },
-    { id: 'closed', label: 'Closed' }
-  ];
+  const steps = ['draft', 'submitted', 'review', 'resolved', 'closed'];
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-900">
-        <Loader2 className="size-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: NB.cream }}>
+      <Loader2 size={36} style={{ animation: 'spin-slow 1s linear infinite' }} />
+    </div>
+  );
+
+  const canSubmit = !!subject && !!title && !!description;
 
   return (
-    <div className="bg-background-light dark:bg-[#0F172A] font-['Inter',_sans-serif] text-slate-900 dark:text-slate-100 min-h-screen">
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link to="/authority/dashboard" className="flex items-center gap-3 text-primary no-underline text-2xl font-bold italic">
-              Trackmate
-            </Link>
-            <nav className="hidden md:flex items-center gap-6">
-              <Link to="/authority/dashboard" className="text-slate-600 dark:text-slate-400 hover:text-primary text-sm font-medium no-underline">Dashboard</Link>
-              <Link to="/authority/efir" className="text-primary text-sm font-bold border-b-2 border-primary py-5 no-underline">E-FIR System</Link>
-              <Link to="/authority/analytics" className="text-slate-600 dark:text-slate-400 hover:text-primary text-sm font-medium no-underline">Analytics</Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="size-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold border border-white/5">
-              {authUser?.full_name?.split(' ').map((n: string) => n[0]).join('')}
+    <div style={{ display: 'flex', minHeight: '100vh', background: NB.cream, fontFamily: "'Space Grotesk', sans-serif" }}>
+      <AuthoritySidebar />
+      <main className="page-with-sidebar" style={{ flex: 1 }}>
+        {/* Header */}
+        <div style={{ background: NB.black, borderBottom: `3px solid ${NB.black}`, padding: '16px 28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <div style={{ width: 32, height: 32, background: NB.yellow, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileText size={18} color={NB.black} />
             </div>
+            <h1 style={{ fontSize: '1.2rem', fontWeight: 800, color: NB.white, margin: 0 }}>Electronic FIR Filing</h1>
+          </div>
+          {/* Progress steps */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {steps.map((s) => (
+              <div key={s} style={{ flex: 1 }}>
+                <div style={{ height: 4, background: s === status ? NB.yellow : 'rgba(255,255,255,0.2)', marginBottom: 4 }} />
+                <p style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: s === status ? NB.yellow : 'rgba(255,255,255,0.4)', margin: 0 }}>{s}</p>
+              </div>
+            ))}
           </div>
         </div>
-      </header>
 
-      <main className="max-w-[1280px] mx-auto px-6 py-8">
-        <div className="grid grid-cols-5 gap-4 mb-10">
-          {steps.map((step) => (
-            <div key={step.id} className="flex flex-col gap-2">
-              <div className={`h-1.5 w-full rounded-full ${status === step.id ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-800'}`}></div>
-              <p className={`text-[10px] font-black uppercase tracking-widest ${status === step.id ? 'text-primary' : 'text-slate-500'}`}>{step.label}</p>
-            </div>
-          ))}
-        </div>
-
-        <h1 className="text-2xl font-bold mb-8 text-slate-900 dark:text-white flex items-center gap-3">
-          <FileText className="size-8 text-primary" />
-          Electronic FIR Filing
-        </h1>
-        
-        <div className="grid grid-cols-12 gap-8">
-          <div className="col-span-12 lg:col-span-8 space-y-6">
-            <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
-              <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/40">
-                <h3 className="font-bold flex items-center gap-2 m-0"><Users className="size-5 text-primary" /> Subject Information</h3>
+        <div className="responsive-grid" style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24 }}>
+          {/* Left column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Subject */}
+            <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}` }}>
+              <div style={{ padding: '14px 20px', borderBottom: `2px solid ${NB.black}`, background: NB.yellow, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}><Users size={16} /> Subject Information</h3>
                 {!subject && (
-                  <div className="flex gap-2">
-                    <input 
-                      value={searchId} 
-                      onChange={e => setSearchId(e.target.value)}
-                      className="text-xs bg-white dark:bg-slate-800 border dark:border-slate-700 px-3 py-1.5 rounded outline-none" 
-                      placeholder="Blockchain ID or Email"
-                    />
-                    <button onClick={findSubject} className="bg-primary text-white text-[10px] px-3 py-1.5 rounded font-bold uppercase">Search</button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input value={searchId} onChange={e => setSearchId(e.target.value)} placeholder="Blockchain ID or Email" style={{ ...inputStyle, width: 220, padding: '6px 10px', fontSize: '0.8rem' }} />
+                    <button onClick={findSubject} style={{ background: NB.black, color: NB.white, border: '2px solid #000', padding: '6px 14px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase' }}>Search</button>
                   </div>
                 )}
               </div>
-              <div className="p-6">
+              <div style={{ padding: '20px' }}>
                 {subject ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div><label style={labelS}>Full Name</label><p style={{ fontWeight: 700, color: NB.black, margin: 0 }}>{subject.full_name}</p></div>
+                    <div><label style={labelS}>Blockchain Hash ID</label><code style={{ fontSize: '0.75rem', fontFamily: "'JetBrains Mono', monospace", color: NB.blue, fontWeight: 700 }}>{subject.blockchain_id || 'NOT_ASSIGNED'}</code></div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
-                      <p className="font-bold text-slate-900 dark:text-white m-0">{subject.full_name}</p>
+                      <label style={labelS}>Contact</label>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}><Mail size={12} /> {subject.email}</p>
+                      <p style={{ margin: '4px 0 0', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}><Phone size={12} /> {subject.phone || '—'}</p>
                     </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Blockchain Hash ID</label>
-                      <code className="text-primary font-mono text-xs">{subject.blockchain_id || 'NOT_ASSIGNED'}</code>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Contact Details</label>
-                      <p className="text-sm m-0 flex items-center gap-2"><Mail className="size-3" /> {subject.email}</p>
-                      <p className="text-sm m-0 flex items-center gap-2 mt-1"><Phone className="size-3" /> {subject.phone || 'No phone'}</p>
-                    </div>
-                    <div className="flex items-end">
-                      <button onClick={() => setSubject(null)} className="text-[10px] text-red-500 font-bold uppercase hover:underline">Change Subject</button>
+                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                      <button onClick={() => setSubject(null)} style={{ background: 'none', border: 'none', color: NB.red, fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'inherit' }}>Change Subject</button>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-8 text-center text-slate-500 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-                    <Fingerprint className="size-10 mx-auto mb-3 opacity-20" />
-                    <p className="text-sm font-medium">No subject selected. Use search to find verified user.</p>
+                  <div style={{ padding: '28px', textAlign: 'center', border: `2px dashed ${NB.black}`, color: '#6B6B6B' }}>
+                    <Fingerprint size={28} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
+                    <p style={{ fontSize: '0.88rem', fontWeight: 600 }}>No subject selected. Use search to find a verified user.</p>
                   </div>
                 )}
               </div>
-            </section>
-            
-            <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
-              <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 bg-slate-50 dark:bg-slate-900/40 font-bold">
-                <AlertTriangle className="size-5 text-primary" /> Incident Details
+            </div>
+
+            {/* Incident details */}
+            <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}` }}>
+              <div style={{ padding: '14px 20px', borderBottom: `2px solid ${NB.black}`, background: NB.cream, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={16} /><h3 style={{ fontWeight: 800, margin: 0, fontSize: '0.9rem' }}>Incident Details</h3>
               </div>
-              <div className="p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500">FIR Record Title</label>
-                    <input value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 outline-none focus:ring-1 focus:ring-primary" placeholder="e.g. Theft at North Gate" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500">Incident Category</label>
-                    <select value={incidentType} onChange={e => setIncidentType(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 outline-none">
-                      <option>Theft/Larceny</option>
-                      <option>Assault</option>
-                      <option>Harassment</option>
-                      <option>Accident</option>
-                      <option>General Safety</option>
+              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div><label style={labelS}>FIR Title</label><input value={title} onChange={e => setTitle(e.target.value)} style={inputStyle} placeholder="e.g. Theft at North Gate" /></div>
+                  <div><label style={labelS}>Incident Category</label>
+                    <select value={incidentType} onChange={e => setIncidentType(e.target.value)} style={inputStyle}>
+                      <option>Theft/Larceny</option><option>Assault</option><option>Harassment</option><option>Accident</option><option>General Safety</option>
                     </select>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500">Detailed Narrative</label>
-                  <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 outline-none focus:ring-1 focus:ring-primary min-h-[120px]" placeholder="Type technical narrative here..." />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 flex items-center gap-1"><MapPin className="size-3" /> Location Ref</label>
-                    <input value={location} onChange={e => setLocation(e.target.value)} className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-4 py-2" placeholder="Coordinates or Zone name" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 flex items-center gap-1"><Calendar className="size-3" /> Incident Time</label>
-                    <input type="datetime-local" value={incidentTime} onChange={e => setIncidentTime(e.target.value)} className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-4 py-2" />
-                  </div>
+                <div><label style={labelS}>Detailed Narrative</label><textarea value={description} onChange={e => setDescription(e.target.value)} style={{ ...inputStyle, minHeight: 100, resize: 'vertical' }} placeholder="Type narrative here..." /></div>
+                <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div><label style={labelS}><MapPin size={10} style={{ display: 'inline' }} /> Location Ref</label><input value={location} onChange={e => setLocation(e.target.value)} style={inputStyle} placeholder="Coordinates or Zone name" /></div>
+                  <div><label style={labelS}><Calendar size={10} style={{ display: 'inline' }} /> Incident Time</label><input type="datetime-local" value={incidentTime} onChange={e => setIncidentTime(e.target.value)} style={inputStyle} /></div>
                 </div>
               </div>
-            </section>
+            </div>
 
-            <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
-              <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/40">
-                <h3 className="font-bold flex items-center gap-2 m-0"><Info className="size-5 text-primary" /> Witness Evidence</h3>
-                <button onClick={addWitness} className="text-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-1"><Save className="size-3" /> Add Member</button>
+            {/* Witnesses */}
+            <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}` }}>
+              <div style={{ padding: '14px 20px', borderBottom: `2px solid ${NB.black}`, background: NB.cream, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h3 style={{ fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}><Info size={16} /> Witness Evidence</h3>
+                <button onClick={addWitness} style={{ background: NB.mint, border: `2px solid ${NB.black}`, padding: '5px 12px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.68rem', cursor: 'pointer', textTransform: 'uppercase', boxShadow: `2px 2px 0 ${NB.black}` }}>+ Add Member</button>
               </div>
-              <div className="p-6">
-                {witnesses.length > 0 ? (
-                  <div className="space-y-4">
-                    {witnesses.map((w: any, i: number) => (
-                      <div key={i} className="p-4 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700 relative group">
-                        <button onClick={() => removeWitness(i)} className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="size-4" /></button>
-                        <div className="grid grid-cols-2 gap-4 mb-3">
-                          <input 
-                            placeholder="Witness Name" 
-                            value={w.name} 
-                            onChange={e => updateWitness(i, 'name', e.target.value)}
-                            className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded px-3 py-1 text-sm outline-none" 
-                          />
-                          <input 
-                            placeholder="Contact/Phone" 
-                            value={w.contact} 
-                            onChange={e => updateWitness(i, 'contact', e.target.value)}
-                            className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded px-3 py-1 text-sm outline-none" 
-                          />
-                        </div>
-                        <textarea 
-                          placeholder="Brief Statement..." 
-                          value={w.statement} 
-                          onChange={e => updateWitness(i, 'statement', e.target.value)}
-                          className="w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded px-3 py-2 text-sm outline-none resize-none" 
-                          rows={2} 
-                        />
+              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {witnesses.length === 0 ? (
+                  <p style={{ textAlign: 'center', color: '#6B6B6B', fontWeight: 600, fontSize: '0.85rem', padding: '16px' }}>No witness statements captured yet.</p>
+                ) : witnesses.map((w, i) => (
+                  <div key={i} style={{ padding: '14px', background: NB.cream, border: `2px solid ${NB.black}`, position: 'relative' }}>
+                    <button onClick={() => removeWitness(i)} style={{ position: 'absolute', top: 8, right: 8, background: NB.red, border: 'none', color: NB.white, width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                      <Trash2 size={12} />
+                    </button>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                      <input value={w.name} onChange={e => updateWitness(i, 'name', e.target.value)} placeholder="Witness Name" style={{ ...inputStyle, padding: '7px 10px' }} />
+                      <input value={w.contact} onChange={e => updateWitness(i, 'contact', e.target.value)} placeholder="Contact" style={{ ...inputStyle, padding: '7px 10px' }} />
+                    </div>
+                    <textarea value={w.statement} onChange={e => updateWitness(i, 'statement', e.target.value)} placeholder="Brief statement..." style={{ ...inputStyle, resize: 'none', minHeight: 60 }} rows={2} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Submission control */}
+            <div style={{ background: NB.black, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <h3 style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)', margin: '0 0 4px' }}>Submission Control</h3>
+              <button onClick={() => canSubmit ? handleSubmit('submitted') : alert(!subject ? 'Select a subject.' : !title ? 'Enter a title.' : 'Enter a description.')} style={{ background: canSubmit ? NB.yellow : 'rgba(255,229,0,0.2)', border: `3px solid ${canSubmit ? NB.yellow : 'rgba(255,255,255,0.1)'}`, padding: '14px', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.88rem', cursor: canSubmit ? 'pointer' : 'not-allowed', textTransform: 'uppercase', letterSpacing: '0.06em', color: NB.black, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                {isSubmitting ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={16} />} Submit & Anchor FIR
+              </button>
+              <button onClick={() => canSubmit ? handleSubmit('draft') : alert('Fill required fields first.')} style={{ background: 'rgba(255,255,255,0.1)', border: `2px solid rgba(255,255,255,0.2)`, padding: '10px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <Save size={14} /> Save Work Draft
+              </button>
+
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 16, marginTop: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                  <Fingerprint size={14} color={NB.mint} />
+                  <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>Digital Integrity Log</span>
+                </div>
+                <div style={{ background: NB.cream, border: `2px solid rgba(255,229,0,0.3)`, padding: '10px', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.65rem', color: NB.blue, wordBreak: 'break-all', lineHeight: 1.7 }}>
+                  [LEDGER_PENDING]: SHA-256 anchoring on submission. Status: UNTRUSTED_DRAFT.
+                </div>
+              </div>
+            </div>
+
+            {/* Evidence vault */}
+            <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}` }}>
+              <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.cream, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Upload size={14} /><h4 style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Evidence Vault</h4>
+              </div>
+              <div style={{ padding: '16px' }}>
+                <label style={{ display: 'block', border: `2px dashed ${NB.black}`, padding: '24px', textAlign: 'center', cursor: 'pointer' }}>
+                  <input type="file" style={{ display: 'none' }} multiple accept="image/*,video/*,application/pdf" onChange={e => { const files = Array.from(e.target.files || []); setEvidenceUrls(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]); }} />
+                  <Eye size={24} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
+                  <p style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6B6B6B', margin: 0 }}>Upload Scene Photos</p>
+                </label>
+                {evidenceUrls.length > 0 && (
+                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {evidenceUrls.map((_, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NB.cream, border: `1.5px solid ${NB.black}`, padding: '6px 10px' }}>
+                        <span style={{ fontSize: '0.72rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>Evidence_File_{i + 1}.img</span>
+                        <button onClick={() => setEvidenceUrls(p => p.filter((_, idx) => idx !== i))} style={{ background: NB.red, border: 'none', color: NB.white, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                          <Trash2 size={10} />
+                        </button>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="py-4 text-center text-slate-500 text-xs italic">No witness statements captured yet.</div>
                 )}
               </div>
-            </section>
-          </div>
-
-          <div className="col-span-12 lg:col-span-4 space-y-6">
-            <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm flex flex-col gap-4">
-              <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-0">Submission Control</h3>
-              
-              <button 
-                disabled={isSubmitting || !subject}
-                onClick={() => handleSubmit('submitted')}
-                className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-3 disabled:opacity-50 transition-all hover:scale-[1.02]"
-              >
-                {isSubmitting ? <Loader2 className="animate-spin size-5" /> : <Send className="size-5" />}
-                Submit & Anchor FIR
-              </button>
-
-              <button 
-                disabled={isSubmitting || !subject}
-                onClick={() => handleSubmit('draft')}
-                className="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
-              >
-                <Save className="size-4" /> Save Work Draft
-              </button>
-
-              <div className="mt-4 pt-6 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2 text-slate-500 mb-4">
-                  <Fingerprint className="size-4 text-green-500" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Digital Integrity Log</span>
-                </div>
-                <div className="bg-[#0A0F1E] p-3 rounded-lg border border-slate-800 font-mono text-[9px] text-primary/70 break-all leading-relaxed">
-                  [LEDGER_PENDING]: SHA-256 Anchoring will occur on submission. Current status: UNTRUSTED_DRAFT.
-                </div>
-              </div>
-            </section>
-
-            <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
-              <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 flex items-center gap-2">
-                <Upload className="size-4 text-slate-400" />
-                <h4 className="text-xs font-bold uppercase tracking-wider m-0">Evidence Vault</h4>
-              </div>
-              <div className="p-4">
-                <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-6 text-center text-slate-400 hover:border-primary transition-all cursor-pointer">
-                  <Eye className="size-6 mx-auto mb-2 opacity-30" />
-                  <p className="text-[10px] font-bold">Upload Scene Photos</p>
-                </div>
-              </div>
-            </section>
+            </div>
           </div>
         </div>
       </main>
-      
-      <footer className="max-w-[1280px] mx-auto px-6 py-8 border-t border-slate-200 dark:border-slate-800 text-center">
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">Trackmate Cryptographic Protocol • Legal System Access Only</p>
-      </footer>
     </div>
   );
 }

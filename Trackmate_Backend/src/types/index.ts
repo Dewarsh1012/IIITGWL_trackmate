@@ -57,6 +57,24 @@ export enum EFIRStatus {
     CLOSED = 'closed',
 }
 
+export enum AlertPriority {
+    LOW = 'low',
+    MEDIUM = 'medium',
+    HIGH = 'high',
+    CRITICAL = 'critical',
+}
+
+export enum AlertTargetGroup {
+    ALL = 'all',
+    TOURISTS = 'tourists',
+    RESIDENTS = 'residents',
+    BUSINESSES = 'businesses',
+    USER = 'user',
+    ZONE = 'zone',
+}
+
+export type AlertTypeEnum = 'emergency' | 'safety_warning' | 'weather' | 'traffic' | 'zone_update' | 'curfew' | 'evacuation' | 'general';
+
 export enum ItineraryStopStatus {
     UPCOMING = 'upcoming',
     CURRENT = 'current',
@@ -251,6 +269,30 @@ export interface IPlatformConfig extends Document {
     key: string;
     value: string;
     created_at: Date;
+}
+
+export interface IAlert extends Document {
+    created_by: Types.ObjectId;
+    title: string;
+    message: string;
+    alert_type: AlertTypeEnum;
+    priority: AlertPriority;
+    target_group: AlertTargetGroup;
+    target_user_id?: Types.ObjectId;
+    target_zone_id?: Types.ObjectId;
+    scheduled_for?: Date;
+    sent_at?: Date;
+    created_at: Date;
+}
+
+export interface IUserAlert extends Document {
+    alert: Types.ObjectId;
+    user: Types.ObjectId;
+    is_read: boolean;
+    is_acknowledged: boolean;
+    read_at?: Date;
+    acknowledged_at?: Date;
+    delivered_at: Date;
 }
 
 // ── Auth Types ──

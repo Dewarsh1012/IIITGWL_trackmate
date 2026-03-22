@@ -107,7 +107,7 @@ export default function TouristMap({ lat, lng, zones = [], highlightZoneId }: To
               <Popup>
                 <div style={{ minWidth: 140 }}>
                   <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{zone.name}</div>
-                  <div style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#fff', background: color }}>
+                  <div style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: (zone.risk_level === 'safe' || zone.risk_level === 'moderate') ? '#000' : '#fff', background: color }}>
                     {zone.risk_level}
                   </div>
                   {zone.description && (

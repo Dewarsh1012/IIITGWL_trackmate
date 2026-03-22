@@ -1,4 +1,17 @@
 import { useAuth } from '../../context/AuthContext';
+import { Shield, CheckCircle, Phone, Translate, Copy, QrCode } from 'lucide-react';
+
+const NB = {
+  black: '#0A0A0A',
+  yellow: '#FFE500',
+  red: '#FF3B3B',
+  blue: '#2B6FFF',
+  mint: '#00D084',
+  orange: '#FF7A00',
+  cream: '#FFFBF0',
+  white: '#FFFFFF',
+  gray: '#E5E5E5'
+};
 
 export default function TouristProfile() {
   const { user } = useAuth();
@@ -7,248 +20,214 @@ export default function TouristProfile() {
   const initials = user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'RS';
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-6 lg:py-10 text-slate-900 dark:text-slate-100 font-['Inter',_sans-serif]">
-      <div className="grid grid-cols-12 gap-8">
-        <aside className="col-span-12 lg:col-span-4 space-y-8">
-          <section className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-[100px] -mr-16 -mt-16"></div>
-            <div className="flex flex-col items-center text-center">
-              <div className="relative mb-6">
-                <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-primary to-emerald-400 p-1">
-                  <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center border-4 border-transparent">
-                    <span className="text-4xl font-bold text-slate-800 dark:text-white">{initials}</span>
-                  </div>
-                </div>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg border border-emerald-400">
-                  <span className="material-symbols-outlined text-xs m-0">verified</span> VERIFIED
-                </div>
-              </div>
-              <h2 className="text-2xl font-bold m-0">{user?.name || 'Raj Sharma'}</h2>
-              <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium tracking-widest uppercase">
-                {user?.role || 'TOURIST'}
-              </div>
-              <div className="mt-8 w-full space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">Member Since</span>
-                  <span className="font-medium">Jan 2026</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">Trips Completed</span>
-                  <span className="font-medium">1</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">Nationality</span>
-                  <span className="font-medium">Indian</span>
-                </div>
-              </div>
-            </div>
-          </section>
+    <div style={{ maxWidth: 1440, margin: '0 auto', padding: '24px', fontFamily: "'Space Grotesk', sans-serif", color: NB.black }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 800, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '-0.02em', WebkitTextStroke: `1px ${NB.black}` }}>Citizenship Identity</h1>
+          <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#555' }}>Manage your verified traveler profile, blockchain ID, and safety metrics.</p>
+        </div>
+        <div style={{ background: NB.mint, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <CheckCircle size={20} color={NB.black} />
+          <span style={{ fontWeight: 800, fontSize: '0.9rem', textTransform: 'uppercase' }}>Fully Verified</span>
+        </div>
+      </div>
 
-          <section className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="font-bold text-lg m-0">Safety Standing</h3>
-              <span className="material-symbols-outlined text-primary m-0">info</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="relative w-48 h-48 flex items-center justify-center">
-                <svg className="w-full h-full -rotate-90">
-                  <circle className="text-slate-100 dark:text-slate-800" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" strokeWidth="8"></circle>
-                  <circle className="text-primary transition-all duration-1000 ease-out" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" strokeDasharray="552.92" strokeDashoffset="82.93" strokeLinecap="round" strokeWidth="8"></circle>
-                </svg>
-                <div className="absolute flex flex-col items-center">
-                  <span className="text-4xl font-black text-slate-900 dark:text-white">85%</span>
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-primary mt-1">Good Standing</span>
-                </div>
-              </div>
-              <div className="mt-8 w-full space-y-4">
-                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Points Breakdown</span>
-                    <span className="text-xs font-bold text-emerald-500">+12 this trip</span>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary"></span>Verified Identity</span>
-                      <span className="font-mono text-xs">+500</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary"></span>Safety Reports</span>
-                      <span className="font-mono text-xs">+120</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary"></span>Local Compliance</span>
-                      <span className="font-mono text-xs">+230</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </aside>
-
-        <div className="col-span-12 lg:col-span-8 space-y-8">
-          <section className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold text-lg m-0">Blockchain Digital ID</h3>
-              <div className="flex gap-2">
-                <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors outline-none border-none text-slate-500 flex items-center justify-center">
-                  <span className="material-symbols-outlined m-0">share</span>
-                </button>
-                <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors outline-none border-none text-slate-500 flex items-center justify-center">
-                  <span className="material-symbols-outlined m-0">download</span>
-                </button>
-              </div>
-            </div>
-            <div className="relative overflow-hidden aspect-[1.58/1] w-full max-w-2xl mx-auto rounded-2xl bg-slate-900 text-white p-6 md:p-8 shadow-2xl border border-slate-700">
-              <div className="absolute top-0 right-0 w-full h-full opacity-20 pointer-events-none">
-                <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[120%] bg-blue-500/30 blur-[100px] rounded-full"></div>
-                <div className="absolute bottom-[-20%] left-[-10%] w-[40%] h-[80%] bg-emerald-500/20 blur-[80px] rounded-full"></div>
-              </div>
-              <div className="absolute inset-0 bg-transparent opacity-10" style={{ backgroundImage: "radial-gradient(var(--color-slate-700) 1px, transparent 1px)", backgroundSize: "10px 10px" }}></div>
-              <div className="relative z-10 h-full flex flex-col justify-between">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold tracking-[0.2em] text-primary uppercase m-0">Trackmate Digital Identity</p>
-                    <h4 className="text-2xl font-bold tracking-tight m-0">{user?.name || 'Raj Sharma'}</h4>
-                  </div>
-                  <div className="bg-primary/20 backdrop-blur-md border border-primary/30 px-3 py-1 rounded text-[10px] font-bold flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                    VALID
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-[9px] uppercase tracking-widest text-slate-400 mb-1 m-0">Blockchain Hash ID</p>
-                      <p className="font-mono text-sm m-0">{user?.blockchain_id || 'BC-7a3f9e2b1c4d5678'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] uppercase tracking-widest text-slate-400 mb-1 m-0">Government ID (Masked)</p>
-                      <p className="font-mono text-sm tracking-widest m-0">**** **** 4523</p>
-                    </div>
-                    <div className="flex gap-8">
-                      <div>
-                        <p className="text-[9px] uppercase tracking-widest text-slate-400 mb-1 m-0">Travel Dates</p>
-                        <p className="text-sm font-medium m-0">Mar 1 – Mar 15, 2026</p>
-                      </div>
-                      <div>
-                        <p className="text-[9px] uppercase tracking-widest text-slate-400 mb-1 m-0">Destination</p>
-                        <p className="text-sm font-medium m-0">Tawang, India</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end justify-center">
-                    <div className="bg-white p-2 rounded-lg flex items-center justify-center">
-                       <span className="material-symbols-outlined text-[80px] text-slate-900 m-0">qr_code_2</span>
-                    </div>
-                    <p className="mt-2 text-[9px] font-mono text-slate-400 m-0">ENCRYPTED PROTOCOL</p>
-                  </div>
-                </div>
-              </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, alignItems: 'start' }}>
+        
+        {/* Sidebar Profile Info */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Main Card */}
+          <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+            {/* Geometric decoration */}
+            <div style={{ position: 'absolute', top: -3, right: -3, width: 40, height: 40, background: NB.yellow, borderLeft: `3px solid ${NB.black}`, borderBottom: `3px solid ${NB.black}` }} />
+            
+            <div style={{ width: 100, height: 100, borderRadius: '50%', background: NB.blue, border: `4px solid ${NB.black}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, boxShadow: `4px 4px 0 ${NB.black}` }}>
+              <span style={{ fontSize: '2.5rem', fontWeight: 900, color: NB.white }}>{initials}</span>
             </div>
             
-            <div className="mt-8 flex gap-4">
-              <button className="flex-1 bg-primary text-background-dark font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:brightness-110 transition-all border-none">
-                <span className="material-symbols-outlined text-xl m-0">content_copy</span> Copy Blockchain ID
-              </button>
-              <button className="flex-1 border-2 border-slate-200 dark:border-slate-800 font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-inherit">
-                <span className="material-symbols-outlined text-xl m-0">qr_code_scanner</span> Show Full QR
-              </button>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '0 0 8px', textAlign: 'center' }}>{user?.name || 'Raj Sharma'}</h2>
+            
+            <div style={{ background: NB.black, color: NB.white, padding: '4px 12px', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 24 }}>
+              {user?.role || 'TOURIST'}
             </div>
-          </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <section className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-lg m-0">Emergency Contacts</h3>
-                <button className="text-primary hover:bg-primary/10 p-1 rounded-md transition-colors outline-none border-none flex items-center justify-center">
-                  <span className="material-symbols-outlined m-0 leading-none">add_circle</span>
+            <div style={{ width: '100%', borderTop: `2px solid ${NB.black}`, paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#666', textTransform: 'uppercase' }}>Member Since</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>Jan 2026</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#666', textTransform: 'uppercase' }}>Trips</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>1</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#666', textTransform: 'uppercase' }}>Nationality</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>Indian</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Safety Standing */}
+          <div style={{ background: NB.yellow, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: 24 }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: 10, textTransform: 'uppercase' }}>
+              <Shield size={20} /> Safety Standing
+            </h3>
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+              <div style={{ width: 120, height: 120, borderRadius: '50%', border: `8px solid ${NB.black}`, background: NB.white, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: `inset 4px 4px 0 rgba(0,0,0,0.1)` }}>
+                <span style={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1 }}>85%</span>
+                <span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', color: NB.mint, marginTop: 4 }}>Good Standing</span>
+              </div>
+            </div>
+
+            <div style={{ background: NB.white, border: `2px solid ${NB.black}`, padding: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `2px solid ${NB.black}`, paddingBottom: 8, marginBottom: 12 }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Points Breakdown</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: NB.blue }}>+12 this trip</span>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', fontWeight: 600 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, background: NB.mint, border: `1px solid ${NB.black}` }}/> Verified Identity</span>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 800 }}>+500</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', fontWeight: 600 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, background: NB.blue, border: `1px solid ${NB.black}` }}/> Safety Reports</span>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 800 }}>+120</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', fontWeight: 600 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, background: NB.orange, border: `1px solid ${NB.black}` }}/> Local Compliance</span>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 800 }}>+230</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24, gridColumn: 'auto / -1' }}>
+          
+          {/* Blockchain ID Card */}
+          <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `6px 6px 0 ${NB.black}`, padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, textTransform: 'uppercase' }}>Blockchain Digital ID</h3>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button style={{ background: NB.cream, border: `2px solid ${NB.black}`, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', boxShadow: `2px 2px 0 ${NB.black}` }}>
+                  <Copy size={14} /> Copy
+                </button>
+                <button style={{ background: NB.blue, color: NB.white, border: `2px solid ${NB.black}`, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', boxShadow: `2px 2px 0 ${NB.black}` }}>
+                  <QrCode size={14} /> Show QR
                 </button>
               </div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500">
-                      <span className="material-symbols-outlined m-0 text-xl">person</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold m-0">Anita Sharma</p>
-                      <p className="text-[11px] text-slate-500 uppercase tracking-tight m-0 mt-0.5">Primary • Spouse</p>
-                    </div>
-                  </div>
-                  <button className="size-8 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border-none outline-none">
-                    <span className="material-symbols-outlined text-sm m-0">call</span>
-                  </button>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500">
-                      <span className="material-symbols-outlined m-0 text-xl">medical_services</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold m-0">Dr. R. Patel</p>
-                      <p className="text-[11px] text-slate-500 uppercase tracking-tight m-0 mt-0.5">Medical • Family Doctor</p>
-                    </div>
-                  </div>
-                  <button className="size-8 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border-none outline-none">
-                    <span className="material-symbols-outlined text-sm m-0">call</span>
-                  </button>
-                </div>
-              </div>
-            </section>
+            </div>
 
-            <section className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
-               <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="font-bold text-lg m-0">Language Preferences</h3>
-                    <span className="material-symbols-outlined text-slate-400 m-0 leading-none">translate</span>
+            <div style={{ background: NB.black, color: NB.white, padding: '24px', position: 'relative', overflow: 'hidden' }}>
+              {/* Pattern overlay */}
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.1, backgroundImage: `radial-gradient(${NB.white} 2px, transparent 2px)`, backgroundSize: '20px 20px' }} />
+              
+              <div style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 24 }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: NB.mint, textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 8 }}>TrackMate Protocol</div>
+                  <h4 style={{ fontSize: '2rem', fontWeight: 800, margin: '0 0 24px', letterSpacing: '-0.02em', wordBreak: 'break-word' }}>{user?.name || 'Raj Sharma'}</h4>
+                  
+                  <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#999', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Blockchain Hash</div>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.9rem', fontWeight: 700, wordBreak: 'break-all' }}>{user?.blockchain_id || 'BC-7A3F9E2B1C4D5678'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#999', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Gov ID</div>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.9rem', fontWeight: 700 }}>**** **** 4523</div>
+                    </div>
                   </div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 block m-0">Primary Language</label>
-                  <div className="relative w-full">
-                    <select className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-3 px-4 appearance-none focus:ring-primary focus:border-primary text-sm font-medium outline-none">
-                      <option>English (US)</option>
-                      <option>Hindi (भारत)</option>
-                      <option>Spanish (ES)</option>
-                    </select>
-                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">expand_more</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    <span className="px-3 py-1 bg-primary/10 border border-primary/20 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-medium">English</span>
-                    <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs font-medium dark:text-slate-300">Hindi</span>
-                  </div>
-               </div>
-            </section>
+                </div>
+                
+                <div style={{ background: NB.white, padding: 12, border: `4px solid ${NB.mint}`, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <QrCode size={64} color={NB.black} />
+                  <div style={{ color: NB.black, fontSize: '0.55rem', fontWeight: 800, marginTop: 8, textAlign: 'center', lineHeight: 1.2 }}>SCANNABLE<br/>ASSET</div>
+                </div>
+              </div>
+            </div>
           </div>
-          
-          <section className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold text-lg m-0">Recent Trip Security Activity</h3>
-              <a className="text-primary text-xs font-bold uppercase tracking-wider hover:underline" href="#">View All Logs</a>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+            {/* Emergency Contacts */}
+            <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, textTransform: 'uppercase' }}>Emergency Contacts</h3>
+                <button style={{ background: NB.yellow, border: `2px solid ${NB.black}`, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: `2px 2px 0 ${NB.black}`, fontWeight: 900 }}>+</button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ border: `2px solid ${NB.black}`, padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NB.cream }}>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: 4 }}>Anita Sharma</div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: '#666' }}>Primary • Spouse</div>
+                  </div>
+                  <button style={{ background: NB.blue, border: `2px solid ${NB.black}`, color: NB.white, padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    <Phone size={14} />
+                  </button>
+                </div>
+                
+                <div style={{ border: `2px solid ${NB.black}`, padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NB.cream }}>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: 4 }}>Dr. R. Patel</div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: '#666' }}>Medical • Doctor</div>
+                  </div>
+                  <button style={{ background: NB.blue, border: `2px solid ${NB.black}`, color: NB.white, padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    <Phone size={14} />
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="size-2 rounded-full bg-primary mt-1.5 flex-shrink-0"></div>
-                <div>
-                  <p className="text-sm font-bold m-0 text-slate-800 dark:text-slate-200">Identity Verification via Blockchain</p>
-                  <p className="text-xs text-slate-500 m-0 mt-1">Guwahati Airport Checkpoint • Mar 01, 2026, 09:45 AM</p>
-                </div>
+
+            {/* Language Preferences */}
+            <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '24px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, textTransform: 'uppercase' }}>Language Auth</h3>
+                <Translate size={20} />
               </div>
-              <div className="flex items-start gap-4">
-                <div className="size-2 rounded-full bg-primary mt-1.5 flex-shrink-0"></div>
-                <div>
-                  <p className="text-sm font-bold m-0 text-slate-800 dark:text-slate-200">Emergency Contact Shared</p>
-                  <p className="text-xs text-slate-500 m-0 mt-1">Hotel Blue Pine, Tawang • Mar 02, 2026, 06:12 PM</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4 opacity-50">
-                <div className="size-2 rounded-full bg-slate-400 dark:bg-slate-600 mt-1.5 flex-shrink-0"></div>
-                <div>
-                  <p className="text-sm font-bold m-0 text-slate-600 dark:text-slate-400">Safety Score Recalculated</p>
-                  <p className="text-xs text-slate-400 m-0 mt-1">System Update • Feb 28, 2026, 12:00 AM</p>
+              
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Primary Comms</label>
+                <select style={{ width: '100%', border: `3px solid ${NB.black}`, padding: '10px 12px', fontSize: '0.9rem', fontWeight: 700, fontFamily: 'inherit', outline: 'none', background: NB.cream, marginBottom: 20, boxShadow: `2px 2px 0 ${NB.black}`, cursor: 'pointer', appearance: 'none' }}>
+                  <option>English (US)</option>
+                  <option>Hindi (भारत)</option>
+                  <option>Spanish (ES)</option>
+                </select>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  <div style={{ background: NB.mint, border: `2px solid ${NB.black}`, padding: '4px 10px', fontSize: '0.75rem', fontWeight: 800, boxShadow: `2px 2px 0 ${NB.black}` }}>English</div>
+                  <div style={{ background: NB.white, border: `2px solid ${NB.black}`, padding: '4px 10px', fontSize: '0.75rem', fontWeight: 800, boxShadow: `2px 2px 0 ${NB.black}` }}>Hindi</div>
                 </div>
               </div>
             </div>
-          </section>
+          </div>
+
+          {/* Recent Security Activity */}
+          <div style={{ background: NB.cream, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, textTransform: 'uppercase' }}>Security Log</h3>
+              <a href="#" style={{ fontSize: '0.75rem', fontWeight: 800, color: NB.blue, textTransform: 'uppercase', textDecoration: 'none' }}>View All</a>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {[
+                { title: 'Identity Verification via Blockchain', loc: 'Guwahati Airport Checkpoint', time: 'Mar 01, 2026, 09:45 AM', color: NB.mint },
+                { title: 'Emergency Contact Shared', loc: 'Hotel Blue Pine, Tawang', time: 'Mar 02, 2026, 06:12 PM', color: NB.orange },
+                { title: 'Safety Score Recalculated', loc: 'System Update', time: 'Feb 28, 2026, 12:00 AM', color: '#999' }
+              ].map((log, i) => (
+                <div key={i} style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: i < 2 ? `2px dashed ${NB.black}` : 'none', opacity: i === 2 ? 0.6 : 1 }}>
+                  <div style={{ width: 12, height: 12, background: log.color, border: `2px solid ${NB.black}`, marginTop: 4, flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: 4 }}>{log.title}</div>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#555', fontFamily: "'JetBrains Mono', monospace" }}>{log.loc} • {log.time}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
