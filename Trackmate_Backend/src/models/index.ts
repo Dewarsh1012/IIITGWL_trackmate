@@ -9,3 +9,5 @@ export { Business } from './Business';
 export { EmergencyContact } from './EmergencyContact';
 export { EFIR } from './EFIR';
 export { PlatformConfig } from './PlatformConfig';
+export { Alert } from './Alert';
+export { UserAlert } from './UserAlert';

@@ -18,6 +18,10 @@ import BusinessDashboard from './pages/business/Dashboard';
 import AuthorityDashboard from './pages/authority/Dashboard';
 import AuthorityEfir from './pages/authority/Efir';
 import AuthorityAnalytics from './pages/authority/Analytics';
+import AuthorityIncidents from './pages/authority/Incidents';
+import AuthorityRosters from './pages/authority/AuthorityRosters';
+import AuthorityZones from './pages/authority/ZoneManagement';
+import AlertComposer from './pages/authority/AlertComposer';
 
 export default function App() {
   return (
@@ -74,8 +78,14 @@ export default function App() {
                 <div className="min-h-screen">
                   <Routes>
                     <Route path="dashboard" element={<AuthorityDashboard />} />
+                    <Route path="incidents" element={<AuthorityIncidents />} />
+                    <Route path="tourists" element={<AuthorityRosters />} />
+                    <Route path="residents" element={<AuthorityRosters />} />
+                    <Route path="businesses" element={<AuthorityRosters />} />
+                    <Route path="zones" element={<AuthorityZones />} />
                     <Route path="efir" element={<AuthorityEfir />} />
                     <Route path="analytics" element={<AuthorityAnalytics />} />
+                    <Route path="alerts" element={<AlertComposer />} />
                     <Route path="*" element={<Navigate to="dashboard" replace />} />
                   </Routes>
                 </div>

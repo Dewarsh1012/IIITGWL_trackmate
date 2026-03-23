@@ -36,7 +36,7 @@ const updateStopSchema = z.object({
 
 // ─── Trips ────────────────────────────────────────────────────────────
 
-router.get('/trips', authenticate, async (req: AuthRequest, res: Response, next) => {
+router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
     try {
         const filter: Record<string, any> = { tourist: req.user!.userId };
         if (req.user!.role === UserRole.AUTHORITY) delete filter.tourist;
@@ -47,7 +47,7 @@ router.get('/trips', authenticate, async (req: AuthRequest, res: Response, next)
     }
 });
 
-router.post('/trips', authenticate, async (req: AuthRequest, res: Response, next) => {
+router.post('/', authenticate, async (req: AuthRequest, res: Response, next) => {
     try {
         const body = tripSchema.parse(req.body);
         const trip = await Trip.create({
@@ -62,7 +62,7 @@ router.post('/trips', authenticate, async (req: AuthRequest, res: Response, next
     }
 });
 
-router.patch('/trips/:id', authenticate, async (req: AuthRequest, res: Response, next) => {
+router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next) => {
     try {
         const updates = tripSchema.partial().parse(req.body);
         const trip = await Trip.findOneAndUpdate(
@@ -82,7 +82,7 @@ router.patch('/trips/:id', authenticate, async (req: AuthRequest, res: Response,
 
 // ─── Active trip ──────────────────────────────────────────────────────
 
-router.get('/trips/active', authenticate, async (req: AuthRequest, res: Response, next) => {
+router.get('/active', authenticate, async (req: AuthRequest, res: Response, next) => {
     try {
         const now = new Date();
         // 1. Try to find a trip currently in progress
@@ -109,9 +109,9 @@ router.get('/trips/active', authenticate, async (req: AuthRequest, res: Response
 
 // ─── Itineraries ──────────────────────────────────────────────────────
 
-router.get('/trips/:tripId/itinerary', authenticate, async (req: AuthRequest, res: Response, next) => {
+router.get('/:tripId/itinerary', authenticate, async (req: AuthRequest, res: Response, next) => {
     try {
-        const itinerary = await Itinerary.findOne({ trip: req.params.tripId })
+        const itinerary = await Itinerary.findOne({ trip: req.params.tripId as any })
             .populate({ path: 'stops', options: { sort: { sort_order: 1 } } })
             .lean();
         res.json({ success: true, data: itinerary });
@@ -120,11 +120,11 @@ router.get('/trips/:tripId/itinerary', authenticate, async (req: AuthRequest, re
     }
 });
 
-router.post('/trips/:tripId/itinerary', authenticate, async (req: AuthRequest, res: Response, next) => {
+router.post('/:tripId/itinerary', authenticate, async (req: AuthRequest, res: Response, next) => {
     try {
         const { title, stops } = req.body;
         const itinerary = await Itinerary.create({
-            trip: req.params.tripId,
+            trip: req.params.tripId as any,
             tourist: req.user!.userId,
             title,
         });
@@ -134,11 +134,11 @@ router.post('/trips/:tripId/itinerary', authenticate, async (req: AuthRequest, r
             // Dynamically import ItineraryStop to avoid circular deps
             const { ItineraryStop } = await import('../models');
             await ItineraryStop.insertMany(
-                validStops.map((s) => ({ ...s, itinerary: itinerary._id }))
+                validStops.map((s) => ({ ...s, itinerary: (itinerary as any)._id }))
             );
         }
 
-        const full = await Itinerary.findById(itinerary._id)
+        const full = await Itinerary.findById(itinerary._id as any)
             .populate({ path: 'stops', options: { sort: { sort_order: 1 } } });
         res.status(201).json({ success: true, data: full });
     } catch (err) {
@@ -152,7 +152,7 @@ router.post('/itinerary/:itineraryId/stops', authenticate, async (req: AuthReque
     try {
         const { ItineraryStop } = await import('../models');
         const body = stopSchema.parse(req.body);
-        const stop = await ItineraryStop.create({ ...body, itinerary: req.params.itineraryId });
+        const stop = await ItineraryStop.create({ ...body, itinerary: req.params.itineraryId as any });
         res.status(201).json({ success: true, data: stop });
     } catch (err) {
         next(err);

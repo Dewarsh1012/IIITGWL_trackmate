@@ -4,164 +4,124 @@ import { useSocket } from '../../context/SocketContext';
 import { useAuth } from '../../context/AuthContext';
 import TouristMap from '../../components/maps/TouristMap';
 import type { ZoneData } from '../../components/maps/TouristMap';
-
+import { Link } from 'react-router-dom';
 import { 
   Map as MapIcon, AlertTriangle, ShieldAlert, 
   Watch, Shield, Loader2, Check, RefreshCw, 
   Navigation as NearMe, Calendar, CheckCircle2,
   X, Send, MapPin, Radio, Bluetooth, Wifi
 } from 'lucide-react';
+import AlertPanel from '../../components/alerts/AlertPanel';
 
-// ───── Helpers ──────────────────────────────────────────────────────────
+const NB = { black: '#FFFBF0', yellow: '#FFE500', red: '#FF3B3B', blue: '#2B6FFF', mint: '#00D084', orange: '#FF7A00', cream: '#0A0A0A', white: '#111111' };
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
+  const R = 6371000; const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1); const dLon = toRad(lon2 - lon1);
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error' | 'info'; onClose: () => void }) {
+function NBToast({ message, type, onClose }: { message: string; type: 'success' | 'error' | 'info'; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, [onClose]);
-  const bg = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+  const bg = type === 'success' ? NB.mint : type === 'error' ? NB.red : NB.blue;
   return (
-    <div className={`fixed top-6 right-6 z-[9999] ${bg} text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-right-4 text-sm font-semibold`}>
-      {type === 'success' ? <Check className="size-4" /> : type === 'error' ? <X className="size-4" /> : <Radio className="size-4" />}
+    <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: bg, color: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '0.88rem' }}>
+      {type === 'success' ? <Check size={16} /> : type === 'error' ? <X size={16} /> : <Radio size={16} />}
       {message}
-      <button onClick={onClose} className="ml-2 opacity-60 hover:opacity-100"><X className="size-3" /></button>
+      <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', marginLeft: 8 }}><X size={12} /></button>
     </div>
   );
 }
 
-// ───── Modal Shell ──────────────────────────────────────────────────────
-
-function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+function NBModal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="font-bold text-slate-900 dark:text-white m-0">{title}</h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"><X className="size-5 text-slate-400" /></button>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} />
+      <div style={{ position: 'relative', width: '100%', maxWidth: 484, background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `6px 6px 0 ${NB.black}`, fontFamily: "'Space Grotesk', sans-serif" }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `3px solid ${NB.black}`, background: NB.yellow }}>
+          <h3 style={{ fontWeight: 800, color: NB.black, margin: 0, fontSize: '1rem' }}>{title}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
         </div>
-        <div className="p-6">{children}</div>
+        <div style={{ padding: '20px' }}>{children}</div>
       </div>
     </div>
   );
 }
 
-// ───── Main Dashboard ───────────────────────────────────────────────────
-
 export default function TouristDashboard() {
   const { user } = useAuth();
   const { socket } = useSocket();
-
-  // Data state
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [zones, setZones] = useState<ZoneData[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // GPS state
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
-  const locationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // SOS state
   const [sosLoading, setSosLoading] = useState(false);
   const [sosSuccess, setSosSuccess] = useState(false);
-  const [timer, setTimer] = useState<any>(null);
+  const sosIntervalRef = useRef<number | null>(null);
   const [countdown, setCountdown] = useState(0);
-
-  // Feature state
   const [checkinLoading, setCheckinLoading] = useState(false);
   const [checkinDone, setCheckinDone] = useState(false);
   const [verifyResult, setVerifyResult] = useState<string | null>(null);
   const [highlightZoneId, setHighlightZoneId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-
-  // Modals
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [updateTripModalOpen, setUpdateTripModalOpen] = useState(false);
   const [iotModalOpen, setIotModalOpen] = useState(false);
-  const [createTripModalOpen, setCreateTripModalOpen] = useState(false);
 
   // ── GPS tracking ─────────────────────────────────────────────────────
 
   useEffect(() => {
     if ('geolocation' in navigator) {
       watchIdRef.current = navigator.geolocation.watchPosition(
-        (pos) => {
-          setUserLat(pos.coords.latitude);
-          setUserLng(pos.coords.longitude);
-        },
-        () => {
-          // Fallback to Tawang
-          setUserLat(27.5855);
-          setUserLng(91.8594);
-        },
+        (pos) => { setUserLat(pos.coords.latitude); setUserLng(pos.coords.longitude); },
+        () => { setUserLat(27.5855); setUserLng(91.8594); },
         { enableHighAccuracy: true, maximumAge: 10000 }
       );
-    } else {
-      setUserLat(27.5855);
-      setUserLng(91.8594);
-    }
+    } else { setUserLat(27.5855); setUserLng(91.8594); }
     return () => { if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current); };
   }, []);
 
-  // Periodic location POST (every 60s)
+  // Emit location via socket every 5 seconds for live tracking
   useEffect(() => {
-    const postLocation = async () => {
-      if (userLat && userLng) {
-        try { await api.post('/locations', { latitude: userLat, longitude: userLng, source: 'gps' }); } catch {}
-      }
-    };
-    postLocation(); // initial
-    locationIntervalRef.current = setInterval(postLocation, 60000);
-    return () => { if (locationIntervalRef.current) clearInterval(locationIntervalRef.current); };
-  }, [userLat, userLng]);
+    if (!socket || !user || !userLat || !userLng) return;
+    const interval = setInterval(() => {
+      socket.emit('location_update', { userId: user.id, latitude: userLat, longitude: userLng });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [socket, user, userLat, userLng]);
 
-  // ── Data fetching ────────────────────────────────────────────────────
+  // Listen for zone alerts from backend
+  useEffect(() => {
+    if (!socket) return;
+    const handleZoneAlert = (data: any) => {
+      const color = data.zone?.risk_level === 'high' || data.zone?.risk_level === 'restricted' ? 'error' : 'info';
+      setToast({ message: data.message, type: color as any });
+    };
+    socket.on('zone_alert', handleZoneAlert);
+    return () => { socket.off('zone_alert', handleZoneAlert); };
+  }, [socket]);
 
   const fetchTouristData = useCallback(async () => {
     try {
-      const [tripRes, alertsRes, zonesRes] = await Promise.all([
-        api.get('/trips/active'),
-        api.get('/incidents?limit=10'),
-        api.get('/zones'),
-      ]);
+      const [tripRes, alertsRes, zonesRes] = await Promise.all([api.get('/trips/active'), api.get('/incidents?limit=10'), api.get('/zones')]);
       if (tripRes.data.success) setActiveTrip(tripRes.data.data);
       if (alertsRes.data.success) setAlerts(alertsRes.data.data || []);
       if (zonesRes.data.success) setZones(zonesRes.data.data || []);
-    } catch (err) {
-      console.error('Failed to fetch tourist data:', err);
-    } finally {
-      setLoading(false);
-    }
+    } catch {} finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
     fetchTouristData();
     const interval = setInterval(fetchTouristData, 30000);
-
-    if (socket) {
-      socket.on('new-incident', (incident: any) => {
-        setAlerts(prev => [incident, ...prev]);
-      });
-    }
-
-    return () => {
-      clearInterval(interval);
-      if (socket) socket.off('new-incident');
-    };
+    if (socket) { socket.on('new-incident', (inc: any) => setAlerts(prev => [inc, ...prev])); }
+    return () => { clearInterval(interval); if (socket) socket.off('new-incident'); };
   }, [socket, fetchTouristData]);
-
-  // ── Quick Actions ────────────────────────────────────────────────────
 
   const handleCheckin = async () => {
     if (!userLat || !userLng) { setToast({ message: 'Unable to get your location', type: 'error' }); return; }
@@ -170,300 +130,205 @@ export default function TouristDashboard() {
       const res = await api.post('/locations', { latitude: userLat, longitude: userLng, source: 'gps' });
       setCheckinDone(true);
       const zone = res.data.data?.zone;
-      setToast({ message: zone ? `Checked in at ${zone.name} (${zone.risk_level})` : 'Daily check-in recorded ✓', type: 'success' });
+      setToast({ message: zone ? `Checked in at ${zone.name}` : 'Daily check-in recorded ✓', type: 'success' });
       setTimeout(() => setCheckinDone(false), 5000);
-    } catch {
-      setToast({ message: 'Check-in failed. Try again.', type: 'error' });
-    } finally {
-      setCheckinLoading(false);
-    }
+    } catch { setToast({ message: 'Check-in failed. Try again.', type: 'error' }); } finally { setCheckinLoading(false); }
   };
 
   const handleVerifyStay = async () => {
-    if (!userLat || !userLng) { setToast({ message: 'Unable to get your location', type: 'error' }); return; }
+    if (!userLat || !userLng) { setToast({ message: 'Unable to get location', type: 'error' }); return; }
     try {
       const res = await api.post('/locations', { latitude: userLat, longitude: userLng, source: 'gps' });
       const zone = res.data.data?.zone;
-      if (zone) {
-        setVerifyResult(`✓ You are in "${zone.name}" — ${zone.risk_level} zone`);
-        setHighlightZoneId(zone._id);
-        setTimeout(() => setHighlightZoneId(null), 8000);
-      } else {
-        setVerifyResult('ℹ You are not inside any registered zone');
-      }
+      if (zone) { setVerifyResult(`✓ You are in "${zone.name}" — ${zone.risk_level} zone`); setHighlightZoneId(zone._id); setTimeout(() => setHighlightZoneId(null), 8000); }
+      else { setVerifyResult('ℹ You are not inside any registered zone'); }
       setTimeout(() => setVerifyResult(null), 6000);
-    } catch {
-      setToast({ message: 'Verification failed', type: 'error' });
-    }
+    } catch { setToast({ message: 'Verification failed', type: 'error' }); }
   };
 
   const handleSafeHouse = () => {
-    if (!userLat || !userLng) { setToast({ message: 'Unable to get your location', type: 'error' }); return; }
+    if (!userLat || !userLng) { setToast({ message: 'Unable to get location', type: 'error' }); return; }
     const safeZones = zones.filter(z => z.risk_level === 'safe');
-    if (safeZones.length === 0) { setToast({ message: 'No safe zones registered in this area', type: 'info' }); return; }
-    let nearest = safeZones[0];
-    let minDist = haversine(userLat, userLng, nearest.center_lat, nearest.center_lng);
-    for (const z of safeZones) {
-      const d = haversine(userLat, userLng, z.center_lat, z.center_lng);
-      if (d < minDist) { nearest = z; minDist = d; }
-    }
+    if (safeZones.length === 0) { setToast({ message: 'No safe zones in area', type: 'info' }); return; }
+    let nearest = safeZones[0]; let minDist = haversine(userLat, userLng, nearest.center_lat, nearest.center_lng);
+    for (const z of safeZones) { const d = haversine(userLat, userLng, z.center_lat, z.center_lng); if (d < minDist) { nearest = z; minDist = d; } }
     setHighlightZoneId(nearest._id);
-    setToast({ message: `Nearest safe zone: ${nearest.name} (${Math.round(minDist)}m away)`, type: 'success' });
+    setToast({ message: `Nearest safe zone: ${nearest.name} (${Math.round(minDist)}m)`, type: 'success' });
     setTimeout(() => setHighlightZoneId(null), 10000);
   };
 
-  // ── SOS ──────────────────────────────────────────────────────────────
-
   const handleSOSStart = () => {
+    if (sosIntervalRef.current) clearInterval(sosIntervalRef.current);
     setCountdown(3);
-    const t = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) { clearInterval(t); triggerSOS(); return 0; }
-        return prev - 1;
-      });
+    sosIntervalRef.current = setInterval(() => {
+      setCountdown((prev) => prev - 1);
     }, 1000);
-    setTimer(t);
   };
 
-  const handleSOSEnd = () => {
-    if (timer) { clearInterval(timer); setTimer(null); }
-    setCountdown(0);
+  const handleSOSEnd = () => { 
+    if (sosIntervalRef.current) { clearInterval(sosIntervalRef.current); sosIntervalRef.current = null; } 
+    setCountdown(0); 
   };
+
+  useEffect(() => {
+    if (countdown === 0 && sosIntervalRef.current) {
+      clearInterval(sosIntervalRef.current);
+      sosIntervalRef.current = null;
+      triggerSOS();
+    }
+  }, [countdown]);
 
   const triggerSOS = async () => {
     setSosLoading(true);
     try {
-      const pos = await new Promise<GeolocationPosition>((res, rej) => {
-        navigator.geolocation.getCurrentPosition(res, rej);
-      }).catch(() => null);
-
-      await api.post('/incidents', {
-        title: 'EMERGENCY SOS TRIGGERED',
-        incident_type: 'SOS_EMERGENCY',
-        severity: 'critical',
-        source: 'sos_panic',
-        latitude: pos?.coords.latitude || userLat || 27.5855,
-        longitude: pos?.coords.longitude || userLng || 91.8594,
-        is_public: true
-      });
-      setSosSuccess(true);
-      setTimeout(() => setSosSuccess(false), 5000);
-    } catch {
-      setToast({ message: 'SOS transmission failed!', type: 'error' });
-    } finally {
-      setSosLoading(false);
-    }
+      const pos = await new Promise<GeolocationPosition>((res, rej) => navigator.geolocation.getCurrentPosition(res, rej)).catch(() => null);
+      await api.post('/incidents', { title: 'EMERGENCY SOS TRIGGERED', incident_type: 'sos_emergency', severity: 'critical', source: 'sos_panic', latitude: pos?.coords.latitude || userLat || 27.5855, longitude: pos?.coords.longitude || userLng || 91.8594, is_public: true });
+      setSosSuccess(true); setTimeout(() => setSosSuccess(false), 5000);
+    } catch { setToast({ message: 'SOS transmission failed!', type: 'error' }); } finally { setSosLoading(false); }
   };
 
-  // ── Map search ───────────────────────────────────────────────────────
+  const filteredZones = searchQuery.trim() ? zones.filter(z => z.name.toLowerCase().includes(searchQuery.toLowerCase())) : zones;
 
-  const filteredZones = searchQuery.trim()
-    ? zones.filter(z => z.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : zones;
-
-  const handleSearchSelect = (zone: ZoneData) => {
-    setHighlightZoneId(zone._id);
-    setSearchQuery('');
-    setTimeout(() => setHighlightZoneId(null), 8000);
-  };
-
-  // ── Safety coverage ──────────────────────────────────────────────────
-
-  const safetyCoverage = user?.safety_score ?? 85;
-
-  // ── Render ───────────────────────────────────────────────────────────
+  const safetyScore = user?.safety_score ?? 85;
 
   return (
-    <div className="max-w-[1440px] mx-auto p-4 space-y-4 text-slate-900 dark:text-slate-100 font-['Public_Sans',_sans-serif]">
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+    <div style={{ background: NB.cream, minHeight: '100vh', fontFamily: "'Space Grotesk', sans-serif", padding: '0 0 80px' }}>
+      {toast && <NBToast {...toast} onClose={() => setToast(null)} />}
 
       {/* Safety Banner */}
-      <div className="w-full bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between safety-pulse gap-4">
-        <div className="flex items-center gap-4">
-          <div className="bg-green-500 rounded-full p-2 flex items-center justify-center text-white">
-            <Shield className="size-5" />
-          </div>
+      <div className="top-header responsive-container" style={{ background: NB.black, borderBottom: `3px solid ${NB.black}`, padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 36, height: 36, background: NB.mint, border: `2px solid ${NB.mint}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Shield size={20} color={NB.black} /></div>
           <div>
-            <h2 className="text-green-800 dark:text-green-400 font-bold text-lg m-0">System Protected — Monitoring Active</h2>
-            <p className="text-green-700/70 dark:text-green-400/70 text-sm m-0 mt-1">
-              Your location is being live-streamed to {activeTrip?.destination_region || 'local authorities'} command center.
-            </p>
+            <h2 style={{ color: NB.white, fontWeight: 800, fontSize: '0.95rem', margin: 0 }}>System Protected — Monitoring Active</h2>
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', margin: 0, fontWeight: 500 }}>Your location is being monitored by {activeTrip?.destination_region || 'local authorities'}.</p>
           </div>
         </div>
-        <button className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20">
-          Safety Score: {safetyCoverage}%
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <AlertPanel />
+          <div style={{ background: NB.yellow, border: `2px solid ${NB.yellow}`, padding: '6px 14px', fontWeight: 800, fontSize: '0.78rem', textTransform: 'uppercase', color: NB.black }}>Safety Score: {safetyScore}%</div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-4">
-        {/* Map Column */}
-        <div className="col-span-12 lg:col-span-7 xl:col-span-8 bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 min-h-[600px] flex flex-col shadow-sm">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-            <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 m-0">
-              <MapIcon className="size-5 text-primary" />
-              Live Safety GIS
-            </h3>
-            <div className="flex gap-2">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-                <span className="size-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></span> Safe
-              </div>
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-                <span className="size-2 rounded-full bg-amber-500"></span> Moderate
-              </div>
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-                <span className="size-2 rounded-full bg-red-500"></span> Restricted
-              </div>
+      <div className="responsive-grid responsive-container" style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 20, padding: '20px 24px', maxWidth: 1440, margin: '0 auto' }}>
+        {/* Map column */}
+        <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, overflow: 'hidden', minHeight: 600, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.cream, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ fontWeight: 800, color: NB.black, margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}><MapIcon size={16} /> Live Safety GIS</h3>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[{ label: 'Safe', color: NB.mint }, { label: 'Moderate', color: NB.orange }, { label: 'Restricted', color: NB.red }].map(l => (
+                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', background: NB.white, border: `1.5px solid ${NB.black}` }}>
+                  <div style={{ width: 8, height: 8, background: l.color }} />{l.label}
+                </div>
+              ))}
             </div>
           </div>
-          <div className="relative flex-grow bg-slate-100 dark:bg-slate-800 overflow-hidden">
+          <div style={{ position: 'relative', flex: 1, minHeight: 400 }}>
             <TouristMap lat={userLat} lng={userLng} zones={zones} highlightZoneId={highlightZoneId} />
-
-            {/* Search overlay */}
-            <div className="absolute top-6 left-6 w-72 z-[100]">
-              <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 dark:border-slate-800 p-1.5 flex items-center pointer-events-auto">
-                <MapPin className="size-4 mx-2 text-slate-400 shrink-0" />
-                <input
-                  className="border-none focus:ring-0 text-sm bg-transparent w-full placeholder:text-slate-400 dark:text-slate-100 outline-none"
-                  placeholder="Search zones, hospitals, kiosks..."
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                />
+            {/* Search */}
+            <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 100, width: 260 }}>
+              <div style={{ position: 'relative' }}>
+                <MapPin size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: NB.black }} />
+                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search zones..." style={{ width: '100%', padding: '9px 12px 9px 30px', background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, fontFamily: "'Space Grotesk', sans-serif", fontSize: '0.8rem', fontWeight: 600, outline: 'none' }} />
               </div>
-              {/* Search results dropdown */}
               {searchQuery.trim() && filteredZones.length > 0 && (
-                <div className="mt-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 max-h-48 overflow-y-auto">
+                <div style={{ background: NB.white, border: `2px solid ${NB.black}`, borderTop: 'none', maxHeight: 180, overflowY: 'auto' }}>
                   {filteredZones.map(zone => (
-                    <button
-                      key={zone._id}
-                      onClick={() => handleSearchSelect(zone)}
-                      className="w-full text-left px-4 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 last:border-0"
-                    >
-                      <span className={`size-2 rounded-full shrink-0 ${
-                        zone.risk_level === 'safe' ? 'bg-green-500' :
-                        zone.risk_level === 'moderate' ? 'bg-amber-500' :
-                        zone.risk_level === 'high' ? 'bg-red-500' : 'bg-purple-500'
-                      }`} />
-                      <span className="text-xs font-medium truncate">{zone.name}</span>
-                      <span className="ml-auto text-[10px] uppercase text-slate-400 tracking-wider">{zone.risk_level}</span>
+                    <button key={zone._id} onClick={() => { setHighlightZoneId(zone._id); setSearchQuery(''); setTimeout(() => setHighlightZoneId(null), 8000); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', borderBottom: `1px solid ${NB.cream}`, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <div style={{ width: 8, height: 8, background: zone.risk_level === 'safe' ? NB.mint : zone.risk_level === 'moderate' ? NB.orange : NB.red }} />
+                      <span style={{ fontWeight: 600, fontSize: '0.82rem' }}>{zone.name}</span>
                     </button>
                   ))}
                 </div>
               )}
-              {searchQuery.trim() && filteredZones.length === 0 && (
-                <div className="mt-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 p-3 text-xs text-slate-400 text-center">
-                  No zones matching "{searchQuery}"
-                </div>
-              )}
             </div>
           </div>
         </div>
 
-        {/* Info Column */}
-        <div className="col-span-12 lg:col-span-5 xl:col-span-4 space-y-4 flex flex-col min-h-0">
-          {/* Trip Info */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2 m-0">
-              <Calendar className="size-5 text-primary" />
-              Active Itinerary
-            </h3>
-            {activeTrip ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest m-0">Destination</p>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white m-0">{activeTrip.destination_region}</p>
+        {/* Info column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Trip info */}
+          <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.yellow, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Calendar size={15} /><h3 style={{ fontWeight: 800, color: NB.black, margin: 0, fontSize: '0.88rem' }}>Active Itinerary</h3>
+            </div>
+            <div style={{ padding: '16px' }}>
+              {activeTrip ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', background: NB.cream, padding: '10px 12px', border: `2px solid ${NB.black}` }}>
+                    <div><p style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', margin: 0 }}>Destination</p><p style={{ fontWeight: 700, color: NB.black, margin: '2px 0 0', fontSize: '0.9rem' }}>{activeTrip.destination_region}</p></div>
+                    <div style={{ textAlign: 'right' }}><p style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', margin: 0 }}>Duration</p><p style={{ fontWeight: 700, color: NB.black, margin: '2px 0 0', fontSize: '0.78rem' }}>{new Date(activeTrip.start_date).toLocaleDateString()} – {new Date(activeTrip.end_date).toLocaleDateString()}</p></div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest m-0">Duration</p>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white m-0">
-                      {new Date(activeTrip.start_date).toLocaleDateString()} - {new Date(activeTrip.end_date).toLocaleDateString()}
-                    </p>
+                  {verifyResult && <div style={{ padding: '10px 12px', background: '#E8F5FF', border: `2px solid ${NB.blue}`, fontSize: '0.82rem', fontWeight: 600, color: NB.blue }}>{verifyResult}</div>}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => setUpdateTripModalOpen(true)} style={{ flex: 1, padding: '9px', background: NB.yellow, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase' }}>Update Plan</button>
+                    <button onClick={handleVerifyStay} style={{ flex: 1, padding: '9px', background: NB.cream, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase' }}>Verify Stay</button>
                   </div>
                 </div>
-                {verifyResult && (
-                  <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-xs font-medium text-blue-700 dark:text-blue-300 animate-in slide-in-from-top-2">
-                    {verifyResult}
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <button onClick={() => setUpdateTripModalOpen(true)} className="flex-1 py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-all">Update Plan</button>
-                  <button onClick={handleVerifyStay} className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">Verify Stay</button>
+              ) : (
+                <div style={{ padding: '24px', textAlign: 'center', border: `2px dashed ${NB.black}` }}>
+                  <p style={{ fontSize: '0.85rem', color: '#6B6B6B', marginBottom: 12, fontWeight: 500 }}>No active trip found for your profile.</p>
+                  <Link to="/tourist/plan" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: NB.yellow, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, padding: '8px 16px', textDecoration: 'none', color: NB.black, fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase' }}>
+                    <NearMe size={14} /> Start Planning
+                  </Link>
                 </div>
               </div>
             ) : (
               <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
                 <p className="text-sm text-slate-400 mb-4">No active trip found for your profile.</p>
-                <button onClick={() => setCreateTripModalOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold shadow-lg shadow-primary/20 border-none outline-none cursor-pointer hover:opacity-90 transition-opacity">
+                <Link to="/tourist/plan" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold shadow-lg shadow-primary/20">
                   <NearMe className="size-4" /> Start Planning
-                </button>
+                </Link>
               </div>
             )}
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4 m-0">Safety Services</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={handleCheckin} disabled={checkinLoading} className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:border-primary/50 hover:bg-primary/5 transition-all group disabled:opacity-50">
-                {checkinLoading ? <Loader2 className="size-6 text-primary mb-2 animate-spin" /> : checkinDone ? <Check className="size-6 text-green-500 mb-2" /> : <CheckCircle2 className="size-6 text-primary mb-2 group-hover:scale-110 transition-transform" />}
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{checkinDone ? 'Checked In ✓' : 'Daily Check-in'}</span>
-              </button>
-              <button onClick={() => setReportModalOpen(true)} className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all group">
-                <AlertTriangle className="size-6 text-amber-500 mb-2 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Report Anomaly</span>
-              </button>
-              <button onClick={() => setIotModalOpen(true)} className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group">
-                <Watch className="size-6 text-blue-500 mb-2 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">IoT Sync</span>
-              </button>
-              <button onClick={handleSafeHouse} className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:border-purple-500/50 hover:bg-purple-500/5 transition-all group">
-                <ShieldAlert className="size-6 text-purple-500 mb-2 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Safe House</span>
-              </button>
+          <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '16px' }}>
+            <h3 style={{ fontWeight: 800, color: NB.black, margin: '0 0 14px', fontSize: '0.88rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Safety Services</h3>
+            <div className="responsive-flex-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {[
+                { icon: checkinDone ? <Check size={22} color={NB.mint} /> : checkinLoading ? <Loader2 size={22} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={22} color={NB.blue} />, label: checkinDone ? 'Checked In ✓' : 'Daily Check-in', action: handleCheckin, accent: NB.blue },
+                { icon: <AlertTriangle size={22} color={NB.orange} />, label: 'Report Anomaly', action: () => setReportModalOpen(true), accent: NB.orange },
+                { icon: <Watch size={22} color={NB.blue} />, label: 'IoT Sync', action: () => setIotModalOpen(true), accent: NB.blue },
+                { icon: <ShieldAlert size={22} color='#8B5CF6' />, label: 'Safe House', action: handleSafeHouse, accent: '#8B5CF6' },
+              ].map((btn, i) => (
+                <button key={i} onClick={btn.action} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 8px', background: NB.cream, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.1s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = NB.yellow; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = NB.cream; }}
+                >
+                  {btn.icon}
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: NB.black }}>{btn.label}</span>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Live Alerts */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex-grow">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-slate-800 dark:text-slate-100 m-0">Safety Broadcasts</h3>
-              <div className="flex gap-2">
-                <button onClick={fetchTouristData} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors">
-                  <RefreshCw className={`size-3 text-slate-400 ${loading ? 'animate-spin' : ''}`} />
-                </button>
-                {alerts.length > 0 && (
-                  <span className="px-2 py-0.5 bg-red-500/10 text-red-500 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                    {alerts.length} Active
-                  </span>
-                )}
+          {/* Alerts */}
+          <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, flex: 1, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.cream, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontWeight: 800, color: NB.black, margin: 0, fontSize: '0.88rem' }}>Safety Broadcasts</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button onClick={fetchTouristData} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><RefreshCw size={13} className={loading ? 'animate-spin' : ''} /></button>
+                {alerts.length > 0 && <span style={{ padding: '2px 8px', background: NB.red, color: NB.white, fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase' }}>{alerts.length} Active</span>}
               </div>
             </div>
-            <div className="space-y-3 overflow-y-auto max-h-[200px] pr-1 scrollbar-thin">
-              {alerts.length > 0 ? alerts.map((alert) => (
-                <div key={alert._id} className={`p-3 rounded-lg flex gap-3 border ${
-                  alert.severity === 'critical' ? 'bg-red-500/5 border-red-500/20' : 
-                  alert.severity === 'high' ? 'bg-amber-500/5 border-amber-500/20' : 
-                  'bg-blue-500/5 border-blue-500/20'
-                }`}>
-                  <AlertTriangle className={`size-5 shrink-0 ${
-                    alert.severity === 'critical' ? 'text-red-500' : 
-                    alert.severity === 'high' ? 'text-amber-500' : 
-                    'text-blue-500'
-                  }`} />
-                  <div>
-                    <p className={`text-xs font-bold m-0 ${
-                      alert.severity === 'critical' ? 'text-red-800 dark:text-red-400' : 
-                      alert.severity === 'high' ? 'text-amber-800 dark:text-amber-400' : 
-                      'text-blue-800 dark:text-blue-400'
-                    }`}>{alert.title}</p>
-                    <p className="text-[11px] text-slate-500 m-0 mt-1 line-clamp-2">{alert.description || alert.zone?.name || new Date(alert.created_at).toLocaleString()}</p>
+            <div style={{ padding: '12px', maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {alerts.length > 0 ? alerts.map(alert => {
+                const col = alert.severity === 'critical' ? NB.red : alert.severity === 'high' ? NB.orange : NB.blue;
+                return (
+                  <div key={alert._id} style={{ padding: '10px 12px', background: NB.cream, border: `2px solid ${col}`, display: 'flex', gap: 10 }}>
+                    <AlertTriangle size={16} color={col} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div>
+                      <p style={{ fontWeight: 700, color: NB.black, margin: 0, fontSize: '0.82rem' }}>{alert.title}</p>
+                      <p style={{ fontSize: '0.72rem', color: '#6B6B6B', margin: '2px 0 0', fontWeight: 500 }}>{alert.description || alert.zone?.name || new Date(alert.created_at).toLocaleString()}</p>
+                    </div>
                   </div>
-                </div>
-              )) : (
-                <div className="p-6 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-lg">
-                  <Check className="size-6 text-green-500 mx-auto mb-2" />
-                  <p className="text-xs text-slate-400">All sectors clear. Enjoy your trip!</p>
+                );
+              }) : (
+                <div style={{ padding: '20px', textAlign: 'center', border: `2px dashed ${NB.black}` }}>
+                  <Check size={20} color={NB.mint} style={{ margin: '0 auto 6px' }} />
+                  <p style={{ fontSize: '0.78rem', color: '#6B6B6B', fontWeight: 600 }}>All sectors clear. Enjoy your trip!</p>
                 </div>
               )}
             </div>
@@ -472,278 +337,103 @@ export default function TouristDashboard() {
       </div>
 
       {/* SOS Button */}
-      <div className="fixed bottom-24 md:bottom-10 right-10 z-[1000] group">
-        <div className={`absolute -inset-4 bg-red-600/20 rounded-full blur-xl group-hover:bg-red-600/40 transition-all duration-500 ${countdown > 0 ? 'bg-red-600/60 scale-150' : ''}`}></div>
-        
+      <div style={{ position: 'fixed', bottom: 80, right: 32, zIndex: 1000 }}>
         {sosSuccess ? (
-          <div className="relative bg-green-500 text-white size-24 rounded-full flex flex-col items-center justify-center shadow-2xl animate-bounce">
-            <Check className="size-10" />
-            <span className="text-[8px] font-black uppercase tracking-wider mt-1 text-center px-2">Alert Sent</span>
+          <div style={{ width: 80, height: 80, background: NB.mint, border: `4px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: NB.black }}>
+            <Check size={28} /><span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase' }}>Alert Sent</span>
           </div>
         ) : (
-          <button 
-            onMouseDown={handleSOSStart}
-            onMouseUp={handleSOSEnd}
-            onMouseLeave={handleSOSEnd}
-            onTouchStart={handleSOSStart}
-            onTouchEnd={handleSOSEnd}
-            className={`relative bg-red-600 text-white size-24 rounded-full flex flex-col items-center justify-center shadow-2xl active:scale-95 transition-all outline-none border-none select-none
-                       ${countdown > 0 ? 'scale-110 !bg-red-800' : 'sos-pulse hover:bg-red-700'}`}
+          <button onMouseDown={handleSOSStart} onMouseUp={handleSOSEnd} onMouseLeave={handleSOSEnd} onTouchStart={handleSOSStart} onTouchEnd={handleSOSEnd}
+            style={{ width: 80, height: 80, background: NB.red, border: `4px solid ${NB.black}`, boxShadow: countdown > 0 ? `0 0 0 8px rgba(255,59,59,0.4)` : `4px 4px 0 ${NB.black}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', color: NB.white, transform: countdown > 0 ? 'scale(1.1)' : undefined, transition: 'all 0.2s', outline: 'none' }}
           >
-            {sosLoading ? (
-              <Loader2 className="animate-spin size-8" />
-            ) : countdown > 0 ? (
-              <span className="text-4xl font-black">{countdown}</span>
-            ) : (
-              <>
-                <ShieldAlert className="size-10 mb-1" />
-                <span className="text-[10px] font-black uppercase tracking-widest leading-none">Hold SOS</span>
-              </>
-            )}
+            {sosLoading ? <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} /> : countdown > 0 ? <span style={{ fontSize: '1.8rem', fontWeight: 800 }}>{countdown}</span> : <><ShieldAlert size={28} /><span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase' }}>Hold SOS</span></>}
           </button>
         )}
-
-        {countdown > 0 && (
-          <div className="absolute top-0 right-full mr-6 whitespace-nowrap bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-2xl animate-in slide-in-from-right-4 duration-200">
-            TRANSMITTING TO POLICE IN {countdown}s...
-          </div>
-        )}
+        {countdown > 0 && <div style={{ position: 'absolute', top: 0, right: '110%', whiteSpace: 'nowrap', background: NB.red, color: NB.white, borderRight: `3px solid ${NB.black}`, padding: '8px 14px', fontWeight: 800, fontSize: '0.78rem' }}>TRANSMITTING IN {countdown}s...</div>}
       </div>
 
-      {/* ─────────── MODALS ─────────── */}
-
-      {/* Report Anomaly Modal */}
-      <ReportAnomalyModal
-        open={reportModalOpen}
-        onClose={() => setReportModalOpen(false)}
-        userLat={userLat}
-        userLng={userLng}
-        onSuccess={(title) => {
-          setToast({ message: `Anomaly "${title}" reported successfully`, type: 'success' });
-          fetchTouristData();
-        }}
-        onError={(msg) => setToast({ message: msg, type: 'error' })}
+      {/* Report Modal */}
+      <ReportAnomalyModal open={reportModalOpen} onClose={() => setReportModalOpen(false)} userLat={userLat} userLng={userLng}
+        onSuccess={(t) => { setToast({ message: `Anomaly "${t}" reported`, type: 'success' }); fetchTouristData(); }}
+        onError={(m) => setToast({ message: m, type: 'error' })}
       />
-
-      {/* Update Trip Modal */}
-      <UpdateTripModal
-        open={updateTripModalOpen}
-        onClose={() => setUpdateTripModalOpen(false)}
-        trip={activeTrip}
-        onSuccess={() => {
-          setToast({ message: 'Trip updated successfully', type: 'success' });
-          fetchTouristData();
-        }}
-        onError={(msg) => setToast({ message: msg, type: 'error' })}
+      <UpdateTripModal open={updateTripModalOpen} onClose={() => setUpdateTripModalOpen(false)} trip={activeTrip}
+        onSuccess={() => { setToast({ message: 'Trip updated', type: 'success' }); fetchTouristData(); }}
+        onError={(m) => setToast({ message: m, type: 'error' })}
       />
-
-      {/* IoT Sync Modal */}
-      <Modal open={iotModalOpen} onClose={() => setIotModalOpen(false)} title="IoT Device Sync">
-        <div className="space-y-6">
-          <div className="text-center py-4">
-            <div className="inline-flex items-center justify-center size-20 rounded-full bg-blue-500/10 mb-4">
-              <Watch className="size-10 text-blue-500" />
-            </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs mx-auto">Connect your wearable or IoT safety band to enable real-time biometric and location syncing.</p>
-          </div>
-          <div className="space-y-3">
-            <button onClick={() => { setToast({ message: 'Searching for Bluetooth devices...', type: 'info' }); setIotModalOpen(false); }} className="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-              <Bluetooth className="size-5 text-blue-500" />
-              <div className="text-left">
-                <p className="text-sm font-bold m-0">Bluetooth Pair</p>
-                <p className="text-[11px] text-slate-400 m-0">Search for nearby IoT bands</p>
-              </div>
+      <NBModal open={iotModalOpen} onClose={() => setIotModalOpen(false)} title="IoT Device Sync">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[{ icon: <Bluetooth size={20} color={NB.blue} />, label: 'Bluetooth Pair', sub: 'Search for nearby IoT bands', action: () => { setToast({ message: 'Searching Bluetooth...', type: 'info' }); setIotModalOpen(false); } },
+            { icon: <Wifi size={20} color={NB.mint} />, label: 'WiFi Direct', sub: 'Connect via local network', action: () => { setToast({ message: 'WiFi scan initiated', type: 'info' }); setIotModalOpen(false); } }].map((b, i) => (
+            <button key={i} onClick={b.action} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', background: NB.cream, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%' }}>
+              {b.icon}<div><p style={{ fontWeight: 700, color: NB.black, margin: 0, fontSize: '0.9rem' }}>{b.label}</p><p style={{ fontSize: '0.72rem', color: '#6B6B6B', margin: 0 }}>{b.sub}</p></div>
             </button>
-            <button onClick={() => { setToast({ message: 'WiFi direct scan initiated', type: 'info' }); setIotModalOpen(false); }} className="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-              <Wifi className="size-5 text-green-500" />
-              <div className="text-left">
-                <p className="text-sm font-bold m-0">WiFi Direct</p>
-                <p className="text-[11px] text-slate-400 m-0">Connect via local network</p>
-              </div>
-            </button>
-          </div>
+          ))}
         </div>
       </Modal>
-
-      {/* Create Trip Modal */}
-      <CreateTripModal
-        open={createTripModalOpen}
-        onClose={() => setCreateTripModalOpen(false)}
-        onSuccess={() => {
-          setToast({ message: 'Trip created successfully! Your itinerary is now active.', type: 'success' });
-          fetchTouristData();
-        }}
-        onError={(msg) => setToast({ message: msg, type: 'error' })}
-      />
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// Report Anomaly Modal
-// ═══════════════════════════════════════════════════════════════════════
+const nbInputStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', background: '#FFFBF0', border: '2px solid #0A0A0A', fontFamily: "'Space Grotesk', sans-serif", fontSize: '0.88rem', fontWeight: 500, outline: 'none', color: '#0A0A0A', borderRadius: 0 };
 
-function ReportAnomalyModal({ open, onClose, userLat, userLng, onSuccess, onError }: {
-  open: boolean; onClose: () => void; userLat: number | null; userLng: number | null;
-  onSuccess: (title: string) => void; onError: (msg: string) => void;
-}) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [incidentType, setIncidentType] = useState('suspicious_activity');
-  const [severity, setSeverity] = useState('medium');
-  const [submitting, setSubmitting] = useState(false);
-
+function ReportAnomalyModal({ open, onClose, userLat, userLng, onSuccess, onError }: { open: boolean; onClose: () => void; userLat: number | null; userLng: number | null; onSuccess: (title: string) => void; onError: (msg: string) => void; }) {
+  const [title, setTitle] = useState(''); const [description, setDescription] = useState(''); const [incidentType, setIncidentType] = useState('suspicious_activity'); const [severity, setSeverity] = useState('medium'); const [submitting, setSubmitting] = useState(false);
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    setSubmitting(true);
+    e.preventDefault(); if (!title.trim()) return; setSubmitting(true);
     try {
-      await api.post('/incidents', {
-        title,
-        description,
-        incident_type: incidentType,
-        severity,
-        source: 'resident_report',
-        latitude: userLat || 27.5855,
-        longitude: userLng || 91.8594,
-        is_public: true,
-      });
-      onSuccess(title);
-      setTitle(''); setDescription(''); setIncidentType('suspicious_activity'); setSeverity('medium');
-      onClose();
-    } catch (err: any) {
-      onError(err.response?.data?.message || 'Failed to submit report');
-    } finally {
-      setSubmitting(false);
-    }
+      await api.post('/incidents', { title, description, incident_type: incidentType, severity, source: 'resident_report', latitude: userLat || 27.5855, longitude: userLng || 91.8594, is_public: true });
+      onSuccess(title); setTitle(''); setDescription(''); onClose();
+    } catch (err: any) { onError(err.response?.data?.message || 'Failed to submit'); } finally { setSubmitting(false); }
   };
-
-  const InputClass = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400";
-
   return (
-    <Modal open={open} onClose={onClose} title="Report Safety Anomaly">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Incident Type</label>
-          <select value={incidentType} onChange={e => setIncidentType(e.target.value)} className={InputClass}>
-            <option value="suspicious_activity">Suspicious Activity</option>
-            <option value="theft">Theft / Robbery</option>
-            <option value="harassment">Harassment</option>
-            <option value="natural_hazard">Natural Hazard</option>
-            <option value="infrastructure">Infrastructure Issue</option>
-            <option value="medical">Medical Emergency</option>
-            <option value="other">Other</option>
-          </select>
+    <NBModal open={open} onClose={onClose} title="Report Safety Anomaly">
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Incident Type</label>
+          <select value={incidentType} onChange={e => setIncidentType(e.target.value)} style={nbInputStyle}><option value="suspicious_activity">Suspicious Activity</option><option value="theft">Theft</option><option value="harassment">Harassment</option><option value="natural_hazard">Natural Hazard</option><option value="medical">Medical Emergency</option><option value="other">Other</option></select>
         </div>
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Title</label>
-          <input value={title} onChange={e => setTitle(e.target.value)} className={InputClass} placeholder="Brief summary of the incident" required />
-        </div>
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Description</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} className={`${InputClass} resize-none`} rows={3} placeholder="Provide details about what you observed..." />
-        </div>
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Severity</label>
-          <div className="flex gap-2">
-            {(['low', 'medium', 'high', 'critical'] as const).map(s => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSeverity(s)}
-                className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${
-                  severity === s
-                    ? s === 'low' ? 'bg-green-500/10 border-green-500 text-green-600'
-                    : s === 'medium' ? 'bg-blue-500/10 border-blue-500 text-blue-600'
-                    : s === 'high' ? 'bg-amber-500/10 border-amber-500 text-amber-600'
-                    : 'bg-red-500/10 border-red-500 text-red-600'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-400 hover:border-slate-300'
-                }`}
-              >
-                {s}
-              </button>
-            ))}
+        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Title</label><input value={title} onChange={e => setTitle(e.target.value)} style={nbInputStyle} placeholder="Brief summary" required /></div>
+        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} style={{ ...nbInputStyle, resize: 'vertical', minHeight: 80 }} rows={3} placeholder="Details about what you observed..." /></div>
+        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Severity</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['low', 'medium', 'high', 'critical'] as const).map(s => {
+              const col = s === 'low' ? NB.mint : s === 'medium' ? NB.blue : s === 'high' ? NB.orange : NB.red;
+              return <button key={s} type="button" onClick={() => setSeverity(s)} style={{ flex: 1, padding: '8px 4px', background: severity === s ? col : NB.cream, color: severity === s ? NB.white : NB.black, border: `2px solid ${severity === s ? col : NB.black}`, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', cursor: 'pointer' }}>{s}</button>;
+            })}
           </div>
         </div>
-        <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-xs text-slate-500">
-          <MapPin className="size-4 shrink-0 text-primary" />
-          Location: {userLat?.toFixed(4)}, {userLng?.toFixed(4)} (auto-detected)
+        <div style={{ padding: '8px 12px', background: NB.cream, border: `2px solid ${NB.black}`, fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, color: '#6B6B6B' }}>
+          <MapPin size={12} color={NB.blue} /> {userLat?.toFixed(4)}, {userLng?.toFixed(4)} (auto-detected)
         </div>
-        <button type="submit" disabled={submitting || !title.trim()} className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg font-bold text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-          {submitting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-          {submitting ? 'Submitting...' : 'Submit Report'}
+        <button type="submit" disabled={submitting || !title.trim()} style={{ width: '100%', padding: '12px', background: NB.orange, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, fontFamily: 'inherit', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: NB.white, opacity: (submitting || !title.trim()) ? 0.6 : 1 }}>
+          {submitting ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={16} />} Submit Report
         </button>
       </form>
-    </Modal>
+    </NBModal>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// Update Trip Modal
-// ═══════════════════════════════════════════════════════════════════════
-
-function UpdateTripModal({ open, onClose, trip, onSuccess, onError }: {
-  open: boolean; onClose: () => void; trip: any;
-  onSuccess: () => void; onError: (msg: string) => void;
-}) {
-  const [destination, setDestination] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  // Populate when trip data changes
-  useEffect(() => {
-    if (trip) {
-      setDestination(trip.destination_region || '');
-      setStartDate(trip.start_date ? trip.start_date.split('T')[0] : '');
-      setEndDate(trip.end_date ? trip.end_date.split('T')[0] : '');
-    }
-  }, [trip]);
-
+function UpdateTripModal({ open, onClose, trip, onSuccess, onError }: { open: boolean; onClose: () => void; trip: any; onSuccess: () => void; onError: (msg: string) => void; }) {
+  const [destination, setDestination] = useState(''); const [startDate, setStartDate] = useState(''); const [endDate, setEndDate] = useState(''); const [submitting, setSubmitting] = useState(false);
+  useEffect(() => { if (trip) { setDestination(trip.destination_region || ''); setStartDate(trip.start_date ? trip.start_date.split('T')[0] : ''); setEndDate(trip.end_date ? trip.end_date.split('T')[0] : ''); } }, [trip]);
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!trip?._id) return;
-    setSubmitting(true);
-    try {
-      await api.patch(`/trips/${trip._id}`, {
-        destination_region: destination,
-        start_date: startDate,
-        end_date: endDate,
-      });
-      onSuccess();
-      onClose();
-    } catch (err: any) {
-      onError(err.response?.data?.message || 'Failed to update trip');
-    } finally {
-      setSubmitting(false);
-    }
+    e.preventDefault(); if (!trip?._id) return; setSubmitting(true);
+    try { await api.patch(`/trips/${trip._id}`, { destination_region: destination, start_date: startDate, end_date: endDate }); onSuccess(); onClose(); }
+    catch (err: any) { onError(err.response?.data?.message || 'Failed to update trip'); } finally { setSubmitting(false); }
   };
-
-  const InputClass = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-slate-900 dark:text-white [color-scheme:dark]";
-
   return (
-    <Modal open={open} onClose={onClose} title="Update Travel Plan">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Destination Region</label>
-          <input value={destination} onChange={e => setDestination(e.target.value)} className={InputClass} placeholder="e.g. Tawang District" required />
+    <NBModal open={open} onClose={onClose} title="Update Travel Plan">
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Destination Region</label><input value={destination} onChange={e => setDestination(e.target.value)} style={nbInputStyle} placeholder="e.g. Tawang District" required /></div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Start Date</label><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={nbInputStyle} required /></div>
+          <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>End Date</label><input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={nbInputStyle} required /></div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Start Date</label>
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={InputClass} required />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">End Date</label>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={InputClass} required />
-          </div>
-        </div>
-        <button type="submit" disabled={submitting} className="w-full py-3 bg-gradient-to-r from-primary to-blue-600 rounded-lg font-bold text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-          {submitting ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-          {submitting ? 'Updating...' : 'Save Changes'}
+        <button type="submit" disabled={submitting} style={{ width: '100%', padding: '12px', background: NB.yellow, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, fontFamily: 'inherit', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: NB.black }}>
+          {submitting ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={16} />} Save Changes
         </button>
       </form>
-    </Modal>
+    </NBModal>
   );
 }
 

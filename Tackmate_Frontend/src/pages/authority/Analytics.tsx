@@ -1,197 +1,231 @@
 import { useState, useEffect } from 'react';
-import { 
-  Calendar, Download, RefreshCw, 
-  Loader2, AlertCircle, Activity, Shield, Users
-} from 'lucide-react';
+import { Calendar, Download, RefreshCw, Loader2, AlertCircle, Activity, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../lib/api';
-import { Link } from 'react-router-dom';
+import AuthoritySidebar from '../../components/layout/AuthoritySidebar';
+
+const NB = { black: '#FFFBF0', yellow: '#FFE500', red: '#FF3B3B', blue: '#2B6FFF', mint: '#00D084', orange: '#FF7A00', cream: '#0A0A0A', white: '#111111' };
 
 export default function AuthorityAnalytics() {
-  const { user: authUser } = useAuth();
+  const { } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
   const [incidentStats, setIncidentStats] = useState<any>(null);
   const [touristStats, setTouristStats] = useState<any>(null);
   const [zoneStats, setZoneStats] = useState<any>(null);
   const [summary, setSummary] = useState<any>(null);
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportStartDate, setReportStartDate] = useState('');
+  const [reportEndDate, setReportEndDate] = useState('');
+  const [reportSections, setReportSections] = useState({ incidents: true, zones: true });
+
+  useEffect(() => { fetchAnalytics(); }, []);
 
   const fetchAnalytics = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const [incRes, tourRes, zoneRes, sumRes] = await Promise.all([
-        api.get('/analytics/incidents'),
-        api.get('/analytics/tourists'),
-        api.get('/analytics/zones'),
-        api.get('/analytics/summary')
-      ]);
-
+      setLoading(true); setError(null);
+      const [incRes, tourRes, zoneRes, sumRes] = await Promise.all([api.get('/analytics/incidents'), api.get('/analytics/tourists'), api.get('/analytics/zones'), api.get('/analytics/summary')]);
       if (incRes.data.success) setIncidentStats(incRes.data.data);
       if (tourRes.data.success) setTouristStats(tourRes.data.data);
       if (zoneRes.data.success) setZoneStats(zoneRes.data.data);
       if (sumRes.data.success) setSummary(sumRes.data.data);
+    } catch { setError('Connection error. Data may be stale.'); } finally { setLoading(false); }
+  };
+
+  if (loading && !summary) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: NB.cream, fontFamily: "'Space Grotesk', sans-serif" }}>
+      <Loader2 size={36} style={{ animation: 'spin-slow 1s linear infinite' }} />
+    </div>
+  );
+
+  const generateAuditReport = async () => {
+    try {
+      setReportLoading(true);
+      const sections = Object.entries(reportSections).filter(([_, v]) => v).map(([k]) => k);
+      
+      const res = await api.post('/reports/audit', {
+        startDate: reportStartDate || undefined,
+        endDate: reportEndDate || undefined,
+        sections
+      }, {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `TrackMate_Audit_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
     } catch (err) {
-      console.error('Failed to fetch analytics:', err);
-      setError('System connection interrupted. Some data might be stale.');
+      console.error(err);
+      setError('Failed to generate audit report.');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
-  if (loading && !summary) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-[#0F172A]">
-        <Loader2 className="size-10 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const summaryCards = [
+    { title: 'Total Users', value: summary?.totalUsers || 0, icon: <Users size={20} />, accent: NB.blue, trend: '+4%', pos: true },
+    { title: 'Active Crises', value: summary?.openIncidents || 0, icon: <Activity size={20} />, accent: NB.red, trend: '-12%', pos: false },
+    { title: 'SOS (1h)', value: summary?.sosLastHour || 0, icon: <AlertCircle size={20} />, accent: '#FF0033', trend: 'Critical', pos: false },
+    { title: 'Live Connections', value: summary?.activeUsersToday || 0, icon: <RefreshCw size={20} />, accent: NB.mint, trend: 'Stable', pos: true },
+  ];
 
   return (
-    <div className="bg-background-light dark:bg-[#0F172A] font-['Public_Sans',_sans-serif] text-slate-900 dark:text-slate-100 min-h-screen">
-      <div className="relative flex flex-col min-h-screen">
-        <header className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 px-8 py-4 backdrop-blur-md sticky top-0 z-50">
-          <div className="flex items-center gap-8">
-            <Link to="/authority/dashboard" className="flex items-center gap-3 text-primary no-underline">
-              <Shield className="size-8" />
-              <h1 className="text-xl font-bold tracking-tight m-0 text-slate-900 dark:text-white italic">Trackmate Authority</h1>
-            </Link>
+    <div style={{ display: 'flex', minHeight: '100vh', background: NB.cream, fontFamily: "'Space Grotesk', sans-serif" }}>
+      <AuthoritySidebar />
+      <main className="page-with-sidebar" style={{ flex: 1, padding: '28px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+          <div>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: NB.black, margin: 0, letterSpacing: '-0.01em' }}>Safety Analytics</h1>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: '#6B6B6B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Crisis Metrics & Trends</p>
           </div>
-          <div className="flex items-center gap-4">
-             <button onClick={fetchAnalytics} className="p-2 text-slate-400 hover:text-primary transition-colors">
-                <RefreshCw className={`size-5 ${loading ? 'animate-spin' : ''}`} />
-             </button>
-            <div className="size-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center font-bold text-slate-300">
-               {authUser?.full_name?.[0]}
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, padding: '8px 16px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <Calendar size={14} /> Last 30 Days
             </div>
+            <button onClick={fetchAnalytics} style={{ background: NB.yellow, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, padding: '8px 16px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+            </button>
           </div>
-        </header>
-
-        <main className="flex-1 p-8 max-w-[1600px] mx-auto w-full">
-          {error && (
-            <div className="mb-6 bg-amber-500/10 border border-amber-500/50 text-amber-500 p-4 rounded-xl flex items-center gap-3 text-sm font-medium">
-              <AlertCircle className="size-5" /> {error}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold m-0">Crisis Metrics & Trends</h2>
-            <div className="bg-slate-800/50 border border-white/5 px-4 py-2 rounded-lg flex items-center gap-3">
-              <Calendar className="size-4 text-primary" />
-              <span className="text-sm font-bold opacity-80 uppercase tracking-widest text-[10px]">Active Window: Last 30 Days</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <StatsCard title="Total Infrastructure" value={summary?.totalUsers || 0} icon={<Users />} trend="+4%" positive />
-            <StatsCard title="Active Crises" value={summary?.openIncidents || 0} icon={<Activity />} trend="-12%" positive={false} />
-            <StatsCard title="SOS Alerts (1h)" value={summary?.sosLastHour || 0} icon={<AlertCircle />} trend="Critical" positive={false} critical />
-            <StatsCard title="Live Connections" value={summary?.activeUsersToday || 0} icon={<RefreshCw />} trend="Stable" positive />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-            {/* Incident Trends */}
-            <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-sm">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 m-0">Incident Distribution Trends</h3>
-                <div className="flex gap-4">
-                   <div className="flex items-center gap-2 text-[10px] font-bold"><span className="size-2 rounded-full bg-red-500"></span> CRITICAL</div>
-                   <div className="flex items-center gap-2 text-[10px] font-bold"><span className="size-2 rounded-full bg-blue-500"></span> WARNING</div>
-                </div>
-              </div>
-              <div className="h-64 flex items-end gap-2 group">
-                {incidentStats?.byDay?.slice(-15).map((d: any, i: number) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-2 group/bar">
-                    <div className="w-full relative h-full flex items-end gap-0.5">
-                      <div className="flex-1 bg-red-500/20 hover:bg-red-500 transition-colors rounded-t-sm" style={{ height: `${(d.count / (incidentStats.byDay[0]?.count || 10)) * 100}%` }}></div>
-                    </div>
-                    <span className="text-[8px] font-bold text-slate-500 rotate-45 mt-2">{d._id.date.split('-').slice(1).join('/')}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Zone Risks */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-sm">
-               <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-8 m-0">Zone Risk Assessment</h3>
-               <div className="space-y-6">
-                 {zoneStats?.slice(0, 5).map((z: any, i: number) => (
-                   <div key={i} className="space-y-2">
-                     <div className="flex justify-between items-center text-sm">
-                       <span className="font-bold">{z.name}</span>
-                       <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
-                         z.risk_level === 'high' ? 'bg-red-500/10 text-red-500' : 
-                         z.risk_level === 'medium' ? 'bg-amber-500/10 text-amber-500' : 
-                         'bg-green-500/10 text-green-500'
-                       }`}>{z.risk_level}</span>
-                     </div>
-                     <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                       <div className={`h-full transition-all duration-1000 ${
-                         z.risk_level === 'high' ? 'bg-red-500' : 
-                         z.risk_level === 'medium' ? 'bg-amber-500' : 
-                         'bg-green-500'
-                       }`} style={{ width: `${z.active_incidents * 20}%` }}></div>
-                     </div>
-                     <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                       <span>{z.active_incidents} Active Alerts</span>
-                       <span>Score: {100 - (z.active_incidents * 10)}%</span>
-                     </div>
-                   </div>
-                 ))}
-               </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-sm">
-               <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-8 m-0">Tourist Load (Last 7 Days)</h3>
-               <div className="h-48 flex items-end gap-3">
-                 {touristStats?.daily?.slice(-7).map((d: any, i: number) => (
-                   <div key={i} className="flex-1 flex flex-col items-center gap-3">
-                     <div className="w-full bg-primary/10 hover:bg-primary/40 transition-all rounded-xl" style={{ height: `${(d.count / (touristStats.totalTourists || 100)) * 100}%` }}></div>
-                     <span className="text-[10px] font-bold text-slate-500">{d.date.split('-')[2]}</span>
-                   </div>
-                 ))}
-               </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-sm flex flex-col justify-center">
-               <div className="text-center space-y-4">
-                 <div className="size-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                   <Download className="text-primary size-8" />
-                 </div>
-                 <h4 className="text-xl font-bold">System Integrity Export</h4>
-                 <p className="text-sm text-slate-500 max-w-xs mx-auto">Generate a cryptographic snapshot of current system metrics for official audit.</p>
-                 <button className="bg-primary text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">Download Audit PDF</button>
-               </div>
-            </div>
-          </div>
-        </main>
-      </div>
-    </div>
-  );
-}
-
-function StatsCard({ title, value, icon, trend, positive, critical }: any) {
-  return (
-    <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm relative overflow-hidden group hover:border-primary/50 transition-colors ${critical ? 'border-red-500/30' : ''}`}>
-      <div className="flex justify-between items-start mb-4">
-        <div className={`p-3 rounded-xl ${critical ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'}`}>
-          {icon}
         </div>
-        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${positive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-          {trend}
-        </span>
-      </div>
-      <div>
-        <p className="text-3xl font-black m-0 leading-none">{value}</p>
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 m-0">{title}</p>
-      </div>
+
+        {error && (
+          <div style={{ background: '#FFF8E0', border: `3px solid ${NB.orange}`, boxShadow: `3px 3px 0 ${NB.black}`, padding: '12px 16px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.88rem', fontWeight: 600, color: NB.black }}>
+            <AlertCircle size={16} color={NB.orange} /> {error}
+          </div>
+        )}
+
+        {/* Stat cards */}
+        <div className="grid-4 responsive-grid" style={{ gap: 16, marginBottom: 28 }}>
+          {summaryCards.map((s, i) => (
+            <div key={i} style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, borderTop: `6px solid ${s.accent}`, padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div style={{ width: 36, height: 36, background: s.accent, border: `2px solid ${NB.black}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.accent === NB.yellow ? NB.black : NB.white }}>{s.icon}</div>
+                <span style={{ padding: '2px 8px', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', background: s.pos ? 'rgba(0,208,132,0.15)' : 'rgba(255,59,59,0.15)', color: s.pos ? NB.mint : NB.red, border: `1.5px solid ${s.pos ? NB.mint : NB.red}` }}>{s.trend}</span>
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: NB.black, lineHeight: 1 }}>{s.value}</div>
+              <p style={{ margin: '6px 0 0', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B' }}>{s.title}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Charts row */}
+        <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20, marginBottom: 20 }}>
+          {/* Incident bar chart */}
+          <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: NB.black, margin: 0 }}>Incident Distribution (Last 15 Days)</h3>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.68rem', fontWeight: 700, color: NB.red }}><div style={{ width: 10, height: 10, background: NB.red }} /> Critical</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.68rem', fontWeight: 700, color: NB.blue }}><div style={{ width: 10, height: 10, background: NB.blue }} /> Warning</div>
+              </div>
+            </div>
+            <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', gap: 4 }}>
+              {incidentStats?.byDay?.slice(-15).map((d: any, i: number) => {
+                const maxCount = Math.max(...(incidentStats.byDay.map((x: any) => x.count) || [1]), 1);
+                const pct = (d.count / maxCount) * 100;
+                return (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <div style={{ width: '100%', background: i % 2 === 0 ? NB.red : NB.blue, height: `${Math.max(pct, 4)}%`, border: `1.5px solid ${NB.black}`, transition: 'height 0.3s' }} />
+                    <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#6B6B6B', transform: 'rotate(45deg)', whiteSpace: 'nowrap' }}>{d._id?.date?.split('-').slice(1).join('/') || i}</span>
+                  </div>
+                );
+              }) || <p style={{ color: '#9A9A9A', fontSize: '0.88rem', margin: 'auto', fontWeight: 600 }}>No data available</p>}
+            </div>
+          </div>
+
+          {/* Zone Risk */}
+          <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '24px' }}>
+            <h3 style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: NB.black, margin: '0 0 20px' }}>Zone Risk Assessment</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {zoneStats?.slice(0, 5).map((z: any, i: number) => {
+                const riskColor = z.risk_level === 'high' ? NB.red : z.risk_level === 'medium' ? NB.orange : NB.mint;
+                return (
+                  <div key={i}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: NB.black }}>{z.name}</span>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', padding: '2px 8px', background: riskColor, color: z.risk_level === 'medium' ? NB.white : NB.black, border: `1.5px solid ${NB.black}` }}>{z.risk_level}</span>
+                    </div>
+                    <div style={{ height: 8, background: NB.cream, border: `1.5px solid ${NB.black}` }}>
+                      <div style={{ height: '100%', background: riskColor, width: `${Math.min(z.active_incidents * 20, 100)}%`, transition: 'width 0.4s' }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3, fontSize: '0.68rem', fontWeight: 600, color: '#6B6B6B' }}>
+                      <span>{z.active_incidents} Active</span><span>Score: {100 - z.active_incidents * 10}%</span>
+                    </div>
+                  </div>
+                );
+              }) || <p style={{ color: '#9A9A9A', fontWeight: 600 }}>No zone data</p>}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom row */}
+        <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          {/* Tourist load */}
+          <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '24px' }}>
+            <h3 style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: NB.black, margin: '0 0 20px' }}>Tourist Load (Last 7 Days)</h3>
+            <div style={{ height: 120, display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+              {touristStats?.daily?.slice(-7).map((d: any, i: number) => {
+                const maxCount = Math.max(...(touristStats.daily.map((x: any) => x.count || 0) || [1]), 1);
+                const pct = ((d.count || 0) / maxCount) * 100;
+                return (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: '100%', background: NB.yellow, border: `2px solid ${NB.black}`, height: `${Math.max(pct, 5)}%` }} />
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6B6B6B' }}>{d.date?.split('-')[2] || i + 1}</span>
+                  </div>
+                );
+              }) || <p style={{ color: '#9A9A9A', fontWeight: 600, margin: 'auto' }}>No data</p>}
+            </div>
+          </div>
+
+          {/* Export */}
+          <div style={{ background: NB.black, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 44, height: 44, background: NB.yellow, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Download size={24} color={NB.black} />
+              </div>
+              <div>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: NB.white, margin: 0 }}>System Integrity Export</h4>
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)', margin: 0 }}>Customize and download official audit reports.</p>
+              </div>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 8 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: NB.white, marginBottom: 4 }}>Start Date (Optional)</label>
+                <input type="date" value={reportStartDate} onChange={(e) => setReportStartDate(e.target.value)} style={{ width: '100%', padding: '8px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: NB.white, fontFamily: 'inherit' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: NB.white, marginBottom: 4 }}>End Date (Optional)</label>
+                <input type="date" value={reportEndDate} onChange={(e) => setReportEndDate(e.target.value)} style={{ width: '100%', padding: '8px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: NB.white, fontFamily: 'inherit' }} />
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: 16, marginTop: 4 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: NB.white, cursor: 'pointer' }}>
+                <input type="checkbox" checked={reportSections.incidents} onChange={(e) => setReportSections(s => ({...s, incidents: e.target.checked}))} /> Incidents
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: NB.white, cursor: 'pointer' }}>
+                <input type="checkbox" checked={reportSections.zones} onChange={(e) => setReportSections(s => ({...s, zones: e.target.checked}))} /> Zones
+              </label>
+            </div>
+
+            <button 
+              onClick={generateAuditReport}
+              disabled={reportLoading}
+              style={{ background: NB.yellow, border: `3px solid ${NB.yellow}`, boxShadow: `3px 3px 0 rgba(255,229,0,0.3)`, padding: '12px 28px', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em', color: NB.black, marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: reportLoading ? 0.7 : 1 }}
+            >
+              {reportLoading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} 
+              {reportLoading ? 'Generating...' : 'Download Audit PDF'}
+            </button>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

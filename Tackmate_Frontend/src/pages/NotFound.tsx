@@ -1,30 +1,92 @@
 import { Link } from 'react-router-dom';
-import { Compass, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-[#0a1628] flex items-center justify-center p-6 font-['Outfit',_sans-serif]">
-      {/* Background topographic pattern */}
-      <div className="fixed inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #1db954 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-      
-      <div className="w-full max-w-lg relative z-10 text-center">
-        <div className="relative inline-block mb-8">
-          <div className="absolute inset-0 bg-[#00d4aa] blur-[60px] opacity-20 rounded-full animate-pulse"></div>
-          <Compass className="w-32 h-32 text-[#00d4aa] relative z-10 animate-[spin_10s_linear_infinite] opacity-80" />
-        </div>
-        
-        <h1 className="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-[#1db954] to-[#00d4aa] mb-4 tracking-tighter mix-blend-screen">
+    <div style={{
+      minHeight: '100vh',
+      background: '#FFFBF0',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+      fontFamily: "'Space Grotesk', sans-serif",
+      backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.1) 1px, transparent 1px)',
+      backgroundSize: '24px 24px',
+    }}>
+      <div style={{ width: '100%', maxWidth: 520, textAlign: 'center' }}>
+        {/* Giant 404 */}
+        <div style={{
+          fontSize: 'clamp(6rem, 22vw, 11rem)',
+          fontWeight: 800,
+          lineHeight: 1,
+          color: '#0A0A0A',
+          letterSpacing: '-0.04em',
+          WebkitTextStroke: '3px #0A0A0A',
+          WebkitTextFillColor: '#FFE500',
+          marginBottom: 8,
+          fontFamily: "'Space Grotesk', sans-serif",
+        }}>
           404
-        </h1>
-        
-        <h2 className="text-2xl font-bold text-white mb-6">Off the Grid</h2>
-        <p className="text-[#8892b0] text-lg mb-10 max-w-md mx-auto">
-          The coordinate you are looking for does not exist in our geospatial database. You might have strayed into an unmapped zone.
-        </p>
+        </div>
 
-        <Link to="/" className="inline-flex items-center justify-center gap-2 bg-[#00d4aa] hover:bg-[#1db954] text-[#0a1628] font-bold px-8 py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,212,170,0.3)] hover:shadow-[0_4px_30px_rgba(29,185,84,0.5)] transform hover:-translate-y-1">
-          <ArrowLeft className="w-5 h-5" />
-          Recalibrate to Base
+        {/* Card */}
+        <div style={{
+          background: '#FFFFFF',
+          border: '3px solid #0A0A0A',
+          boxShadow: '6px 6px 0 #0A0A0A',
+          padding: '32px',
+          marginBottom: 28,
+        }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            background: '#FF3B3B', color: '#FFFFFF',
+            border: '2px solid #0A0A0A',
+            padding: '4px 12px',
+            fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em',
+            marginBottom: 16,
+          }}>
+            <AlertTriangle size={12} />
+            Zone Not Found
+          </div>
+
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: 12, color: '#0A0A0A' }}>
+            Off The Grid
+          </h1>
+          <p style={{ color: '#3A3A3A', fontSize: '0.95rem', lineHeight: 1.65, fontWeight: 500 }}>
+            The coordinate you're looking for doesn't exist in our geospatial database.
+            You may have strayed into an unmapped zone.
+          </p>
+        </div>
+
+        <Link
+          to="/"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            background: '#FFE500',
+            color: '#0A0A0A',
+            border: '3px solid #0A0A0A',
+            boxShadow: '4px 4px 0 #0A0A0A',
+            padding: '14px 32px',
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontSize: '0.88rem',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            textDecoration: 'none',
+            transition: 'all 0.1s ease',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.transform = 'translate(-2px,-2px)';
+            (e.currentTarget as HTMLElement).style.boxShadow = '6px 6px 0 #0A0A0A';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.transform = 'translate(0,0)';
+            (e.currentTarget as HTMLElement).style.boxShadow = '4px 4px 0 #0A0A0A';
+          }}
+        >
+          <ArrowLeft size={18} />
+          Back to Base
         </Link>
       </div>
     </div>

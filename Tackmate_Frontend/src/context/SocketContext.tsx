@@ -26,11 +26,22 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         setIsConnected(true);
         console.log('Connected to Trackmate Real-time Engine');
         
-        // Join role-specific rooms
-        newSocket.emit('join-room', `role:${user.role}`);
+        // Join role-specific rooms using the backend's socket events
+        if (user.role === 'authority') {
+            newSocket.emit('join:authority');
+        } else if (user.role === 'tourist') {
+            newSocket.emit('join:tourist', user.id);
+        } else if (user.role === 'resident') {
+            newSocket.emit('join:resident', user.id);
+        } else if (user.role === 'business') {
+            newSocket.emit('join:business', user.id);
+        }
+        // Also join generic user room for personal alerts
+        newSocket.emit('join:user', user.id);
+
         if (user.ward) {
             const wardId = typeof user.ward === 'object' ? user.ward._id : user.ward;
-            newSocket.emit('join-room', `ward:${wardId}`);
+            newSocket.emit('join:ward', wardId);
         }
       });
 

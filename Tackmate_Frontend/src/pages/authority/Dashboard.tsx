@@ -2,346 +2,315 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import api from '../../lib/api';
-import { 
-  AlertTriangle, RefreshCw, Loader2,
-  TrendingUp
-} from "lucide-react";
+import { AlertTriangle, RefreshCw, Loader2, TrendingUp, Search, Users, Zap, Shield } from 'lucide-react';
+import AuthorityMap from '../../components/maps/AuthorityMap';
+import AuthoritySidebar from '../../components/layout/AuthoritySidebar';
+import type { ZoneData } from '../../components/maps/TouristMap';
+
+const NB = { black: '#FFFBF0', yellow: '#FFE500', red: '#FF3B3B', blue: '#2B6FFF', mint: '#00D084', orange: '#FF7A00', cream: '#0A0A0A', white: '#111111' };
+
+const getSeverityStyle = (sev: string): React.CSSProperties => {
+  switch (sev?.toLowerCase()) {
+    case 'critical': return { background: '#FF0033', color: NB.white, border: `2px solid ${NB.black}` };
+    case 'high': return { background: NB.red, color: NB.white, border: `2px solid ${NB.black}` };
+    case 'medium': return { background: NB.orange, color: NB.white, border: `2px solid ${NB.black}` };
+    default: return { background: NB.cream, color: NB.black, border: `2px solid ${NB.black}` };
+  }
+};
 
 export default function AuthorityDashboard() {
   const { user } = useAuth();
   const { socket } = useSocket();
   const [incidents, setIncidents] = useState<any[]>([]);
-  const [summary, setSummary] = useState<any>({
-    totalUsers: 0,
-    openIncidents: 0,
-    sosLastHour: 0,
-    activeUsersToday: 0
-  });
+  const [summary, setSummary] = useState({ totalUsers: 0, openIncidents: 0, sosLastHour: 0, activeUsersToday: 0 });
   const [loading, setLoading] = useState(true);
+  const [zones, setZones] = useState<ZoneData[]>([]);
+  const [userLocations, setUserLocations] = useState<Record<string, { lat: number; lng: number; role?: string; name?: string; timestamp: number }>>({});
+  const [focusLocation, setFocusLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  // Filter state for isolating a single user
+  const [filteredUser, setFilteredUser] = useState<string | null>(null);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const [incidentsRes, summaryRes, zonesRes, locationsRes] = await Promise.all([
+        api.get('/incidents?limit=10'), 
+        api.get('/analytics/summary'), 
+        api.get('/zones'),
+        api.get('/locations/all')
+      ]);
+      
+      if (incidentsRes.data.success) setIncidents(incidentsRes.data.data);
+      if (summaryRes.data.success) setSummary(summaryRes.data.data);
+      if (zonesRes.data.success) setZones(zonesRes.data.data);
+      
+      if (locationsRes.data.success) {
+        const locMap: any = {};
+        locationsRes.data.data.forEach((log: any) => {
+          if (log.user && !locMap[log.user._id]) {
+            locMap[log.user._id] = {
+              lat: log.latitude,
+              lng: log.longitude,
+              role: log.user.role,
+              name: log.user.full_name,
+              timestamp: new Date(log.recorded_at).getTime()
+            };
+          }
+        });
+        setUserLocations(locMap);
+      }
+    } catch (err) { console.error(err); } finally { setLoading(false); }
+  };
 
   useEffect(() => {
     fetchDashboardData();
-    
-    // Refresh every 60 seconds as fallback
     const interval = setInterval(fetchDashboardData, 60000);
-
     if (socket) {
-        socket.on('new-incident', (incident: any) => {
-            console.log('Live Incident Received:', incident);
-            setIncidents(prev => [incident, ...prev.slice(0, 9)]);
-            // Update summary if needed, or just re-fetch
-            fetchDashboardData();
-        });
+      socket.on('new-incident', (incident: any) => { setIncidents(prev => [incident, ...prev.slice(0, 9)]); fetchDashboardData(); });
+      socket.on('location:update', (data: any) => {
+        // Handle both flattened and nested location data
+        const lat = data.latitude || (data.location?.coordinates && data.location.coordinates[1]);
+        const lng = data.longitude || (data.location?.coordinates && data.location.coordinates[0]);
+        
+        if (data.userId && lat && lng) {
+          setUserLocations(prev => ({ 
+            ...prev, 
+            [data.userId]: { 
+              lat, 
+              lng, 
+              role: data.role, 
+              name: data.name, 
+              timestamp: Date.now() 
+            } 
+          }));
+        }
+      });
     }
-
-    return () => {
-        clearInterval(interval);
-        if (socket) socket.off('new-incident');
-    };
+    return () => { clearInterval(interval); if (socket) { socket.off('new-incident'); socket.off('location:update'); } };
   }, [socket]);
 
-  const fetchDashboardData = async () => {
+  const handleUpdateIncident = async (id: string, status: string) => {
     try {
-      const [incidentsRes, summaryRes] = await Promise.all([
-        api.get('/incidents?limit=10'),
-        api.get('/analytics/summary')
-      ]);
-      
-      if (incidentsRes.data.success) {
-        setIncidents(incidentsRes.data.data);
+      const res = await api.patch(`/incidents/${id}`, { status });
+      if (res.data.success) setIncidents(prev => prev.map(i => i._id === id ? { ...i, status } : i));
+    } catch (err) { alert('Failed to update incident status.'); }
+  };
+
+  const handleZoneCreated = async (layer: any) => {
+    try {
+      let latlng, radius;
+      if (typeof layer.getRadius === 'function') {
+        latlng = layer.getLatLng();
+        radius = layer.getRadius();
+      } else if (typeof layer.getBounds === 'function') {
+        // Approximate polygon as a circle for the existing schema mapping
+        latlng = layer.getBounds().getCenter();
+        radius = latlng.distanceTo(layer.getBounds().getNorthEast());
       }
       
-      if (summaryRes.data.success) {
-        setSummary(summaryRes.data.data);
+      if (latlng) {
+        const payload = {
+          name: `Manual High-Risk Zone (${new Date().toLocaleTimeString()})`,
+          risk_level: 'high',
+          center_lat: latlng.lat,
+          center_lng: latlng.lng,
+          radius_meters: Math.min(Math.round(radius), 5000), // Cap at 5km
+          is_active: true
+        };
+        const res = await api.post('/zones', payload);
+        if (res.data.success) {
+          setZones([...zones, res.data.data]);
+          alert('High-risk zone added successfully.');
+        }
       }
-    } catch (err) {
-      console.error('Failed to fetch dashboard data:', err);
-    } finally {
-      setLoading(false);
+    } catch (err: any) {
+      alert(`Failed to save zone: ${err.message}`);
     }
   };
 
-  const getSeverityColor = (sev: string) => {
-    switch (sev?.toLowerCase()) {
-      case 'critical': return 'bg-red-600 text-white';
-      case 'high': return 'bg-amber-500 text-white';
-      case 'medium': return 'bg-blue-500 text-white';
-      default: return 'bg-slate-500 text-white';
-    }
-  };
+  const filteredLocations = filteredUser ? { [filteredUser]: userLocations[filteredUser] } : userLocations;
 
-  const getSourceIcon = (source: string) => {
-    switch (source?.toLowerCase()) {
-      case 'sos_panic': return 'sos';
-      case 'ai_anomaly': return 'smart_toy';
-      case 'resident_report': return 'forum';
-      default: return 'report';
-    }
-  };
+  const statCards = [
+    { label: 'Active Users', value: summary.activeUsersToday, icon: <Users size={20} />, accent: NB.blue, pulse: false },
+    { label: 'Open Incidents', value: summary.openIncidents, icon: <AlertTriangle size={20} />, accent: NB.red, pulse: summary.openIncidents > 0 },
+    { label: 'SOS (Last Hour)', value: summary.sosLastHour, icon: <Zap size={20} />, accent: '#FF0033', pulse: summary.sosLastHour > 0 },
+    { label: 'Total Profiles', value: summary.totalUsers, icon: <Shield size={20} />, accent: NB.orange, pulse: false },
+  ];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0A0F1E] text-slate-100 font-['Public_Sans',_sans-serif]">
-      {/* Left Sidebar */}
-      <aside className="w-[240px] bg-[#0A0F1E] border-r border-[#1E293B] flex flex-col h-full z-20 shrink-0">
-        <div className="p-6 flex flex-col gap-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary rounded-lg p-1 flex items-center justify-center">
-              <span className="material-symbols-outlined text-white text-2xl leading-none m-0">shield_person</span>
-            </div>
-            <div>
-              <h1 className="text-white text-lg font-bold leading-none m-0">Trackmate</h1>
-              <p className="text-slate-400 text-[10px] uppercase tracking-widest font-bold m-0 mt-1">Command Center</p>
-            </div>
-          </div>
+    <div style={{ display: 'flex', minHeight: '100vh', background: NB.cream, fontFamily: "'Space Grotesk', sans-serif" }}>
+      <AuthoritySidebar />
 
-          <div className="flex items-center gap-3 p-3 bg-[#0F172A] rounded-xl border border-[#1E293B]">
-            <div className="size-10 rounded-full bg-slate-700 flex items-center justify-center border border-[#1E293B]">
-              <span className="font-bold text-slate-300">
-                {user?.full_name?.split(' ').map(n => n[0]).join('') || 'KD'}
-              </span>
-            </div>
-            <div className="flex flex-col overflow-hidden">
-              <p className="text-white text-sm font-semibold m-0 truncate">{user?.full_name || 'Inspector K. Das'}</p>
-              <p className="text-primary text-[10px] font-bold m-0 leading-tight">{user?.designation || 'Special Duty'}</p>
-            </div>
+      <main className="page-with-sidebar" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', padding: 0 }}>
+        {/* Top bar */}
+        <div className="top-header responsive-container" style={{ background: NB.white, borderBottom: `3px solid ${NB.black}`, padding: '16px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: `0 3px 0 ${NB.black}` }}>
+          <div>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: NB.black, margin: 0, letterSpacing: '-0.01em' }}>Command Dashboard</h1>
+            <p style={{ fontSize: '0.75rem', color: '#6B6B6B', margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              {user?.full_name} · {user?.designation || 'Authority Officer'}
+            </p>
           </div>
-
-          <nav className="flex flex-col gap-1">
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary text-white no-underline" href="/authority/dashboard">
-              <span className="material-symbols-outlined text-[20px] m-0">dashboard</span>
-              <span className="text-sm font-medium">Dashboard</span>
-            </a>
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all no-underline" href="#">
-              <span className="material-symbols-outlined text-[20px] m-0">report_problem</span>
-              <span className="text-sm font-medium">Incidents</span>
-            </a>
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all no-underline" href="#">
-              <span className="material-symbols-outlined text-[20px] m-0">group</span>
-              <span className="text-sm font-medium">Tourist Roster</span>
-            </a>
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all no-underline" href="#">
-              <span className="material-symbols-outlined text-[20px] m-0">house</span>
-              <span className="text-sm font-medium">Residents</span>
-            </a>
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all no-underline" href="#">
-              <span className="material-symbols-outlined text-[20px] m-0">business_center</span>
-              <span className="text-sm font-medium">Businesses</span>
-            </a>
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all no-underline" href="#">
-              <span className="material-symbols-outlined text-[20px] m-0">map</span>
-              <span className="text-sm font-medium">Zone Management</span>
-            </a>
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all no-underline" href="/authority/efir">
-              <span className="material-symbols-outlined text-[20px] m-0">description</span>
-              <span className="text-sm font-medium">E-FIR System</span>
-            </a>
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all no-underline" href="/authority/analytics">
-              <span className="material-symbols-outlined text-[20px] m-0">bar_chart</span>
-              <span className="text-sm font-medium">Analytics</span>
-            </a>
-            
-            <div className="my-2 border-t border-[#1E293B]"></div>
-            
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all no-underline" href="#">
-              <span className="material-symbols-outlined text-[20px] m-0">settings</span>
-              <span className="text-sm font-medium">Settings</span>
-            </a>
-          </nav>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={fetchDashboardData} style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase' }}>
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+            </button>
+          </div>
         </div>
-        <div className="mt-auto p-4">
-          <button className="w-full py-2 bg-red-500/10 text-red-500 rounded-lg text-xs font-bold border border-red-500/20 outline-none hover:bg-red-500/20 transition-colors">
-            EMERGENCY OVERRIDE
-          </button>
-        </div>
-      </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden bg-[#0A0F1E]">
-        {/* Top Stats Row */}
-        <div className="p-4 grid grid-cols-4 gap-4">
-          <div className="bg-[#1E293B]/40 backdrop-blur-sm p-4 rounded-xl border border-white/5 border-l-4 border-l-primary">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-tight m-0">Active Users</p>
-                <h3 className="text-2xl font-bold m-0 mt-1 text-white">{summary.activeUsersToday}</h3>
+        {/* Stat Cards */}
+        <div className="grid-4 responsive-grid mobile-p-16" style={{ gap: 20, padding: '24px 28px 0' }}>
+          {statCards.map((s, i) => (
+            <div key={i} style={{
+              background: NB.white, border: `3px solid ${NB.black}`,
+              boxShadow: `4px 4px 0 ${NB.black}`,
+              borderTop: `6px solid ${s.accent}`,
+              padding: '20px',
+              animation: s.pulse ? 'nb-pulse 2s infinite' : undefined,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6B6B6B', margin: 0 }}>{s.label}</p>
+                <div style={{ width: 36, height: 36, background: s.accent, border: `2px solid ${NB.black}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.accent === NB.yellow ? NB.black : NB.white }}>
+                  {s.icon}
+                </div>
               </div>
-              <span className="material-symbols-outlined text-primary bg-primary/20 p-2 rounded-lg m-0 leading-none">person_pin_circle</span>
+              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: NB.black, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>{s.value}</div>
+              {s.pulse && <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}><div style={{ width: 8, height: 8, background: s.accent, animation: 'pulse-red 1.5s infinite' }} /><span style={{ fontSize: '0.65rem', fontWeight: 800, color: s.accent, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Needs Attention</span></div>}
+              {!s.pulse && <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, color: NB.mint, fontSize: '0.65rem', fontWeight: 700 }}><TrendingUp size={11} /> Live tracking active</div>}
             </div>
-            <div className="mt-2 text-[10px] text-green-400 flex items-center gap-1">
-              <TrendingUp className="size-3" /> Real-time tracking active
-            </div>
-          </div>
-          
-          <div className="bg-[#1E293B]/40 backdrop-blur-sm p-4 rounded-xl border border-white/5 border-l-4 border-l-red-600">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-tight m-0">Open Incidents</p>
-                <h3 className="text-2xl font-bold m-0 mt-1 text-red-500">{summary.openIncidents}</h3>
+          ))}
+        </div>
+
+        {/* Map */}
+        <div className="responsive-container" style={{ padding: '24px 28px 0', flex: 1, position: 'relative', minHeight: 420 }}>
+          <div style={{ border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, overflow: 'hidden', height: 420, position: 'relative' }}>
+            <AuthorityMap 
+              zones={zones} 
+              incidents={incidents} 
+              userLocations={filteredLocations} 
+              focusLocation={focusLocation}
+              onZoneCreated={handleZoneCreated}
+            />
+            {/* Search overlay & Clear filter */}
+            <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 400, width: 240, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: NB.black }} />
+                <input
+                  value={searchQuery}
+                  onChange={e => {
+                    setSearchQuery(e.target.value);
+                    const q = e.target.value.toLowerCase();
+                    const zone = zones.find(z => z.name.toLowerCase().includes(q));
+                    if (zone) setFocusLocation({ lat: zone.center_lat, lng: zone.center_lng });
+                  }}
+                  placeholder="Search zones..."
+                  style={{ width: '100%', padding: '9px 12px 9px 32px', background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600, outline: 'none' }}
+                />
               </div>
-              <span className="material-symbols-outlined text-red-500 bg-red-500/20 p-2 rounded-lg m-0 leading-none">warning</span>
-            </div>
-            <div className="mt-2 text-[10px] text-red-400 flex items-center gap-1">
-              <AlertTriangle className="size-3" /> Needs Attention
-            </div>
-          </div>
-          
-          <div className="bg-[#1E293B]/40 backdrop-blur-sm p-4 rounded-xl border border-white/5 border-l-4 border-l-red-500 relative overflow-hidden">
-            <div className={`absolute inset-0 bg-red-500/5 ${summary.sosLastHour > 0 ? 'animate-pulse' : ''}`}></div>
-            <div className="flex justify-between items-start relative z-10">
-              <div>
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-tight m-0">SOS (Last Hr)</p>
-                <h3 className="text-2xl font-bold m-0 mt-1 text-red-400">{summary.sosLastHour}</h3>
-              </div>
-              <span className={`material-symbols-outlined text-red-500 bg-red-500/30 p-2 rounded-lg m-0 leading-none ${summary.sosLastHour > 0 ? 'animate-bounce' : ''}`}>sos</span>
-            </div>
-            <div className="mt-2 text-[10px] text-red-500 font-bold flex items-center gap-1 relative z-10">
-              {summary.sosLastHour > 0 ? (
-                <><span className="size-1.5 rounded-full bg-red-500"></span> IMMEDIATE RESPONSE REQ.</>
-              ) : (
-                <><span className="size-1.5 rounded-full bg-slate-500"></span> No active panics</>
+              {filteredUser && (
+                <button onClick={() => { setFilteredUser(null); setFocusLocation(null); }} style={{ background: NB.red, color: NB.white, border: `2px solid ${NB.black}`, padding: '4px 8px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', boxShadow: `2px 2px 0 ${NB.black}` }}>
+                  Clear User Filter ✕
+                </button>
               )}
             </div>
-          </div>
-          
-          <div className="bg-[#1E293B]/40 backdrop-blur-sm p-4 rounded-xl border border-white/5 border-l-4 border-l-amber-500">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-tight m-0">Total Profiles</p>
-                <h3 className="text-2xl font-bold m-0 mt-1 text-amber-500">{summary.totalUsers}</h3>
-              </div>
-              <span className="material-symbols-outlined text-amber-500 bg-amber-500/20 p-2 rounded-lg m-0 leading-none">gpp_maybe</span>
-            </div>
-            <div className="mt-2 text-[10px] text-amber-400 flex items-center gap-1">
-              Verified System Database
-            </div>
-          </div>
-        </div>
-
-        {/* Map Section */}
-        <div className="flex-1 px-4 pb-4 flex flex-col min-h-0">
-          <div className="w-full h-full rounded-xl relative overflow-hidden border border-[#1E293B]" style={{ background: 'radial-gradient(circle at 50% 50%, #1e293b 0%, #0a0f1e 100%)' }}>
-            <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=1200')] bg-cover bg-center mix-blend-overlay"></div>
-            
-            <div className="absolute inset-0 p-8 pointer-events-none">
-              <svg className="w-full h-full opacity-20" preserveAspectRatio="none" viewBox="0 0 100 100">
-                <path d="M20,20 L50,15 L80,30 L70,70 L30,80 Z" fill="#1a57db" stroke="#1a57db" strokeWidth="0.5"></path>
-                <path d="M10,60 L30,55 L40,85 L15,90 Z" fill="#ef4444" stroke="#ef4444" strokeWidth="0.5"></path>
-              </svg>
-            </div>
-
-            <div className="absolute top-4 left-4 flex gap-2">
-              <div className="bg-[#0F172A]/90 backdrop-blur rounded-lg border border-[#1E293B] p-1 flex shadow-xl">
-                <button className="px-4 py-1.5 rounded-md bg-primary text-white text-xs font-semibold outline-none border-none">Standard</button>
-                <button className="px-4 py-1.5 rounded-md text-slate-400 text-xs font-semibold hover:text-white outline-none border-none bg-transparent">Satellite</button>
-                <button className="px-4 py-1.5 rounded-md text-slate-400 text-xs font-semibold hover:text-white outline-none border-none bg-transparent">Heatmap</button>
-              </div>
-              <div className="bg-[#0F172A]/90 backdrop-blur rounded-lg border border-[#1E293B] p-1 flex shadow-xl">
-                <button className="size-8 flex items-center justify-center text-slate-300 hover:text-white border-r border-[#1E293B] bg-transparent outline-none m-0 p-0"><span className="material-symbols-outlined text-sm m-0 leading-none">add</span></button>
-                <button className="size-8 flex items-center justify-center text-slate-300 hover:text-white bg-transparent outline-none border-none m-0 p-0"><span className="material-symbols-outlined text-sm m-0 leading-none">remove</span></button>
-              </div>
-            </div>
-
-            <div className="absolute bottom-4 left-4 bg-[#1E293B]/40 backdrop-blur-sm border border-white/5 p-3 rounded-lg flex flex-col gap-2 min-w-[140px]">
-              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest m-0 text-left">Map Legend</h4>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="size-2 rounded-full bg-primary"></span> Resident
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="size-2 rounded-full bg-green-500"></span> Tourist
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="size-2 rounded-full bg-red-500"></span> SOS Active
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="size-2 rounded-full bg-amber-400"></span> Zone Breach
-              </div>
-            </div>
-
-            <div className="absolute top-4 right-4 w-64">
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg m-0 leading-none">search</span>
-                <input className="w-full bg-[#0F172A]/90 backdrop-blur border border-[#1E293B] rounded-lg pl-10 pr-3 py-2 text-xs text-white focus:ring-primary focus:border-primary outline-none" placeholder="Search coordinates or zones..." type="text" />
-              </div>
+            {/* Legend */}
+            <div style={{ position: 'absolute', bottom: 12, left: 12, zIndex: 400, background: NB.white, border: `2px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, padding: '10px 14px' }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Map Legend</div>
+              {[{ color: NB.blue, label: 'Resident (Live)' }, { color: NB.mint, label: 'Tourist (Live)' }, { color: NB.red, label: 'Active Incident' }, { color: '#FF0033', label: 'High Risk Zone', opacity: 0.5 }].map((l, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', fontWeight: 600, marginBottom: 4, color: NB.black }}>
+                  <div style={{ width: 10, height: 10, background: l.color, border: `1.5px solid ${NB.black}`, opacity: l.opacity || 1 }} />
+                  {l.label}
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Live Alert Feed */}
-        <div className="px-4 pb-4 flex flex-col h-[280px] shrink-0">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-white text-lg font-bold flex items-center gap-2 m-0">
-              <span className="material-symbols-outlined text-primary m-0 leading-none">sensors</span>
+        <div style={{ padding: '24px 28px 28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: NB.black, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 8, height: 24, background: NB.red, display: 'inline-block' }} />
               Live Alert Feed
             </h2>
-            <div className="flex gap-2">
-              <button 
-                onClick={fetchDashboardData}
-                className="size-8 flex items-center justify-center bg-[#0F172A] border border-[#1E293B] rounded text-slate-400 hover:text-white transition-all"
-              >
-                <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
-              </button>
-              <button className="text-xs bg-[#0F172A] border border-[#1E293B] px-3 py-1.5 rounded text-slate-400 hover:text-white outline-none">Filter</button>
-            </div>
+            <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: '#6B6B6B' }}>Click a row to isolate reporter on map</p>
           </div>
-          
-          <div className="flex-1 overflow-y-auto rounded-xl border border-[#1E293B] bg-[#0F172A]/30">
+          <div style={{ border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, background: NB.white, overflow: 'hidden' }}>
             {loading && incidents.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-3">
-                <Loader2 className="animate-spin size-8" />
-                <p className="text-sm font-mono tracking-widest">CONNECTING TO NODE FEED...</p>
+              <div style={{ padding: 40, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <Loader2 size={28} style={{ animation: 'spin-slow 1s linear infinite' }} />
+                <p style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6B6B6B' }}>Connecting to node feed...</p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse">
-                <thead className="sticky top-0 bg-[#0F172A] z-10 border-b border-[#1E293B]">
+              <table className="geo-table">
+                <thead>
                   <tr>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Severity</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Source</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Incident Title</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reporter</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                    <th>Severity</th><th>Title / Zone</th><th>Reporter</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1E293B]/50">
-                  {incidents.map((incident) => (
-                    <tr key={incident._id} className={`transition-colors`}>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-[9px] font-bold uppercase ${getSeverityColor(incident.severity)}`}>
-                          {incident.severity}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`material-symbols-outlined text-lg m-0 leading-none ${
-                          incident.source === 'sos_panic' ? 'text-red-500' :
-                          incident.source === 'ai_anomaly' ? 'text-primary' :
-                          'text-slate-400'
-                        }`}>
-                          {getSourceIcon(incident.source)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-sm font-semibold text-white m-0">{incident.title}</p>
-                        <p className="text-[10px] text-slate-500 m-0 mt-0.5">
-                          {incident.zone?.name || 'Unknown Location'}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-xs text-slate-300 m-0">{incident.reporter?.full_name || 'System'}</p>
-                        <p className="text-[9px] text-slate-500 font-mono m-0">{incident.reporter?.blockchain_id || 'LOCAL-AI'}</p>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button className="px-3 py-1 rounded bg-primary text-white text-[10px] font-bold outline-none border-none hover:bg-primary/80 transition-all">Acknowledge</button>
-                          <button className="px-3 py-1 rounded bg-slate-800 text-slate-400 text-[10px] font-bold outline-none border-none hover:bg-slate-700 hover:text-white transition-all">Assign</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                <tbody>
+                  {incidents.map(incident => {
+                    const reporterId = incident.reporter?._id;
+                    const isFiltered = filteredUser === reporterId;
+                    return (
+                      <tr 
+                        key={incident._id} 
+                        onClick={() => {
+                          if (!reporterId) return;
+                          if (isFiltered) {
+                            setFilteredUser(null);
+                            setFocusLocation(null);
+                          } else {
+                            setFilteredUser(reporterId);
+                            const loc = userLocations[reporterId];
+                            if (loc) setFocusLocation({ lat: loc.lat, lng: loc.lng });
+                            else alert("Reporter's live location is currently unavailable.");
+                          }
+                        }}
+                        style={{ 
+                          cursor: reporterId ? 'pointer' : 'default',
+                          background: isFiltered ? 'rgba(255,229,0,0.15)' : 'transparent',
+                          borderLeft: isFiltered ? `4px solid ${NB.yellow}` : '4px solid transparent'
+                        }}
+                      >
+                        <td>
+                          <span style={{ ...getSeverityStyle(incident.severity), padding: '3px 10px', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'inline-block' }}>
+                            {incident.severity}
+                          </span>
+                        </td>
+                        <td>
+                          <p style={{ fontWeight: 700, color: NB.black, margin: 0, fontSize: '0.88rem' }}>{incident.title}</p>
+                          <p style={{ fontSize: '0.72rem', color: '#6B6B6B', margin: 0, fontWeight: 600 }}>{incident.zone?.name || 'Unknown Location'}</p>
+                        </td>
+                        <td>
+                          <p style={{ fontWeight: 600, color: NB.black, margin: 0, fontSize: '0.85rem' }}>{incident.reporter?.full_name || 'System'}</p>
+                          <p style={{ fontSize: '0.7rem', color: NB.blue, margin: 0, fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }}>{incident.reporter?.blockchain_id || 'LOCAL-AI'}</p>
+                        </td>
+                        <td>
+                          <span style={{ padding: '3px 10px', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', border: `2px solid ${NB.black}`, background: incident.status === 'resolved' ? NB.mint : incident.status === 'acknowledged' ? NB.yellow : NB.cream }}>
+                            {incident.status}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                          {incident.status !== 'resolved' && (
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                              {incident.status !== 'acknowledged' && (
+                                <button onClick={() => handleUpdateIncident(incident._id, 'acknowledged')} style={{ background: NB.yellow, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, padding: '5px 12px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase' }}>
+                                  Acknowledge
+                                </button>
+                              )}
+                              <button onClick={() => handleUpdateIncident(incident._id, 'resolved')} style={{ background: NB.mint, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, padding: '5px 12px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase' }}>
+                                Resolve
+                              </button>
+                            </div>
+                          )}
+                          {incident.status === 'resolved' && <span style={{ fontSize: '0.72rem', fontWeight: 800, color: NB.mint, textTransform: 'uppercase' }}>✓ Done</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {incidents.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-10 text-center text-slate-500 italic text-sm">
-                        No active incidents detected in this sector.
-                      </td>
-                    </tr>
+                    <tr><td colSpan={5} style={{ textAlign: 'center', padding: '28px', color: '#6B6B6B', fontWeight: 600 }}>No active incidents in this sector.</td></tr>
                   )}
                 </tbody>
               </table>

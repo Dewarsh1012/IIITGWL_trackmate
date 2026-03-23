@@ -18,6 +18,8 @@ import efirRoutes from './routes/efir.routes';
 import emergencyRoutes from './routes/emergency.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import verifyRoutes from './routes/verify.routes';
+import alertRoutes from './routes/alert.routes';
+import reportRoutes from './routes/report.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -82,6 +84,8 @@ app.use('/api/efirs', efirRoutes);
 app.use('/api/emergency-contacts', emergencyRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/verify', verifyRoutes);
+app.use('/api/alerts', alertRoutes);
+app.use('/api/reports', reportRoutes);
 
 // ─── 404 ─────────────────────────────────────────────────────────────
 
