@@ -51,7 +51,7 @@ async function seed() {
     // Platform config
     await PlatformConfig.findOneAndUpdate(
         { key: 'authority_code' },
-        { key: 'authority_code', value: process.env.AUTHORITY_CODE || 'AUTH2026SAFE' },
+        { key: 'authority_code', value: process.env.AUTHORITY_CODE || 'SET_AUTHORITY_CODE_IN_ENV' },
         { upsert: true }
     );
 

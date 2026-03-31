@@ -184,4 +184,45 @@ router.get(
     }
 );
 
+// ─── Ward summary analytics ──────────────────────────────────────────
+
+router.get(
+    '/ward/:wardId',
+    authenticate,
+    async (req: AuthRequest, res: Response, next) => {
+        try {
+            const { wardId } = req.params;
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+
+            const [openIncidents, totalIncidents, touristCount, residentCount, activeUsersToday] = await Promise.all([
+                Incident.countDocuments({ ward: wardId, status: { $in: ['active', 'acknowledged', 'assigned', 'escalated'] } }),
+                Incident.countDocuments({ ward: wardId }),
+                Profile.countDocuments({ ward: wardId, role: 'tourist', is_active: true }),
+                Profile.countDocuments({ ward: wardId, role: 'resident', is_active: true }),
+                LocationLog.distinct('user', { recorded_at: { $gte: todayStart } }),
+            ]);
+
+            const baseScore = 100;
+            const penalty = Math.min(openIncidents * 8, 60);
+            const safetyScore = Math.max(0, baseScore - penalty);
+
+            res.json({
+                success: true,
+                data: {
+                    wardId,
+                    open_incidents: openIncidents,
+                    total_incidents: totalIncidents,
+                    tourist_count: touristCount,
+                    resident_count: residentCount,
+                    active_users_today: activeUsersToday.length,
+                    safety_score: safetyScore,
+                },
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
 export default router;

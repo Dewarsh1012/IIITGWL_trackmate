@@ -2,7 +2,11 @@ import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthRequest, JwtPayload } from '../types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+    throw new Error('Missing required environment variable: JWT_SECRET');
+}
 
 /**
  * Middleware: verifies JWT and attaches decoded payload to req.user.

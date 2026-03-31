@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authenticate, requireRole } from '../middleware/auth';
 import { Incident, Zone, Ward } from '../models';
 import { AuthRequest, UserRole, AlertSeverity, AlertSource, AlertStatus } from '../types';
+import { uploadEvidence, toPublicUploadPath } from '../middleware/upload';
 
 const router: Router = express.Router();
 
@@ -119,6 +120,8 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next) => 
         const io = (req as any).app.get('io');
         if (io) {
             io.to('authority_room').emit('incident:new', populated.toObject());
+            io.to('authority_room').emit('new-incident', populated.toObject());
+            io.to('role_tourist').to('role_resident').to('role_business').emit('new-incident', populated.toObject());
             if (body.source === AlertSource.SOS_PANIC) {
                 io.to('authority_room').emit('sos:triggered', populated.toObject());
             }
@@ -160,6 +163,8 @@ router.patch(
             const io = (req as any).app.get('io');
             if (io) {
                 io.to('authority_room').emit('incident:updated', incident.toObject());
+                io.to('authority_room').emit('incident-updated', incident.toObject());
+                io.to('role_tourist').to('role_resident').to('role_business').emit('incident-updated', incident.toObject());
             }
 
             res.json({ success: true, data: incident });
@@ -173,8 +178,10 @@ router.patch(
 
 router.post('/:id/evidence', authenticate, async (req: AuthRequest, res: Response, next) => {
     try {
-        const { urls } = req.body; // array of uploaded file URLs
-        if (!Array.isArray(urls)) {
+        const bodyUrls = req.body?.urls;
+        const urls = Array.isArray(bodyUrls) ? bodyUrls : [];
+
+        if (urls.length === 0) {
             res.status(400).json({ success: false, message: 'urls must be an array' });
             return;
         }
@@ -187,6 +194,40 @@ router.post('/:id/evidence', authenticate, async (req: AuthRequest, res: Respons
     } catch (err) {
         next(err);
     }
+});
+
+router.post('/:id/evidence/upload', authenticate, async (req: AuthRequest, res: Response, next) => {
+    uploadEvidence(req as any, res as any, async (uploadErr: any) => {
+        if (uploadErr) {
+            res.status(400).json({ success: false, message: uploadErr.message || 'Upload failed' });
+            return;
+        }
+
+        try {
+            const files = ((req as any).files || []) as Express.Multer.File[];
+            if (!files.length) {
+                res.status(400).json({ success: false, message: 'No evidence files uploaded' });
+                return;
+            }
+
+            const urls = files.map((file) => toPublicUploadPath(file.path));
+
+            const incident = await Incident.findByIdAndUpdate(
+                req.params.id,
+                { $push: { evidence_urls: { $each: urls } } },
+                { new: true }
+            );
+
+            if (!incident) {
+                res.status(404).json({ success: false, message: 'Incident not found' });
+                return;
+            }
+
+            res.status(201).json({ success: true, data: incident, uploaded: urls });
+        } catch (err) {
+            next(err);
+        }
+    });
 });
 
 export default router;

@@ -21,7 +21,7 @@ export const errorHandler = (
         const issues = (err.issues ?? (err as any).errors ?? []) as Array<{ path: (string | number)[]; message: string }>;
         console.error('Zod Validation Error on Route:', _req.method, _req.originalUrl);
         console.error('Zod Issues:', JSON.stringify(issues, null, 2));
-        console.error('Request Body:', _req.body);
+        console.error('Request Body: [redacted]');
         res.status(400).json({
             success: false,
             message: 'Validation failed',

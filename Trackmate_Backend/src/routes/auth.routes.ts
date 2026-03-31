@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { Profile, PlatformConfig, Ward, Trip } from '../models';
 import { generateBlockchainId, hashGovernmentId } from '../lib/blockchain';
 import { authenticate } from '../middleware/auth';
-import { authRateLimiter, resetRateLimit } from '../middleware/rateLimiter';
+import { authRateLimiter } from '../middleware/rateLimiter';
 import { UserRole, IdType, AuthRequest } from '../types';
 
 const router: Router = express.Router();
@@ -12,6 +12,10 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const BLOCKCHAIN_SALT = process.env.BLOCKCHAIN_SALT!;
 const AUTHORITY_CODE = process.env.AUTHORITY_CODE!;
+
+if (!JWT_SECRET || !BLOCKCHAIN_SALT || !AUTHORITY_CODE) {
+    throw new Error('Missing required auth environment variables (JWT_SECRET, BLOCKCHAIN_SALT, AUTHORITY_CODE)');
+}
 
 // ─── Validation Schemas ───────────────────────────────────────────────
 
@@ -44,6 +48,7 @@ const businessExtras = z.object({
 const authorityExtras = z.object({
     designation: z.string().min(2),
     department: z.string().min(2),
+    authority_code: z.string().min(6),
 });
 
 const loginSchema = z.object({
@@ -66,6 +71,11 @@ router.post('/register', authRateLimiter, async (req, res: Response, next) => {
     try {
         const base = baseRegisterSchema.parse(req.body);
 
+        if (base.role === UserRole.ADMIN) {
+            res.status(403).json({ success: false, message: 'Self-registration for admin role is not allowed' });
+            return;
+        }
+
         // Role-specific extra validation
         let extras: Record<string, any> = {};
         if (base.role === UserRole.TOURIST) {
@@ -76,6 +86,10 @@ router.post('/register', authRateLimiter, async (req, res: Response, next) => {
             extras = businessExtras.parse(req.body);
         } else if (base.role === UserRole.AUTHORITY) {
             extras = authorityExtras.parse(req.body);
+            if (!AUTHORITY_CODE || extras.authority_code !== AUTHORITY_CODE) {
+                res.status(403).json({ success: false, message: 'Invalid authority registration code' });
+                return;
+            }
         }
 
         const existing = await Profile.findOne({ email: base.email });
@@ -145,8 +159,6 @@ router.post('/register', authRateLimiter, async (req, res: Response, next) => {
             profile.email
         );
 
-        resetRateLimit(req);
-
         res.status(201).json({
             success: true,
             message: 'Registration successful',
@@ -193,8 +205,6 @@ router.post('/login', authRateLimiter, async (req, res: Response, next) => {
             profile.role,
             profile.email
         );
-
-        resetRateLimit(req);
 
         res.json({
             success: true,

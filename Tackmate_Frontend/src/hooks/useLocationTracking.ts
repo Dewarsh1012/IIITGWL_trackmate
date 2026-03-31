@@ -24,7 +24,7 @@ export function useLocationTracking(autoStart = false) {
     isTracking: false, error: null, zoneAlert: null,
   });
   const watchRef = useRef<number | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<any>(null);
   const latestPos = useRef<{ lat: number; lng: number; acc: number }>({ lat: 0, lng: 0, acc: 0 });
 
   // Listen for zone alerts

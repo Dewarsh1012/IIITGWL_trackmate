@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import path from 'path';
 import dotenv from 'dotenv';
 
@@ -20,9 +21,22 @@ import analyticsRoutes from './routes/analytics.routes';
 import verifyRoutes from './routes/verify.routes';
 import alertRoutes from './routes/alert.routes';
 import reportRoutes from './routes/report.routes';
+import uploadRoutes from './routes/upload.routes';
 import { errorHandler } from './middleware/errorHandler';
+import { apiRateLimiter } from './middleware/rateLimiter';
+import { sanitizeInput } from './middleware/sanitize';
 
 const app = express();
+const apiV1 = express.Router();
+
+app.set('trust proxy', 1);
+
+app.use(
+    helmet({
+        contentSecurityPolicy: false,
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+    })
+);
 
 // ─── CORS ─────────────────────────────────────────────────────────────
 
@@ -54,6 +68,7 @@ app.use(
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(sanitizeInput);
 
 // ─── Static uploads ──────────────────────────────────────────────────
 
@@ -72,20 +87,26 @@ app.get('/health', (_req, res) => {
 
 // ─── API Routes ──────────────────────────────────────────────────────
 
-app.use('/api/auth', authRoutes);
-app.use('/api/profiles', profileRoutes);
-app.use('/api/zones', zoneRoutes);
-app.use('/api/wards', wardRoutes);
-app.use('/api/incidents', incidentRoutes);
-app.use('/api/locations', locationRoutes);
-app.use('/api/trips', tripRoutes);
-app.use('/api/businesses', businessRoutes);
-app.use('/api/efirs', efirRoutes);
-app.use('/api/emergency-contacts', emergencyRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/verify', verifyRoutes);
-app.use('/api/alerts', alertRoutes);
-app.use('/api/reports', reportRoutes);
+apiV1.use('/auth', authRoutes);
+apiV1.use('/profiles', profileRoutes);
+apiV1.use('/zones', zoneRoutes);
+apiV1.use('/wards', wardRoutes);
+apiV1.use('/incidents', incidentRoutes);
+apiV1.use('/locations', locationRoutes);
+apiV1.use('/trips', tripRoutes);
+apiV1.use('/businesses', businessRoutes);
+apiV1.use('/efirs', efirRoutes);
+apiV1.use('/emergency-contacts', emergencyRoutes);
+apiV1.use('/analytics', analyticsRoutes);
+apiV1.use('/verify', verifyRoutes);
+apiV1.use('/alerts', alertRoutes);
+apiV1.use('/reports', reportRoutes);
+apiV1.use('/uploads', uploadRoutes);
+
+app.use('/api/v1', apiRateLimiter, apiV1);
+
+// Backward compatibility with current clients while keeping versioned API available.
+app.use('/api', apiRateLimiter, apiV1);
 
 // ─── 404 ─────────────────────────────────────────────────────────────
 

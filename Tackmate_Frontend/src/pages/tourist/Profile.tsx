@@ -1,5 +1,5 @@
 import { useAuth } from '../../context/AuthContext';
-import { Shield, CheckCircle, Phone, Translate, Copy, QrCode } from 'lucide-react';
+import { Shield, CheckCircle, Phone, Languages, Copy, QrCode } from 'lucide-react';
 
 const NB = {
   black: '#0A0A0A',
@@ -17,7 +17,7 @@ export default function TouristProfile() {
   const { user } = useAuth();
   
   // Use user's initials
-  const initials = user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'RS';
+  const initials = user?.full_name ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'RS';
 
   return (
     <div style={{ maxWidth: 1440, margin: '0 auto', padding: '24px', fontFamily: "'Space Grotesk', sans-serif", color: NB.black }}>
@@ -45,7 +45,7 @@ export default function TouristProfile() {
               <span style={{ fontSize: '2.5rem', fontWeight: 900, color: NB.white }}>{initials}</span>
             </div>
             
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '0 0 8px', textAlign: 'center' }}>{user?.name || 'Raj Sharma'}</h2>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '0 0 8px', textAlign: 'center' }}>{user?.full_name || 'Raj Sharma'}</h2>
             
             <div style={{ background: NB.black, color: NB.white, padding: '4px 12px', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 24 }}>
               {user?.role || 'TOURIST'}
@@ -128,7 +128,7 @@ export default function TouristProfile() {
               <div style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 24 }}>
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ fontSize: '0.65rem', fontWeight: 800, color: NB.mint, textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 8 }}>TrackMate Protocol</div>
-                  <h4 style={{ fontSize: '2rem', fontWeight: 800, margin: '0 0 24px', letterSpacing: '-0.02em', wordBreak: 'break-word' }}>{user?.name || 'Raj Sharma'}</h4>
+                  <h4 style={{ fontSize: '2rem', fontWeight: 800, margin: '0 0 24px', letterSpacing: '-0.02em', wordBreak: 'break-word' }}>{user?.full_name || 'Raj Sharma'}</h4>
                   
                   <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
                     <div>
@@ -185,7 +185,7 @@ export default function TouristProfile() {
             <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '24px', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, textTransform: 'uppercase' }}>Language Auth</h3>
-                <Translate size={20} />
+                <Languages size={20} />
               </div>
               
               <div style={{ flex: 1 }}>

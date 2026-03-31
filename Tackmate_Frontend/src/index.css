@@ -1,915 +1,1149 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
 /* ═══════════════════════════════════════════════════
    NEO BRUTALISM DESIGN SYSTEM — TRACKMATE
 ═══════════════════════════════════════════════════ */
 
 :root {
-  /* ── Palette ── */
-  --nb-black:     #0A0A0A;
-  --nb-white:     #FFFFFF;
-  --nb-cream:     #FFFBF0;
-  --nb-yellow:    #FFE500;
-  --nb-red:       #FF3B3B;
-  --nb-blue:      #2B6FFF;
-  --nb-mint:      #00D084;
-  --nb-orange:    #FF7A00;
-  --nb-purple:    #8B5CF6;
-  --nb-pink:      #FF4F9A;
+    /* ── Palette (Light Theme) ── */
+    --nb-black: #0A0A0A;
+    --nb-white: #FFFFFF;
+    --nb-cream: #FFFBF0;
+    --nb-yellow: #FFE500;
+    --nb-red: #FF3B3B;
+    --nb-blue: #2B6FFF;
+    --nb-mint: #00D084;
+    --nb-orange: #FF7A00;
+    --nb-purple: #8B5CF6;
+    --nb-pink: #FF4F9A;
 
-  /* ── Status colors ── */
-  --color-safe:       #00D084;
-  --color-moderate:   #FF7A00;
-  --color-high:       #FF3B3B;
-  --color-restricted: #8B5CF6;
-  --color-critical:   #FF0033;
-  --color-primary:    #2B6FFF;
-  --color-accent:     #FFE500;
+    /* ── Status colors ── */
+    --color-safe: #00D084;
+    --color-moderate: #FF7A00;
+    --color-high: #FF3B3B;
+    --color-restricted: #8B5CF6;
+    --color-critical: #FF0033;
+    --color-primary: #2B6FFF;
+    --color-accent: #FFE500;
 
-  /* ── Semantic aliases (kept for compat) ── */
-  --color-bg-deep:     var(--nb-cream);
-  --color-bg-primary:  var(--nb-white);
-  --color-bg-surface:  #F5F1E8;
-  --color-bg-elevated: #EDE9DC;
-  --color-bg-card:     var(--nb-white);
-  --color-bg-glass:    var(--nb-white);
-  --color-text:        var(--nb-black);
-  --color-text-secondary: #3A3A3A;
-  --color-text-muted:  #6B6B6B;
-  --color-border:      var(--nb-black);
-  --color-border-glow: var(--nb-yellow);
+    /* ── Semantic aliases (kept for compat) ── */
+    --color-bg-deep: var(--nb-cream);
+    --color-bg-primary: var(--nb-white);
+    --color-bg-surface: #F5F1E8;
+    --color-bg-elevated: #EDE9DC;
+    --color-bg-card: var(--nb-white);
+    --color-bg-glass: var(--nb-white);
+    --color-text: var(--nb-black);
+    --color-text-secondary: #3A3A3A;
+    --color-text-muted: #6B6B6B;
+    --color-border: var(--nb-black);
+    --color-border-glow: var(--nb-yellow);
 
-  /* ── Borders & Shadows ── */
-  --nb-border:   3px solid var(--nb-black);
-  --nb-shadow:   4px 4px 0px var(--nb-black);
-  --nb-shadow-lg: 6px 6px 0px var(--nb-black);
-  --nb-shadow-xl: 8px 8px 0px var(--nb-black);
-  --nb-shadow-yellow: 4px 4px 0px var(--nb-yellow);
-  --nb-shadow-red:    4px 4px 0px var(--nb-red);
-  --nb-shadow-blue:   4px 4px 0px var(--nb-blue);
-  --nb-shadow-mint:   4px 4px 0px var(--nb-mint);
+    /* ── Borders & Shadows ── */
+    --nb-border: 3px solid var(--nb-black);
+    --nb-shadow: 4px 4px 0px var(--nb-black);
+    --nb-shadow-lg: 6px 6px 0px var(--nb-black);
+    --nb-shadow-xl: 8px 8px 0px var(--nb-black);
+    --nb-shadow-yellow: 4px 4px 0px var(--nb-yellow);
+    --nb-shadow-red: 4px 4px 0px var(--nb-red);
+    --nb-shadow-blue: 4px 4px 0px var(--nb-blue);
+    --nb-shadow-mint: 4px 4px 0px var(--nb-mint);
 
-  /* legacy shadow vars */
-  --shadow-sm: var(--nb-shadow);
-  --shadow-md: var(--nb-shadow);
-  --shadow-lg: var(--nb-shadow-lg);
-  --shadow-glow: var(--nb-shadow-yellow);
-  --shadow-accent-glow: var(--nb-shadow-yellow);
+    /* legacy shadow vars */
+    --shadow-sm: var(--nb-shadow);
+    --shadow-md: var(--nb-shadow);
+    --shadow-lg: var(--nb-shadow-lg);
+    --shadow-glow: var(--nb-shadow-yellow);
+    --shadow-accent-glow: var(--nb-shadow-yellow);
 
-  /* ── Radii ── */
-  --radius-sm:   0px;
-  --radius-md:   0px;
-  --radius-lg:   0px;
-  --radius-xl:   0px;
-  --radius-full: 0px;
+    /* ── Radii ── */
+    --radius-sm: 0px;
+    --radius-md: 0px;
+    --radius-lg: 0px;
+    --radius-xl: 0px;
+    --radius-full: 0px;
 
-  /* ── Transitions ── */
-  --transition-fast:   100ms ease;
-  --transition-normal: 200ms ease;
-  --transition-slow:   350ms ease;
+    /* ── Transitions ── */
+    --transition-fast: 100ms ease;
+    --transition-normal: 200ms ease;
+    --transition-slow: 350ms ease;
 }
 
 /* ── Keyframe Animations ── */
 @keyframes nb-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-4px);
+    }
+
+    75% {
+        transform: translateX(4px);
+    }
 }
 
 @keyframes nb-pop {
-  0% { transform: scale(0.95); opacity: 0; }
-  60% { transform: scale(1.03); }
-  100% { transform: scale(1); opacity: 1; }
+    0% {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+
+    60% {
+        transform: scale(1.03);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 @keyframes nb-slide-in {
-  from { transform: translateY(16px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+    from {
+        transform: translateY(16px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 @keyframes nb-pulse {
-  0%, 100% { box-shadow: var(--nb-shadow); }
-  50%       { box-shadow: var(--nb-shadow-lg); }
+
+    0%,
+    100% {
+        box-shadow: var(--nb-shadow);
+    }
+
+    50% {
+        box-shadow: var(--nb-shadow-lg);
+    }
 }
 
 @keyframes tick {
-  0%, 100% { transform: scale(1); }
-  50%       { transform: scale(1.08); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.08);
+    }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 4px 4px 0 #FF0033; }
-  50%       { box-shadow: 6px 6px 0 #FF0033; }
+
+    0%,
+    100% {
+        box-shadow: 4px 4px 0 #FF0033;
+    }
+
+    50% {
+        box-shadow: 6px 6px 0 #FF0033;
+    }
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes pulse-green {
-  0%   { box-shadow: 0 0 0 0 rgba(0, 208, 132, 0.5); }
-  70%  { box-shadow: 0 0 0 10px rgba(0, 208, 132, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 208, 132, 0); }
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 208, 132, 0.5);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(0, 208, 132, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 208, 132, 0);
+    }
 }
 
 @keyframes pulse-red {
-  0%   { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0.6); }
-  70%  { box-shadow: 0 0 0 14px rgba(255, 59, 59, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0); }
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 59, 59, 0.6);
+    }
+
+    70% {
+        box-shadow: 0 0 0 14px rgba(255, 59, 59, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 59, 59, 0);
+    }
 }
 
 /* ── Reset & Base ── */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 html {
-  font-size: 16px;
-  -webkit-font-smoothing: antialiased;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
 }
 
 body {
-  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
-  background: var(--nb-cream);
-  color: var(--nb-black);
-  line-height: 1.6;
-  min-height: 100vh;
-  overflow-x: hidden;
+    font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    background: var(--nb-cream);
+    color: var(--nb-black);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
 }
 
-/* Subtle dot grid background */
+/* Subtle dot grid background (dark) */
 body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(0,0,0,0.12) 1px, transparent 1px);
-  background-size: 24px 24px;
-  pointer-events: none;
-  z-index: 0;
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+    z-index: 0;
 }
 
 #root {
-  position: relative;
-  z-index: 1;
-  min-height: 100vh;
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
 }
 
 a {
-  color: var(--nb-black);
-  text-decoration: none;
+    color: var(--nb-yellow);
+    text-decoration: none;
 }
 
-a:hover { color: var(--nb-blue); }
+a:hover {
+    color: var(--nb-blue);
+}
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 800;
-  line-height: 1.15;
-  color: var(--nb-black);
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--nb-black);
 }
 
 /* ═══════════════════════════════════════════════════
    GEO CARDS (Neo Brutalism)
 ═══════════════════════════════════════════════════ */
 .geo-card {
-  background: var(--nb-white);
-  border: var(--nb-border);
-  border-radius: 0;
-  padding: 24px;
-  box-shadow: var(--nb-shadow);
-  animation: nb-slide-in 0.3s ease-out;
-  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+    background: var(--nb-white);
+    border: var(--nb-border);
+    border-radius: 0;
+    padding: 24px;
+    box-shadow: var(--nb-shadow);
+    animation: nb-slide-in 0.3s ease-out;
+    transition: box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .geo-card:hover {
-  box-shadow: var(--nb-shadow-lg);
-  transform: translate(-1px, -1px);
+    box-shadow: var(--nb-shadow-lg);
+    transform: translate(-1px, -1px);
 }
 
 .geo-card-glass {
-  background: var(--nb-white);
-  border: var(--nb-border);
-  border-radius: 0;
-  padding: 24px;
-  box-shadow: var(--nb-shadow);
+    background: var(--nb-white);
+    border: var(--nb-border);
+    border-radius: 0;
+    padding: 24px;
+    box-shadow: var(--nb-shadow);
 }
 
 /* ═══════════════════════════════════════════════════
    GEO BUTTONS (Neo Brutalism)
 ═══════════════════════════════════════════════════ */
 .geo-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border: var(--nb-border);
-  border-radius: 0;
-  background: var(--nb-white);
-  color: var(--nb-black);
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-  box-shadow: var(--nb-shadow);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: var(--nb-border);
+    border-radius: 0;
+    background: var(--nb-white);
+    color: var(--nb-black);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+    box-shadow: var(--nb-shadow);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .geo-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--nb-shadow-lg);
+    transform: translate(-2px, -2px);
+    box-shadow: var(--nb-shadow-lg);
 }
 
 .geo-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 var(--nb-black);
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 var(--nb-black);
 }
 
 .geo-btn-primary {
-  background: var(--nb-yellow);
-  border-color: var(--nb-black);
-  color: var(--nb-black);
-  box-shadow: var(--nb-shadow);
+    background: var(--nb-yellow);
+    border-color: var(--nb-black);
+    color: var(--nb-black);
+    box-shadow: var(--nb-shadow);
 }
 
 .geo-btn-primary:hover {
-  background: #FFD000;
-  box-shadow: 6px 6px 0 var(--nb-black);
-  transform: translate(-2px, -2px);
+    background: #FFD000;
+    box-shadow: 6px 6px 0 var(--nb-black);
+    transform: translate(-2px, -2px);
 }
 
 .geo-btn-danger {
-  background: var(--nb-red);
-  border-color: var(--nb-black);
-  color: var(--nb-white);
-  box-shadow: 4px 4px 0 var(--nb-black);
+    background: var(--nb-red);
+    border-color: var(--nb-black);
+    color: var(--nb-white);
+    box-shadow: 4px 4px 0 var(--nb-black);
 }
 
 .geo-btn-danger:hover {
-  box-shadow: 6px 6px 0 var(--nb-black);
-  transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--nb-black);
+    transform: translate(-2px, -2px);
 }
 
 .geo-btn-accent {
-  background: var(--nb-mint);
-  border-color: var(--nb-black);
-  color: var(--nb-black);
-  font-weight: 700;
-  box-shadow: var(--nb-shadow);
+    background: var(--nb-mint);
+    border-color: var(--nb-black);
+    color: var(--nb-black);
+    font-weight: 700;
+    box-shadow: var(--nb-shadow);
 }
 
 .geo-btn-accent:hover {
-  box-shadow: 6px 6px 0 var(--nb-black);
-  transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--nb-black);
+    transform: translate(-2px, -2px);
 }
 
 .geo-btn-sm {
-  padding: 8px 16px;
-  font-size: 0.78rem;
+    padding: 8px 16px;
+    font-size: 0.78rem;
 }
 
 .geo-btn-lg {
-  padding: 16px 36px;
-  font-size: 1.05rem;
+    padding: 16px 36px;
+    font-size: 1.05rem;
 }
 
 /* ═══════════════════════════════════════════════════
    GEO INPUTS (Neo Brutalism)
 ═══════════════════════════════════════════════════ */
 .geo-input {
-  width: 100%;
-  padding: 12px 16px;
-  background: var(--nb-white);
-  border: var(--nb-border);
-  border-radius: 0;
-  color: var(--nb-black);
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.92rem;
-  font-weight: 500;
-  transition: all var(--transition-fast);
-  outline: none;
-  box-shadow: 3px 3px 0 var(--nb-black);
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--nb-white);
+    border: var(--nb-border);
+    border-radius: 0;
+    color: var(--nb-black);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 500;
+    transition: all var(--transition-fast);
+    outline: none;
+    box-shadow: 3px 3px 0 var(--nb-black);
 }
 
 .geo-input:focus {
-  box-shadow: 5px 5px 0 var(--nb-black);
-  transform: translate(-1px, -1px);
-  border-color: var(--nb-black);
+    box-shadow: 5px 5px 0 var(--nb-black);
+    transform: translate(-1px, -1px);
+    border-color: var(--nb-black);
 }
 
 .geo-input::placeholder {
-  color: #9A9A9A;
-  font-weight: 400;
+    color: #9A9A9A;
+    font-weight: 400;
 }
 
 .geo-select {
-  width: 100%;
-  padding: 12px 16px;
-  background: var(--nb-white);
-  border: var(--nb-border);
-  border-radius: 0;
-  color: var(--nb-black);
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.92rem;
-  font-weight: 500;
-  outline: none;
-  cursor: pointer;
-  appearance: none;
-  box-shadow: 3px 3px 0 var(--nb-black);
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 7L11 1' stroke='%230A0A0A' stroke-width='2' stroke-linecap='square'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 16px center;
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--nb-white);
+    border: var(--nb-border);
+    border-radius: 0;
+    color: var(--nb-black);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    box-shadow: 3px 3px 0 var(--nb-black);
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 7L11 1' stroke='%230A0A0A' stroke-width='2' stroke-linecap='square'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
 }
 
 .geo-select:focus {
-  box-shadow: 5px 5px 0 var(--nb-black);
+    box-shadow: 5px 5px 0 var(--nb-black);
 }
 
 .geo-textarea {
-  width: 100%;
-  padding: 12px 16px;
-  background: var(--nb-white);
-  border: var(--nb-border);
-  border-radius: 0;
-  color: var(--nb-black);
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.92rem;
-  font-weight: 500;
-  outline: none;
-  resize: vertical;
-  min-height: 100px;
-  box-shadow: 3px 3px 0 var(--nb-black);
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--nb-white);
+    border: var(--nb-border);
+    border-radius: 0;
+    color: var(--nb-black);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 500;
+    outline: none;
+    resize: vertical;
+    min-height: 100px;
+    box-shadow: 3px 3px 0 var(--nb-black);
 }
 
 .geo-textarea:focus {
-  box-shadow: 5px 5px 0 var(--nb-black);
-  transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0 var(--nb-black);
+    transform: translate(-1px, -1px);
 }
 
 /* ── Form Elements ── */
 .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .form-label {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--nb-black);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--nb-black);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
 .form-error {
-  font-size: 0.78rem;
-  color: var(--nb-red);
-  font-weight: 600;
+    font-size: 0.78rem;
+    color: var(--nb-red);
+    font-weight: 600;
 }
 
 /* ═══════════════════════════════════════════════════
    BADGES (Neo Brutalism)
 ═══════════════════════════════════════════════════ */
 .badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 0;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border: 2px solid var(--nb-black);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 0;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 2px solid var(--nb-black);
 }
 
-.badge-safe       { background: var(--nb-mint);   color: var(--nb-black); border-color: var(--nb-black); }
-.badge-moderate   { background: var(--nb-orange);  color: var(--nb-white); border-color: var(--nb-black); }
-.badge-high       { background: var(--nb-red);     color: var(--nb-white); border-color: var(--nb-black); }
-.badge-restricted { background: var(--nb-purple);  color: var(--nb-white); border-color: var(--nb-black); }
-.badge-critical   { background: #FF0033;            color: var(--nb-white); border-color: var(--nb-black); }
-.badge-primary    { background: var(--nb-blue);    color: var(--nb-white); border-color: var(--nb-black); }
-.badge-accent     { background: var(--nb-yellow);  color: var(--nb-black); border-color: var(--nb-black); }
+.badge-safe {
+    background: var(--nb-mint);
+    color: var(--nb-black);
+    border-color: var(--nb-black);
+}
+
+.badge-moderate {
+    background: var(--nb-orange);
+    color: var(--nb-white);
+    border-color: var(--nb-black);
+}
+
+.badge-high {
+    background: var(--nb-red);
+    color: var(--nb-white);
+    border-color: var(--nb-black);
+}
+
+.badge-restricted {
+    background: var(--nb-purple);
+    color: var(--nb-white);
+    border-color: var(--nb-black);
+}
+
+.badge-critical {
+    background: #FF0033;
+    color: var(--nb-white);
+    border-color: var(--nb-black);
+}
+
+.badge-primary {
+    background: var(--nb-blue);
+    color: var(--nb-white);
+    border-color: var(--nb-black);
+}
+
+.badge-accent {
+    background: var(--nb-yellow);
+    color: var(--nb-black);
+    border-color: var(--nb-black);
+}
 
 /* ═══════════════════════════════════════════════════
    STAT CARDS (Neo Brutalism)
 ═══════════════════════════════════════════════════ */
 .stat-card {
-  background: var(--nb-white);
-  border: var(--nb-border);
-  border-radius: 0;
-  padding: 20px;
-  box-shadow: var(--nb-shadow);
-  transition: all var(--transition-fast);
+    background: var(--nb-white);
+    border: var(--nb-border);
+    border-radius: 0;
+    padding: 20px;
+    box-shadow: var(--nb-shadow);
+    transition: all var(--transition-fast);
 }
 
 .stat-card:hover {
-  box-shadow: var(--nb-shadow-lg);
-  transform: translate(-1px, -1px);
+    box-shadow: var(--nb-shadow-lg);
+    transform: translate(-1px, -1px);
 }
 
 .stat-card .stat-value {
-  font-size: 2.2rem;
-  font-weight: 800;
-  font-family: 'JetBrains Mono', monospace;
-  color: var(--nb-black);
-  line-height: 1;
+    font-size: 2.2rem;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--nb-black);
+    line-height: 1;
 }
 
 .stat-card .stat-label {
-  font-size: 0.72rem;
-  color: var(--nb-black);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: 700;
-  margin-top: 6px;
+    font-size: 0.72rem;
+    color: var(--nb-black);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    margin-top: 6px;
 }
 
 /* ── Status Indicator ── */
 .status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 0;
-  display: inline-block;
-  border: 2px solid var(--nb-black);
+    width: 10px;
+    height: 10px;
+    border-radius: 0;
+    display: inline-block;
+    border: 2px solid var(--nb-black);
 }
 
-.status-dot-active   { background: var(--nb-mint); }
-.status-dot-warning  { background: var(--nb-orange); }
-.status-dot-danger   { background: var(--nb-red); }
+.status-dot-active {
+    background: var(--nb-mint);
+}
+
+.status-dot-warning {
+    background: var(--nb-orange);
+}
+
+.status-dot-danger {
+    background: var(--nb-red);
+}
 
 /* ═══════════════════════════════════════════════════
    SOS BUTTON
 ═══════════════════════════════════════════════════ */
 .sos-btn {
-  position: fixed;
-  bottom: 32px;
-  right: 32px;
-  width: 76px;
-  height: 76px;
-  border-radius: 0;
-  background: var(--nb-red);
-  border: 3px solid var(--nb-black);
-  color: var(--nb-white);
-  font-size: 0.7rem;
-  font-weight: 800;
-  font-family: 'Space Grotesk', sans-serif;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  z-index: 1000;
-  box-shadow: var(--nb-shadow-lg);
-  animation: pulse-glow 2s ease-in-out infinite;
-  transition: all var(--transition-fast);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    width: 76px;
+    height: 76px;
+    border-radius: 0;
+    background: var(--nb-red);
+    border: 3px solid var(--nb-black);
+    color: var(--nb-white);
+    font-size: 0.7rem;
+    font-weight: 800;
+    font-family: 'Space Grotesk', sans-serif;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    z-index: 1000;
+    box-shadow: var(--nb-shadow-lg);
+    animation: pulse-glow 2s ease-in-out infinite;
+    transition: all var(--transition-fast);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .sos-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--nb-shadow-xl);
+    transform: translate(-2px, -2px);
+    box-shadow: var(--nb-shadow-xl);
 }
 
 /* ═══════════════════════════════════════════════════
    SIDEBAR (Authority) — Neo Brutalism
 ═══════════════════════════════════════════════════ */
 .sidebar {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 260px;
-  background: var(--nb-black);
-  border-right: 4px solid var(--nb-black);
-  display: flex;
-  flex-direction: column;
-  z-index: 100;
-  overflow-y: auto;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 260px;
+    background: var(--nb-black);
+    border-right: 4px solid var(--nb-black);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    overflow-y: auto;
 }
 
 .sidebar-logo {
-  padding: 24px 20px;
-  border-bottom: 3px solid rgba(255,255,255,0.15);
+    padding: 24px 20px;
+    border-bottom: 3px solid rgba(255, 255, 255, 0.15);
 }
 
 .sidebar-nav {
-  flex: 1;
-  padding: 16px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    flex: 1;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .sidebar-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 16px;
-  border-radius: 0;
-  color: rgba(255,255,255,0.65);
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.88rem;
-  font-weight: 600;
-  transition: all var(--transition-fast);
-  text-decoration: none;
-  border: 2px solid transparent;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    border-radius: 0;
+    color: rgba(255, 255, 255, 0.65);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    border: 2px solid transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 .sidebar-link:hover {
-  background: rgba(255,229,0,0.12);
-  color: var(--nb-yellow);
-  border-color: transparent;
+    background: rgba(255, 229, 0, 0.12);
+    color: var(--nb-yellow);
+    border-color: transparent;
 }
 
 .sidebar-link.active {
-  background: var(--nb-yellow);
-  color: var(--nb-black);
-  border: 2px solid var(--nb-yellow);
-  font-weight: 800;
+    background: var(--nb-yellow);
+    color: var(--nb-black);
+    border: 2px solid var(--nb-yellow);
+    font-weight: 800;
 }
 
 /* ═══════════════════════════════════════════════════
    LAYOUT
 ═══════════════════════════════════════════════════ */
 .page-with-sidebar {
-  margin-left: 260px;
-  min-height: 100vh;
-  padding: 28px;
-  background: var(--nb-cream);
+    margin-left: 260px;
+    min-height: 100vh;
+    padding: 28px;
+    background: var(--nb-cream);
 }
 
 .page-full {
-  min-height: 100vh;
-  padding: 28px;
-  max-width: 1200px;
-  margin: 0 auto;
-  background: var(--nb-cream);
+    min-height: 100vh;
+    padding: 28px;
+    max-width: 1200px;
+    margin: 0 auto;
+    background: var(--nb-cream);
 }
 
 .page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 28px;
-  flex-wrap: wrap;
-  gap: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
 /* ── Grid Layouts ── */
-.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
 
 @media (max-width: 1024px) {
-  .grid-4 { grid-template-columns: repeat(2, 1fr); }
-  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
+
 @media (max-width: 640px) {
-  .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
-  .page-with-sidebar { margin-left: 0; padding: 16px; }
-  .sidebar { display: none; }
+
+    .grid-4,
+    .grid-3,
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .page-with-sidebar {
+        margin-left: 0;
+        padding: 16px;
+    }
+
+    .sidebar {
+        display: none;
+    }
 }
 
 /* ═══════════════════════════════════════════════════
    TOP HEADER (Neo Brutalism)
 ═══════════════════════════════════════════════════ */
 .top-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 24px;
-  background: var(--nb-white);
-  border-bottom: 3px solid var(--nb-black);
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  box-shadow: 0 3px 0 var(--nb-black);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: var(--nb-white);
+    border-bottom: 3px solid var(--nb-black);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 3px 0 var(--nb-black);
 }
 
 /* ═══════════════════════════════════════════════════
    TABLES (Neo Brutalism)
 ═══════════════════════════════════════════════════ */
 .geo-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: var(--nb-border);
+    width: 100%;
+    border-collapse: collapse;
+    border: var(--nb-border);
 }
 
 .geo-table th {
-  text-align: left;
-  padding: 12px 16px;
-  font-size: 0.72rem;
-  font-weight: 800;
-  color: var(--nb-black);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  border-bottom: 3px solid var(--nb-black);
-  background: var(--nb-yellow);
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--nb-black);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 3px solid var(--nb-black);
+    background: var(--nb-yellow);
 }
 
 .geo-table td {
-  padding: 12px 16px;
-  font-size: 0.88rem;
-  border-bottom: 2px solid var(--nb-black);
-  color: var(--nb-black);
-  font-weight: 500;
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    border-bottom: 2px solid var(--nb-black);
+    color: var(--nb-black);
+    font-weight: 500;
 }
 
 .geo-table tr:hover td {
-  background: #FFF8CC;
+    background: #FFF8CC;
 }
 
 /* ── Coordinate Display ── */
 .coord-display {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.82rem;
-  color: var(--nb-blue);
-  font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--nb-blue);
+    font-weight: 700;
 }
 
 /* ═══════════════════════════════════════════════════
    TABS (Neo Brutalism)
 ═══════════════════════════════════════════════════ */
 .geo-tabs {
-  display: flex;
-  gap: 0;
-  background: var(--nb-cream);
-  padding: 0;
-  border-radius: 0;
-  border: var(--nb-border);
-  overflow: hidden;
+    display: flex;
+    gap: 0;
+    background: var(--nb-cream);
+    padding: 0;
+    border-radius: 0;
+    border: var(--nb-border);
+    overflow: hidden;
 }
 
 .geo-tab {
-  padding: 11px 22px;
-  border-radius: 0;
-  border: none;
-  border-right: 2px solid var(--nb-black);
-  background: transparent;
-  color: var(--nb-black);
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+    padding: 11px 22px;
+    border-radius: 0;
+    border: none;
+    border-right: 2px solid var(--nb-black);
+    background: transparent;
+    color: var(--nb-black);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .geo-tab:last-child {
-  border-right: none;
+    border-right: none;
 }
 
 .geo-tab.active {
-  background: var(--nb-yellow);
-  color: var(--nb-black);
+    background: var(--nb-yellow);
+    color: var(--nb-black);
 }
 
 .geo-tab:hover:not(.active) {
-  background: var(--nb-cream);
-  color: var(--nb-black);
+    background: var(--nb-cream);
+    color: var(--nb-black);
 }
 
 /* ═══════════════════════════════════════════════════
    SCROLLBAR
 ═══════════════════════════════════════════════════ */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--nb-cream); }
-::-webkit-scrollbar-thumb {
-  background: var(--nb-black);
-  border-radius: 0;
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
 }
-::-webkit-scrollbar-thumb:hover { background: #333; }
+
+::-webkit-scrollbar-track {
+    background: var(--nb-cream);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.6);
+}
 
 /* ═══════════════════════════════════════════════════
    LEAFLET / MAP OVERRIDES
 ═══════════════════════════════════════════════════ */
 .leaflet-container {
-  border-radius: 0 !important;
-  border: var(--nb-border) !important;
+    border-radius: 0 !important;
+    border: var(--nb-border) !important;
 }
 
 /* ═══════════════════════════════════════════════════
    LOADING SPINNER
 ═══════════════════════════════════════════════════ */
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--nb-black);
-  border-top-color: var(--nb-yellow);
-  border-radius: 0;
-  animation: spin-slow 0.8s linear infinite;
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--nb-black);
+    border-top-color: var(--nb-yellow);
+    border-radius: 0;
+    animation: spin-slow 0.8s linear infinite;
 }
 
 .page-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  flex-direction: column;
-  gap: 16px;
-  color: var(--nb-black);
-  background: var(--nb-cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    flex-direction: column;
+    gap: 16px;
+    color: var(--nb-black);
+    background: var(--nb-cream);
 }
 
 /* ═══════════════════════════════════════════════════
    UTILITY CLASSES
 ═══════════════════════════════════════════════════ */
-.flex            { display: flex; }
-.flex-col        { flex-direction: column; }
-.items-center    { align-items: center; }
-.justify-center  { justify-content: center; }
-.justify-between { justify-content: space-between; }
-.gap-8           { gap: 8px; }
-.gap-12          { gap: 12px; }
-.gap-16          { gap: 16px; }
-.gap-24          { gap: 24px; }
-.text-center     { text-align: center; }
-.mt-8            { margin-top: 8px; }
-.mt-16           { margin-top: 16px; }
-.mt-24           { margin-top: 24px; }
-.mb-16           { margin-bottom: 16px; }
-.mb-24           { margin-bottom: 24px; }
-.w-full          { width: 100%; }
+.flex {
+    display: flex;
+}
 
-.safety-pulse { animation: pulse-green 2s infinite; }
-.sos-pulse    { animation: pulse-red  1.5s infinite; }
+.flex-col {
+    flex-direction: column;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.gap-8 {
+    gap: 8px;
+}
+
+.gap-12 {
+    gap: 12px;
+}
+
+.gap-16 {
+    gap: 16px;
+}
+
+.gap-24 {
+    gap: 24px;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mt-8 {
+    margin-top: 8px;
+}
+
+.mt-16 {
+    margin-top: 16px;
+}
+
+.mt-24 {
+    margin-top: 24px;
+}
+
+.mb-16 {
+    margin-bottom: 16px;
+}
+
+.mb-24 {
+    margin-bottom: 24px;
+}
+
+.w-full {
+    width: 100%;
+}
+
+.safety-pulse {
+    animation: pulse-green 2s infinite;
+}
+
+.sos-pulse {
+    animation: pulse-red 1.5s infinite;
+}
 
 /* ═══════════════════════════════════════════════════
    NEO BRUTALISM ACCENT UTILITIES
 ═══════════════════════════════════════════════════ */
 .nb-card {
-  background: var(--nb-white);
-  border: var(--nb-border);
-  padding: 24px;
-  box-shadow: var(--nb-shadow);
-  transition: all var(--transition-fast);
+    background: var(--nb-white);
+    border: var(--nb-border);
+    padding: 24px;
+    box-shadow: var(--nb-shadow);
+    transition: all var(--transition-fast);
 }
 
 .nb-card:hover {
-  box-shadow: var(--nb-shadow-lg);
-  transform: translate(-1px, -1px);
+    box-shadow: var(--nb-shadow-lg);
+    transform: translate(-1px, -1px);
 }
 
 .nb-card-yellow {
-  background: var(--nb-yellow);
-  border: var(--nb-border);
-  padding: 24px;
-  box-shadow: var(--nb-shadow);
+    background: var(--nb-yellow);
+    border: var(--nb-border);
+    padding: 24px;
+    box-shadow: var(--nb-shadow);
 }
 
 .nb-card-black {
-  background: var(--nb-black);
-  border: var(--nb-border);
-  padding: 24px;
-  box-shadow: var(--nb-shadow-yellow);
-  color: var(--nb-white);
+    background: var(--nb-black);
+    border: var(--nb-border);
+    padding: 24px;
+    box-shadow: var(--nb-shadow-yellow);
+    color: var(--nb-white);
 }
 
 .nb-tag {
-  display: inline-block;
-  padding: 3px 10px;
-  border: 2px solid var(--nb-black);
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: var(--nb-yellow);
-  color: var(--nb-black);
+    display: inline-block;
+    padding: 3px 10px;
+    border: 2px solid var(--nb-black);
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: var(--nb-yellow);
+    color: var(--nb-black);
 }
 
 .nb-divider {
-  border: none;
-  border-top: 3px solid var(--nb-black);
-  margin: 20px 0;
+    border: none;
+    border-top: 3px solid var(--nb-black);
+    margin: 20px 0;
 }
 
 .nb-section-label {
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--nb-black);
-  padding-bottom: 8px;
-  border-bottom: 3px solid var(--nb-black);
-  margin-bottom: 16px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--nb-black);
+    padding-bottom: 8px;
+    border-bottom: 3px solid var(--nb-black);
+    margin-bottom: 16px;
 }
 
 /* ═══════════════════════════════════════════════════
    RESPONSIVE UTILITY OVERRIDES (MOBILE/TABLET)
 ═══════════════════════════════════════════════════ */
 @media (max-width: 900px) {
-  /* Override structural inline grids */
-  .responsive-grid {
-    grid-template-columns: 1fr !important;
-    gap: 16px !important;
-  }
-  
-  /* Force flex to column */
-  .responsive-flex-col {
-    flex-direction: column !important;
-    align-items: stretch !important;
-  }
-  
-  /* Force 100% width on elements that have fixed inline widths */
-  .responsive-w-full {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-  }
-  
-  /* Responsive padding for main page wrappers */
-  .responsive-container {
-    padding: 16px !important;
-  }
-  
-  /* Make side panels slide up from bottom instead of right side */
-  .responsive-panel {
-    position: fixed !important;
-    top: auto !important;
-    bottom: 0 !important;
-    right: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 80vh !important;
-    border-right: 3px solid var(--nb-black) !important;
-    border-bottom: none !important;
-    box-shadow: 0 -6px 0 var(--nb-black) !important;
-    transform: translateY(100%);
-  }
-  
-  /* Make sidebar accessible / offcanvas or bottom nav */
-  .sidebar {
-    height: auto !important;
-    top: auto !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    flex-direction: row !important;
-    overflow-x: auto !important;
-    border-right: none !important;
-    border-top: 4px solid var(--nb-black) !important;
-    z-index: 1000 !important;
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  
-  .sidebar-logo, .sidebar-badge {
-    display: none !important;
-  }
-  
-  .sidebar-nav {
-    flex-direction: row !important;
-    padding: 8px !important;
-    gap: 12px !important;
-  }
-  
-  .sidebar-link {
-    flex-direction: column !important;
-    padding: 8px !important;
-    gap: 4px !important;
-    font-size: 0.65rem !important;
-    text-align: center !important;
-    min-width: 70px !important;
-  }
-  
-  .page-with-sidebar {
-    margin-left: 0 !important;
-    padding-bottom: 90px !important; /* space for bottom nav */
-  }
 
-  /* Hide elements on mobile */
-  .hide-mobile {
-    display: none !important;
-  }
-  
-  /* Adjust UI scale slightly */
-  .stat-card .stat-value {
-    font-size: 1.8rem !important;
-  }
-  
-  .top-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 12px !important;
-  }
+    /* Override structural inline grids */
+    .responsive-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+
+    /* Force flex to column */
+    .responsive-flex-col {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    /* Force 100% width on elements that have fixed inline widths */
+    .responsive-w-full {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    /* Responsive padding for main page wrappers */
+    .responsive-container {
+        padding: 16px !important;
+    }
+
+    /* Make side panels slide up from bottom instead of right side */
+    .responsive-panel {
+        position: fixed !important;
+        top: auto !important;
+        bottom: 0 !important;
+        right: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 80vh !important;
+        border-right: 3px solid var(--nb-black) !important;
+        border-bottom: none !important;
+        box-shadow: 0 -6px 0 var(--nb-black) !important;
+        transform: translateY(100%);
+    }
+
+    /* Make sidebar accessible / offcanvas or bottom nav */
+    .sidebar {
+        height: auto !important;
+        top: auto !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        border-right: none !important;
+        border-top: 4px solid var(--nb-black) !important;
+        z-index: 1000 !important;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .sidebar-logo,
+    .sidebar-badge {
+        display: none !important;
+    }
+
+    .sidebar-nav {
+        flex-direction: row !important;
+        padding: 8px !important;
+        gap: 12px !important;
+    }
+
+    .sidebar-link {
+        flex-direction: column !important;
+        padding: 8px !important;
+        gap: 4px !important;
+        font-size: 0.65rem !important;
+        text-align: center !important;
+        min-width: 70px !important;
+    }
+
+    .page-with-sidebar {
+        margin-left: 0 !important;
+        padding-bottom: 90px !important;
+        /* space for bottom nav */
+    }
+
+    /* Hide elements on mobile */
+    .hide-mobile {
+        display: none !important;
+    }
+
+    /* Adjust UI scale slightly */
+    .stat-card .stat-value {
+        font-size: 1.8rem !important;
+    }
+
+    .top-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+    }
 }
