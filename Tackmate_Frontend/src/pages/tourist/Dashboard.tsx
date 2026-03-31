@@ -5,9 +5,9 @@ import { useAuth } from '../../context/AuthContext';
 import TouristMap from '../../components/maps/TouristMap';
 import type { ZoneData } from '../../components/maps/TouristMap';
 import { Link } from 'react-router-dom';
-import {
-  Map as MapIcon, AlertTriangle, ShieldAlert,
-  Watch, Shield, Loader2, Check, RefreshCw,
+import { 
+  Map as MapIcon, AlertTriangle, ShieldAlert, 
+  Watch, Shield, Loader2, Check, RefreshCw, 
   Navigation as NearMe, Calendar, CheckCircle2,
   X, Send, MapPin, Radio, Bluetooth, Wifi
 } from 'lucide-react';
@@ -73,6 +73,8 @@ export default function TouristDashboard() {
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [updateTripModalOpen, setUpdateTripModalOpen] = useState(false);
   const [iotModalOpen, setIotModalOpen] = useState(false);
+
+  // ── GPS tracking ─────────────────────────────────────────────────────
 
   useEffect(() => {
     if ('geolocation' in navigator) {
@@ -270,8 +272,15 @@ export default function TouristDashboard() {
                     <NearMe size={14} /> Start Planning
                   </Link>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                <p className="text-sm text-slate-400 mb-4">No active trip found for your profile.</p>
+                <Link to="/tourist/plan" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold shadow-lg shadow-primary/20">
+                  <NearMe className="size-4" /> Start Planning
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Quick Actions */}
@@ -361,7 +370,7 @@ export default function TouristDashboard() {
             </button>
           ))}
         </div>
-      </NBModal>
+      </Modal>
     </div>
   );
 }
@@ -425,5 +434,78 @@ function UpdateTripModal({ open, onClose, trip, onSuccess, onError }: { open: bo
         </button>
       </form>
     </NBModal>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Create Trip Modal
+// ═══════════════════════════════════════════════════════════════════════
+
+function CreateTripModal({ open, onClose, onSuccess, onError }: {
+  open: boolean; onClose: () => void;
+  onSuccess: () => void; onError: (msg: string) => void;
+}) {
+  const [destination, setDestination] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [entryPoint, setEntryPoint] = useState('');
+  const [vehicleDetails, setVehicleDetails] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!destination.trim() || !startDate || !endDate) return;
+    setSubmitting(true);
+    try {
+      await api.post('/trips', {
+        destination_region: destination,
+        start_date: startDate,
+        end_date: endDate,
+        entry_point: entryPoint || undefined,
+        vehicle_details: vehicleDetails || undefined,
+      });
+      onSuccess();
+      setDestination(''); setStartDate(''); setEndDate(''); setEntryPoint(''); setVehicleDetails('');
+      onClose();
+    } catch (err: any) {
+      onError(err.response?.data?.message || 'Failed to create trip');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const InputClass = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400 [color-scheme:dark]";
+
+  return (
+    <Modal open={open} onClose={onClose} title="Plan Your Trip">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Destination Region *</label>
+          <input value={destination} onChange={e => setDestination(e.target.value)} className={InputClass} placeholder="e.g. Tawang District, Arunachal Pradesh" required />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Start Date *</label>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={InputClass} required />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">End Date *</label>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={InputClass} required />
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Entry Point</label>
+          <input value={entryPoint} onChange={e => setEntryPoint(e.target.value)} className={InputClass} placeholder="e.g. Guwahati Airport" />
+        </div>
+        <div>
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Vehicle Details</label>
+          <input value={vehicleDetails} onChange={e => setVehicleDetails(e.target.value)} className={InputClass} placeholder="e.g. Self-drive SUV, AS-01-XX-1234" />
+        </div>
+        <button type="submit" disabled={submitting || !destination.trim() || !startDate || !endDate} className="w-full py-3 bg-gradient-to-r from-primary to-blue-600 rounded-lg font-bold text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 border-none outline-none cursor-pointer">
+          {submitting ? <Loader2 className="size-4 animate-spin" /> : <NearMe className="size-4" />}
+          {submitting ? 'Creating Trip...' : 'Start My Trip'}
+        </button>
+      </form>
+    </Modal>
   );
 }
