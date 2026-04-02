@@ -51,7 +51,7 @@ export default function BusinessDashboard() {
   );
 
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 24px', fontFamily: "'Space Grotesk', sans-serif", background: NB.cream, minHeight: '100vh' }}>
+    <div style={{ color: '#FFFFFF', maxWidth: 1280, margin: '0 auto', padding: '32px 24px', fontFamily: "'Space Grotesk', sans-serif", background: NB.cream, minHeight: '100vh' }}>
       {/* Alert Panel at top */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <AlertPanel />
@@ -67,7 +67,7 @@ export default function BusinessDashboard() {
                 <MapPin size={16} color={NB.orange} /> {user?.business_name || 'Business Zone'}
               </h3>
             </div>
-            <span style={{ background: NB.mint, color: NB.black, border: `2px solid ${NB.black}`, fontSize: '0.65rem', fontWeight: 800, padding: '3px 10px', textTransform: 'uppercase' }}>Safe</span>
+            <span style={{ background: NB.mint, color: '#000000', border: `2px solid ${NB.black}`, fontSize: '0.65rem', fontWeight: 800, padding: '3px 10px', textTransform: 'uppercase' }}>Safe</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 16 }}>
             <span style={{ fontSize: '3rem', fontWeight: 800, color: NB.black, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>{analytics?.safety_score || 98}</span>
@@ -110,7 +110,7 @@ export default function BusinessDashboard() {
         {/* Nearby map */}
         <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.cream, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontWeight: 800, margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}><Globe size={15} color={NB.orange} /> Nearby Tourists</h3>
+            <h3 style={{ fontWeight: 800, color: '#FFFFFF', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}><Globe size={15} color={NB.orange} /> Nearby Tourists</h3>
             <span style={{ background: NB.orange, color: NB.white, fontSize: '0.6rem', fontWeight: 800, padding: '2px 8px', border: `1.5px solid ${NB.black}` }}>200m Radius</span>
           </div>
           <div style={{ position: 'relative', height: 200, background: NB.cream }}>
@@ -129,7 +129,7 @@ export default function BusinessDashboard() {
         {/* Advisories */}
         <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.cream, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontWeight: 800, margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}><Bell size={15} color={NB.orange} /> Safety Advisories</h3>
+            <h3 style={{ fontWeight: 800, color: '#FFFFFF', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}><Bell size={15} color={NB.orange} /> Safety Advisories</h3>
             <button style={{ background: NB.orange, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, padding: '6px 14px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase', color: NB.white, display: 'flex', alignItems: 'center', gap: 6 }}>
               <PlusCircle size={13} /> Post Advisory
             </button>
@@ -143,7 +143,7 @@ export default function BusinessDashboard() {
                   <p style={{ fontSize: '0.75rem', color: '#6B6B6B', margin: 0 }}>{adv.description}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <span style={{ background: NB.mint, color: NB.black, fontSize: '0.6rem', fontWeight: 800, padding: '2px 6px', textTransform: 'uppercase' }}>Active</span>
+                  <span style={{ background: NB.mint, color: '#000000', fontSize: '0.6rem', fontWeight: 800, padding: '2px 6px', textTransform: 'uppercase' }}>Active</span>
                   <p style={{ fontSize: '0.68rem', color: '#9A9A9A', margin: '4px 0 0' }}>{new Date(adv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
               </div>
@@ -161,16 +161,16 @@ export default function BusinessDashboard() {
       <section style={{ background: NB.black, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '28px', display: 'flex', gap: 32, alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <div style={{ width: 40, height: 40, background: NB.yellow, border: `2px solid ${NB.yellow}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Fingerprint size={22} color={NB.black} /></div>
+            <div style={{ width: 40, height: 40, background: NB.yellow, border: `2px solid ${NB.yellow}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Fingerprint size={22} color="#000000" /></div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: NB.white, margin: 0 }}>Blockchain Identity Proof</h3>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', margin: '0 0 20px', fontWeight: 400 }}>Validate traveler credentials against the Trackmate ledger.</p>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ position: 'relative', flex: 1 }}>
               <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9A9A9A' }} />
-              <input value={verificationId} onChange={e => setVerificationId(e.target.value)} style={{ width: '100%', paddingLeft: 36, padding: '12px 12px 12px 36px', background: '#111', border: `2px solid rgba(255,229,0,0.3)`, fontFamily: "'Space Grotesk', monospace", fontSize: '0.88rem', color: NB.white, outline: 'none', borderRadius: 0 }} placeholder="ST-ID-XXXXXXXXXX" />
+              <input value={verificationId} onChange={e => setVerificationId(e.target.value)} style={{ width: '100%', paddingLeft: 36, padding: '12px 12px 12px 36px', background: '#111', border: `2px solid rgba(255,229,0,0.3)`, fontFamily: "'Space Grotesk', monospace", fontSize: '0.88rem', color: '#FFFFFF', outline: 'none', borderRadius: 0 }} placeholder="ST-ID-XXXXXXXXXX" />
             </div>
-            <button onClick={handleVerify} disabled={isVerifying || !verificationId} style={{ background: NB.yellow, border: `3px solid ${NB.yellow}`, padding: '0 24px', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', textTransform: 'uppercase', color: NB.black, display: 'flex', alignItems: 'center', gap: 8, opacity: (isVerifying || !verificationId) ? 0.5 : 1 }}>
+            <button onClick={handleVerify} disabled={isVerifying || !verificationId} style={{ background: NB.yellow, border: `3px solid ${NB.yellow}`, padding: '0 24px', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', textTransform: 'uppercase', color: '#000000', display: 'flex', alignItems: 'center', gap: 8, opacity: (isVerifying || !verificationId) ? 0.5 : 1 }}>
               {isVerifying ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={16} />} Verify
             </button>
           </div>
@@ -187,10 +187,10 @@ export default function BusinessDashboard() {
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <p style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6B6B6B', margin: 0 }}>Ledger Verified</p>
-                  <span style={{ background: NB.mint, color: NB.black, fontSize: '0.6rem', fontWeight: 800, padding: '2px 8px', display: 'flex', alignItems: 'center', gap: 4 }}><Check size={10} /> Auth Valid</span>
+                  <span style={{ background: NB.mint, color: '#000000', fontSize: '0.6rem', fontWeight: 800, padding: '2px 8px', display: 'flex', alignItems: 'center', gap: 4 }}><Check size={10} /> Auth Valid</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 52, height: 52, background: NB.yellow, border: `2px solid ${NB.black}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Users size={28} color={NB.black} /></div>
+                  <div style={{ width: 52, height: 52, background: NB.yellow, border: `2px solid ${NB.black}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Users size={28} color="#000000" /></div>
                   <div>
                     <h4 style={{ fontWeight: 800, color: NB.black, margin: 0 }}>{verificationResult.full_name}</h4>
                     <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.7rem', color: '#6B6B6B', margin: '4px 0 0', wordBreak: 'break-all' }}>{verificationResult.blockchain_id}</p>

@@ -1,0 +1,12 @@
+{
+  "name": "trackmate-workspace",
+  "version": "1.0.0",
+  "description": "Root workspace to run frontend and backend currently",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix Tackmate_Frontend\" \"npm run dev --prefix Trackmate_Backend\"",
+    "install:all": "npm install --prefix Tackmate_Frontend && npm install --prefix Trackmate_Backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

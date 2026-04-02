@@ -31,6 +31,7 @@ export default function AuthorityDashboard() {
     // Filter state for isolating a single user
     const [filteredUser, setFilteredUser] = useState<string | null>(null);
     const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [drawColor, setDrawColor] = useState(NB.red);
 
     const fetchDashboardData = async () => {
         setLoading(true);
@@ -101,7 +102,7 @@ export default function AuthorityDashboard() {
         }
     };
 
-    const handleZoneCreated = async (layer: any) => {
+    const handleZoneCreated = async (layer: any, drawnColor?: string) => {
         try {
             let latlng, radius;
             if (typeof layer.getRadius === 'function') {
@@ -114,9 +115,15 @@ export default function AuthorityDashboard() {
             }
 
             if (latlng) {
+                // Map the drawn color to a risk level
+                let risk_level = 'restricted';
+                if (drawnColor === NB.mint) risk_level = 'safe';
+                else if (drawnColor === NB.orange) risk_level = 'moderate';
+                else if (drawnColor === NB.red) risk_level = 'restricted';
+
                 const payload = {
-                    name: `Manual High-Risk Zone (${new Date().toLocaleTimeString()})`,
-                    risk_level: 'high',
+                    name: `Manual Zone (${new Date().toLocaleTimeString()})`,
+                    risk_level: risk_level,
                     center_lat: latlng.lat,
                     center_lng: latlng.lng,
                     radius_meters: Math.min(Math.round(radius), 5000), // Cap at 5km
@@ -125,7 +132,7 @@ export default function AuthorityDashboard() {
                 const res = await api.post('/zones', payload);
                 if (res.data.success) {
                     setZones([...zones, res.data.data]);
-                    setNotice({ type: 'success', message: 'High-risk zone added successfully.' });
+                    setNotice({ type: 'success', message: 'Zone added successfully.' });
                 }
             }
         } catch (err: any) {
@@ -144,6 +151,17 @@ export default function AuthorityDashboard() {
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: NB.cream, fontFamily: "'Space Grotesk', sans-serif" }}>
+            <style>{`
+                .geo-table td, .geo-table td p, .geo-table td div, .geo-table td span {
+                    color: #FFFFFF !important;
+                }
+                .geo-table tbody tr:hover td {
+                    background: #2a2a2a !important;
+                }
+                .geo-table th {
+                    color: #0A0A0A !important;
+                }
+            `}</style>
             <AuthoritySidebar />
 
             <main className="page-with-sidebar" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', padding: 0 }}>
@@ -155,9 +173,22 @@ export default function AuthorityDashboard() {
                             {user?.full_name} · {user?.designation || 'Authority Officer'}
                         </p>
                     </div>
+                    <style>{`
+                        .responsive-btn {
+                            box-shadow: 3px 3px 0 ${NB.black} !important;
+                            transition: all 0.1s ease;
+                        }
+                        .responsive-btn:active {
+                            box-shadow: 0 0 0 ${NB.black} !important;
+                            transform: translate(3px, 3px);
+                        }
+                        @media (max-width: 600px) {
+                            .refresh-text { display: none; }
+                        }
+                    `}</style>
                     <div style={{ display: 'flex', gap: 10 }}>
-                        <button onClick={fetchDashboardData} style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase' }}>
-                            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+                        <button onClick={fetchDashboardData} className="responsive-btn" style={{ background: NB.white, border: `3px solid ${NB.black}`, padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', color: '#FFFFFF' }}>
+                            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> <span className="refresh-text">Refresh</span>
                         </button>
                     </div>
                 </div>
@@ -200,6 +231,7 @@ export default function AuthorityDashboard() {
                             userLocations={filteredLocations}
                             focusLocation={focusLocation}
                             onZoneCreated={handleZoneCreated}
+                            drawColor={drawColor}
                         />
                         {/* Search overlay & Clear filter */}
                         <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 400, width: 240, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -217,6 +249,30 @@ export default function AuthorityDashboard() {
                                     style={{ width: '100%', padding: '9px 12px 9px 32px', background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600, outline: 'none' }}
                                 />
                             </div>
+                            
+                            {/* Color Picker for Geofencing */}
+                            <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, padding: '8px 12px' }}>
+                                <p style={{ margin: '0 0 8px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: NB.black }}>Draw Color</p>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    {[
+                                        { color: NB.mint, label: 'Green (Safe)' },
+                                        { color: NB.orange, label: 'Orange (Moderate)' },
+                                        { color: NB.red, label: 'Red (Restricted)' }
+                                    ].map(c => (
+                                        <button
+                                            key={c.color}
+                                            onClick={() => setDrawColor(c.color)}
+                                            title={c.label}
+                                            style={{
+                                                width: 24, height: 24, borderRadius: '50%', background: c.color, cursor: 'pointer',
+                                                border: drawColor === c.color ? `3px solid ${NB.black}` : '2px solid #555',
+                                                boxShadow: drawColor === c.color ? `0 0 0 1px ${NB.white}` : 'none'
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
                             {filteredUser && (
                                 <button onClick={() => { setFilteredUser(null); setFocusLocation(null); }} style={{ background: NB.red, color: NB.white, border: `2px solid ${NB.black}`, padding: '4px 8px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', boxShadow: `2px 2px 0 ${NB.black}` }}>
                                     Clear User Filter ✕
@@ -226,7 +282,7 @@ export default function AuthorityDashboard() {
                         {/* Legend */}
                         <div style={{ position: 'absolute', bottom: 12, left: 12, zIndex: 400, background: NB.white, border: `2px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, padding: '10px 14px' }}>
                             <div style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Map Legend</div>
-                            {[{ color: NB.blue, label: 'Resident (Live)' }, { color: NB.mint, label: 'Tourist (Live)' }, { color: NB.red, label: 'Active Incident' }, { color: '#FF0033', label: 'High Risk Zone', opacity: 0.5 }].map((l, i) => (
+                            {[{ color: NB.mint, label: 'Safe Zone', opacity: 0.5 }, { color: NB.orange, label: 'Moderate Zone', opacity: 0.5 }, { color: NB.red, label: 'Restricted Zone', opacity: 0.5 }].map((l, i) => (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', fontWeight: 600, marginBottom: 4, color: NB.black }}>
                                     <div style={{ width: 10, height: 10, background: l.color, border: `1.5px solid ${NB.black}`, opacity: l.opacity || 1 }} />
                                     {l.label}

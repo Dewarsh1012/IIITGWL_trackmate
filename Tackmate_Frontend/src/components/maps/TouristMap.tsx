@@ -12,10 +12,10 @@ L.Icon.Default.mergeOptions({
 });
 
 const RISK_COLORS: Record<string, string> = {
-  safe: '#22c55e',
-  moderate: '#f59e0b',
-  high: '#ef4444',
-  restricted: '#7c3aed',
+  safe: '#00D084',
+  moderate: '#FF7A00',
+  high: '#FF3B3B',
+  restricted: '#FF3B3B',
 };
 
 function RecenterMap({ lat, lng, zoom }: { lat: number; lng: number; zoom?: number }) {
@@ -58,7 +58,7 @@ export default function TouristMap({ lat, lng, zones = [], highlightZoneId }: To
       <MapContainer center={center as [number, number]} zoom={13} style={{ height: '100%', width: '100%', background: 'var(--color-bg-deep)' }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
 
         <RecenterMap lat={recenterLat} lng={recenterLng} zoom={recenterZoom} />

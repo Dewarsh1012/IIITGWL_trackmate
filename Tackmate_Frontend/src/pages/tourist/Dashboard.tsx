@@ -206,7 +206,7 @@ export default function TouristDashboard() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <AlertPanel />
-          <div style={{ background: NB.yellow, border: `2px solid ${NB.yellow}`, padding: '6px 14px', fontWeight: 800, fontSize: '0.78rem', textTransform: 'uppercase', color: NB.black }}>Safety Score: {safetyScore}%</div>
+          <div style={{ background: NB.yellow, border: `2px solid ${NB.yellow}`, padding: '6px 14px', fontWeight: 800, fontSize: '0.78rem', textTransform: 'uppercase', color: '#000000' }}>Safety Score: {safetyScore}%</div>
         </div>
       </div>
 
@@ -217,7 +217,7 @@ export default function TouristDashboard() {
             <h3 style={{ fontWeight: 800, color: NB.black, margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}><MapIcon size={16} /> Live Safety GIS</h3>
             <div style={{ display: 'flex', gap: 8 }}>
               {[{ label: 'Safe', color: NB.mint }, { label: 'Moderate', color: NB.orange }, { label: 'Restricted', color: NB.red }].map(l => (
-                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', background: NB.white, border: `1.5px solid ${NB.black}` }}>
+                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', background: '#FFFFFF', color: '#000000', border: `1.5px solid ${NB.black}` }}>
                   <div style={{ width: 8, height: 8, background: l.color }} />{l.label}
                 </div>
               ))}
@@ -250,7 +250,7 @@ export default function TouristDashboard() {
           {/* Trip info */}
           <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.yellow, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Calendar size={15} /><h3 style={{ fontWeight: 800, color: NB.black, margin: 0, fontSize: '0.88rem' }}>Active Itinerary</h3>
+              <Calendar size={15} color="#000000" /><h3 style={{ fontWeight: 800, color: '#000000', margin: 0, fontSize: '0.88rem' }}>Active Itinerary</h3>
             </div>
             <div style={{ padding: '16px' }}>
               {activeTrip ? (
@@ -261,7 +261,7 @@ export default function TouristDashboard() {
                   </div>
                   {verifyResult && <div style={{ padding: '10px 12px', background: '#E8F5FF', border: `2px solid ${NB.blue}`, fontSize: '0.82rem', fontWeight: 600, color: NB.blue }}>{verifyResult}</div>}
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => setUpdateTripModalOpen(true)} style={{ flex: 1, padding: '9px', background: NB.yellow, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase' }}>Update Plan</button>
+                    <button onClick={() => setUpdateTripModalOpen(true)} style={{ flex: 1, padding: '9px', background: NB.yellow, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase', color: '#000000' }}>Update Plan</button>
                     <button onClick={handleVerifyStay} style={{ flex: 1, padding: '9px', background: NB.cream, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase' }}>Verify Stay</button>
                   </div>
                 </div>
@@ -272,15 +272,8 @@ export default function TouristDashboard() {
                     <NearMe size={14} /> Start Planning
                   </Link>
                 </div>
-              </div>
-            ) : (
-              <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-                <p className="text-sm text-slate-400 mb-4">No active trip found for your profile.</p>
-                <Link to="/tourist/plan" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold shadow-lg shadow-primary/20">
-                  <NearMe className="size-4" /> Start Planning
-                </Link>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Quick Actions */}
@@ -294,7 +287,7 @@ export default function TouristDashboard() {
                 { icon: <ShieldAlert size={22} color='#8B5CF6' />, label: 'Safe House', action: handleSafeHouse, accent: '#8B5CF6' },
               ].map((btn, i) => (
                 <button key={i} onClick={btn.action} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 8px', background: NB.cream, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.1s' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = NB.yellow; }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = NB.cream; }}
                 >
                   {btn.icon}
@@ -370,7 +363,7 @@ export default function TouristDashboard() {
             </button>
           ))}
         </div>
-      </Modal>
+      </NBModal>
     </div>
   );
 }
@@ -477,7 +470,7 @@ function CreateTripModal({ open, onClose, onSuccess, onError }: {
   const InputClass = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400 [color-scheme:dark]";
 
   return (
-    <Modal open={open} onClose={onClose} title="Plan Your Trip">
+    <NBModal open={open} onClose={onClose} title="Plan Your Trip">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Destination Region *</label>
@@ -506,6 +499,6 @@ function CreateTripModal({ open, onClose, onSuccess, onError }: {
           {submitting ? 'Creating Trip...' : 'Start My Trip'}
         </button>
       </form>
-    </Modal>
+    </NBModal>
   );
 }

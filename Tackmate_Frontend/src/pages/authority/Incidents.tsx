@@ -57,6 +57,17 @@ export default function AuthorityIncidents() {
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: NB.cream, fontFamily: "'Space Grotesk', sans-serif" }}>
+            <style>{`
+                .geo-table td, .geo-table td p, .geo-table td div, .geo-table td span {
+                    color: #FFFFFF !important;
+                }
+                .geo-table tbody tr:hover td {
+                    background: #2a2a2a !important;
+                }
+                .geo-table th {
+                    color: #0A0A0A !important;
+                }
+            `}</style>
             <AuthoritySidebar />
             <main className="page-with-sidebar" style={{ flex: 1 }}>
                 {/* Header */}

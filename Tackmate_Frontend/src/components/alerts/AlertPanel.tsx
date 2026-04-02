@@ -88,7 +88,7 @@ export default function AlertPanel() {
     <>
       {/* Bell Button */}
       <button onClick={() => { setIsOpen(!isOpen); if (!isOpen) fetchAlerts(); }} style={{ position: 'relative', background: NB.yellow, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, cursor: 'pointer', padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Bell size={20} color={NB.black} />
+        <Bell size={20} color="#000000" />
         {unreadCount > 0 && (
           <span style={{ position: 'absolute', top: 2, right: 2, background: NB.red, color: NB.white, fontSize: '0.6rem', fontWeight: 800, width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${NB.black}`, animation: 'pulse-red 1.5s infinite' }}>
             {unreadCount > 9 ? '9+' : unreadCount}

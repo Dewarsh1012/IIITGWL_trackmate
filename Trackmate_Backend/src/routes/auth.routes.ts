@@ -110,6 +110,18 @@ router.post('/register', authRateLimiter, async (req, res: Response, next) => {
             idHash = hashed.hash;
         }
 
+        // Validate ward_id as a proper ObjectId (only set if valid)
+        const mongoose = await import('mongoose');
+        let wardId: any = undefined;
+        if (extras.ward_id && extras.ward_id.trim()) {
+            if (mongoose.default.Types.ObjectId.isValid(extras.ward_id)) {
+                // Optionally verify ward exists
+                const wardExists = await Ward.findById(extras.ward_id);
+                if (wardExists) wardId = extras.ward_id;
+            }
+            // If ward_id is not a valid ObjectId or doesn't exist, simply skip it
+        }
+
         // Build profile
         const profile = new Profile({
             email: base.email,
@@ -121,7 +133,7 @@ router.post('/register', authRateLimiter, async (req, res: Response, next) => {
             id_number_hash,
             id_last_four,
             preferred_language: base.preferred_language || 'en',
-            ward: extras.ward_id || undefined,
+            ward: wardId,
             designation: extras.designation,
             department: extras.department,
         });
@@ -149,6 +161,22 @@ router.post('/register', authRateLimiter, async (req, res: Response, next) => {
                 start_date: new Date(extras.start_date),
                 end_date: new Date(extras.end_date),
                 entry_point: extras.entry_point,
+                is_active: true,
+            });
+        }
+
+        // Business: create associated business document
+        if (base.role === UserRole.BUSINESS && req.body.business_name) {
+            const { Business } = await import('../models');
+            await Business.create({
+                owner: profile._id,
+                business_name: req.body.business_name,
+                category: req.body.category || 'other',
+                address: req.body.address,
+                latitude: 0,
+                longitude: 0,
+                ward: wardId,
+                is_verified: false,
                 is_active: true,
             });
         }

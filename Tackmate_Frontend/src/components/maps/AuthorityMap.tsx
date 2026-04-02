@@ -24,10 +24,10 @@ const incidentIcon = new L.Icon({
 });
 
 const RISK_COLORS: Record<string, string> = {
-  safe: '#22c55e',
-  moderate: '#f59e0b',
-  high: '#ef4444',
-  restricted: '#7c3aed',
+  safe: '#00D084',
+  moderate: '#FF7A00',
+  high: '#FF3B3B',
+  restricted: '#FF3B3B',
 };
 
 function RecenterMap({ lat, lng, zoom }: { lat: number; lng: number; zoom?: number }) {
@@ -55,10 +55,11 @@ interface AuthorityMapProps {
   incidents: any[];
   userLocations: Record<string, { lat: number; lng: number; role?: string; name?: string; timestamp?: number }>;
   focusLocation?: { lat: number; lng: number } | null;
-  onZoneCreated?: (layer: any) => void;
+  onZoneCreated?: (layer: any, color?: string) => void;
+  drawColor?: string;
 }
 
-export default function AuthorityMap({ zones, incidents, userLocations, focusLocation, onZoneCreated }: AuthorityMapProps) {
+export default function AuthorityMap({ zones, incidents, userLocations, focusLocation, onZoneCreated, drawColor = '#FF0033' }: AuthorityMapProps) {
   const safeZones = zones || [];
   const safeIncidents = incidents || [];
   const safeUserLocations = userLocations || {};
@@ -164,14 +165,14 @@ export default function AuthorityMap({ zones, incidents, userLocations, focusLoc
           );
         })}
 
-        <DrawControl onZoneCreated={onZoneCreated} />
+        <DrawControl onZoneCreated={onZoneCreated} drawColor={drawColor} />
       </MapContainer>
     </div>
   );
 }
 
 // Separate component for drawing tools to use map context
-function DrawControl({ onZoneCreated }: { onZoneCreated?: (layer: L.Layer) => void }) {
+function DrawControl({ onZoneCreated, drawColor = '#FF0033' }: { onZoneCreated?: (layer: L.Layer, color?: string) => void, drawColor?: string }) {
   const map = useMap();
   const onZoneCreatedRef = useRef(onZoneCreated);
 
@@ -196,11 +197,11 @@ function DrawControl({ onZoneCreated }: { onZoneCreated?: (layer: L.Layer) => vo
         edit: { featureGroup: drawnItems },
         draw: {
           polygon: {
-            shapeOptions: { color: '#FF0033', weight: 2, fillOpacity: 0.2 },
+            shapeOptions: { color: drawColor, weight: 2, fillOpacity: 0.2 },
             allowIntersection: false,
           },
           circle: {
-            shapeOptions: { color: '#FF0033', weight: 2, fillOpacity: 0.2 },
+            shapeOptions: { color: drawColor, weight: 2, fillOpacity: 0.2 },
           },
           rectangle: false,
           marker: false,
@@ -214,7 +215,7 @@ function DrawControl({ onZoneCreated }: { onZoneCreated?: (layer: L.Layer) => vo
         const layer = e.layer;
         // Don't add to drawnItems so it vanishes immediately, 
         // because the Dashboard will add the true Zone to the map.
-        if (onZoneCreatedRef.current) onZoneCreatedRef.current(layer);
+        if (onZoneCreatedRef.current) onZoneCreatedRef.current(layer, drawColor);
       };
 
       map.on((L.Draw as any).Event.CREATED, handleDrawCreated);
@@ -226,7 +227,7 @@ function DrawControl({ onZoneCreated }: { onZoneCreated?: (layer: L.Layer) => vo
       if (handleDrawCreated) map.off((L.Draw as any).Event.CREATED, handleDrawCreated);
       if (drawnItems) map.removeLayer(drawnItems);
     };
-  }, [map]);
+  }, [map, drawColor]);
   
   return null;
 }

@@ -44,7 +44,7 @@ const roles: Array<{ id: RegisterRole; label: string; sub: string; bg: string; i
     { id: 'tourist', label: 'Tourist', sub: 'Visitor', bg: NB.yellow, icon: <Map size={22} color={NB.black} /> },
     { id: 'resident', label: 'Resident', sub: 'Local', bg: NB.blue, icon: <Users size={22} color={NB.white} /> },
     { id: 'business', label: 'Business', sub: 'Service', bg: NB.mint, icon: <Building2 size={22} color={NB.black} /> },
-    { id: 'authority', label: 'Authority', sub: 'Gov Agency', bg: NB.black, icon: <Shield size={22} color={NB.yellow} /> },
+    { id: 'authority', label: 'Authority', sub: 'Gov Agency', bg: 'skyblue', icon: <Shield size={22} color={NB.white} /> },
 ];
 
 const ROLE_IDS: RegisterRole[] = ['tourist', 'resident', 'business', 'authority'];
@@ -69,6 +69,7 @@ export default function AuthPage() {
 
     const [mode, setMode] = useState<'login' | 'register'>('register');
     const [role, setRole] = useState<RegisterRole>(initRole);
+    const [hoveredRole, setHoveredRole] = useState<string | null>(null);
     const [blockchainId, setBlockchainId] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
@@ -196,12 +197,18 @@ export default function AuthPage() {
                                     <div style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: NB.black, marginBottom: 14, borderBottom: `3px solid ${NB.black}`, paddingBottom: 8 }}>Select Your Role</div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
                                         {roles.map(r => (
-                                            <button key={r.id} onClick={() => setRole(r.id)} type="button" style={{
-                                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 8px',
-                                                background: role === r.id ? r.bg : NB.cream,
-                                                border: role === r.id ? `3px solid ${NB.black}` : `2px solid ${NB.black}`,
-                                                boxShadow: role === r.id ? `3px 3px 0 ${NB.black}` : 'none',
-                                                cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.1s',
+                                            <button 
+                                                key={r.id} 
+                                                onClick={() => setRole(r.id)} 
+                                                onMouseEnter={() => setHoveredRole(r.id)}
+                                                onMouseLeave={() => setHoveredRole(null)}
+                                                type="button" 
+                                                style={{
+                                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 8px',
+                                                    background: role === r.id ? r.bg : (hoveredRole === r.id && r.id === 'authority' ? 'skyblue' : NB.cream),
+                                                    border: role === r.id ? `3px solid ${NB.black}` : `2px solid ${NB.black}`,
+                                                    boxShadow: role === r.id ? `3px 3px 0 ${NB.black}` : 'none',
+                                                    cursor: 'pointer', fontFamily: 'inherit', transition: 'background-color 0.1s, transform 0.1s, box-shadow 0.1s',
                                             }}>
                                                 <div style={{ width: 36, height: 36, background: role === r.id ? 'rgba(0,0,0,0.15)' : NB.black, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                     {r.icon}

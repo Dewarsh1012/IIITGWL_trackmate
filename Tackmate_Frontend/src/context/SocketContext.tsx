@@ -16,7 +16,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (token && user) {
-      const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:5010';
+      const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
       const newSocket = io(socketUrl, {
         auth: { token },
         transports: ['websocket']
