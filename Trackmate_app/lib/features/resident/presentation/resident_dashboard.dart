@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/nb_widgets.dart';
+import '../../../core/widgets/clay_widgets.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/socket_service.dart';
@@ -33,11 +33,11 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
   void initState() {
     super.initState();
     _pulseController = AnimationController(
-       vsync: this,
-       duration: const Duration(seconds: 1),
+      vsync: this,
+      duration: const Duration(seconds: 1),
     )..repeat(reverse: true);
     _pulseAnimation = Tween<double>(begin: 0.0, end: 20.0).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
-    
+
     _fetchData();
   }
 
@@ -50,31 +50,30 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
   Future<void> _fetchData() async {
     final authState = ref.read(authProvider);
     final wardId = authState.user?['ward']?['_id'] ?? authState.user?['ward'];
-    
+
     try {
       if (wardId != null && wardId is String && wardId.isNotEmpty) {
         final wardRes = await ApiClient.get('/analytics/ward/$wardId');
         if (wardRes['success'] == true) {
           _wardData = wardRes['data'];
         }
-        
+
         final incRes = await ApiClient.get('/incidents?ward=$wardId&limit=5');
         if (incRes['success'] == true) {
           _incidents = incRes['data'] ?? [];
         }
       } else {
-         // general incidents if no ward
-         final incRes = await ApiClient.get('/incidents?limit=5');
-         if (incRes['success'] == true) {
-           _incidents = incRes['data'] ?? [];
-         }
+        final incRes = await ApiClient.get('/incidents?limit=5');
+        if (incRes['success'] == true) {
+          _incidents = incRes['data'] ?? [];
+        }
       }
 
       final zoneRes = await ApiClient.get('/zones');
       if (zoneRes['success'] == true) {
         _zones = zoneRes['data'] ?? [];
       }
-    } catch (e) {
+    } catch (_) {
       // ignore
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -83,32 +82,32 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
 
   Future<void> _triggerSos(LocationState locState) async {
     setState(() => _isSosActive = true);
-    
+
     try {
-      final body = {
+      final body = <String, dynamic>{
         'title': 'Emergency SOS Alert - Resident',
         'description': 'Resident triggered panic button from mobile app.',
         'incident_type': 'sos_panic',
         'severity': 'critical',
       };
-      
+
       if (locState.position != null) {
         body['location'] = {
           'type': 'Point',
           'coordinates': [locState.position!.longitude, locState.position!.latitude],
         };
       }
-      
+
       await ApiClient.post('/incidents', body);
       SocketService.instance.emit('sos:triggered', body);
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SOS Alert Dispatched to Authorities!'), backgroundColor: AppColors.emergencyRed));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SOS Alert dispatched!'), backgroundColor: Clay.critical));
       }
     } catch (e) {
-       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send SOS: $e'), backgroundColor: NB.black));
-       }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send SOS: $e'), backgroundColor: Clay.text));
+      }
     }
 
     Future.delayed(const Duration(seconds: 4), () {
@@ -129,10 +128,9 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
       _sosPressCount = 0;
       _triggerSos(locState);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Tap ${3 - _sosPressCount} more times to trigger SOS'),
-        duration: const Duration(seconds: 2),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tap ${3 - _sosPressCount} more times to trigger SOS')),
+      );
     }
   }
 
@@ -145,38 +143,48 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: NB.cream,
+      backgroundColor: Clay.bg,
       builder: (context) {
         return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
           child: StatefulBuilder(
             builder: (context, setModalState) {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('REPORT COMMUNITY ISSUE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                  const Divider(color: NB.black, thickness: 3),
-                  const SizedBox(height: 16),
-                  
-                  const NBLabel('SUBJECT'),
-                  NBInput(controller: titleCtrl, hint: 'e.g. Broken street light'),
+                  const Text('Report Community Issue', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Clay.text)),
+                  const SizedBox(height: 8),
+                  const Divider(color: Clay.border, thickness: 1),
                   const SizedBox(height: 12),
-                  
-                  const NBLabel('DETAILS'),
-                  NBInput(controller: descCtrl, hint: 'Describe the issue...', maxLines: 3),
+                  const Text('Subject', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Clay.textMuted)),
+                  const SizedBox(height: 6),
+                  ClayInput(controller: titleCtrl, hint: 'e.g. Broken street light'),
                   const SizedBox(height: 12),
-
+                  const Text('Details', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Clay.textMuted)),
+                  const SizedBox(height: 6),
+                  ClayInput(controller: descCtrl, hint: 'Describe the issue...', maxLines: 3),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const NBLabel('CATEGORY'),
+                            const Text('Category', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Clay.textMuted)),
+                            const SizedBox(height: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10),
-                              decoration: BoxDecoration(border: Border.all(color: NB.black, width: 3), color: NB.white, boxShadow: const [BoxShadow(color: NB.black, offset: Offset(2, 2))]),
+                              decoration: BoxDecoration(
+                                color: Clay.surfaceAlt,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Clay.border, width: 1),
+                              ),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   value: type,
@@ -187,10 +195,10 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
                                     DropdownMenuItem(value: 'infrastructure', child: Text('Infrastructure')),
                                     DropdownMenuItem(value: 'suspicious_activity', child: Text('Suspicious')),
                                   ],
-                                )
-                              )
-                            )
-                          ]
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -198,10 +206,15 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const NBLabel('SEVERITY'),
+                            const Text('Severity', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Clay.textMuted)),
+                            const SizedBox(height: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10),
-                              decoration: BoxDecoration(border: Border.all(color: NB.black, width: 3), color: NB.white, boxShadow: const [BoxShadow(color: NB.black, offset: Offset(2, 2))]),
+                              decoration: BoxDecoration(
+                                color: Clay.surfaceAlt,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Clay.border, width: 1),
+                              ),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   value: severity,
@@ -212,25 +225,25 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
                                     DropdownMenuItem(value: 'medium', child: Text('Medium')),
                                     DropdownMenuItem(value: 'high', child: Text('High')),
                                   ],
-                                )
-                              )
-                            )
-                          ]
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 24),
-                  NBButton(
-                    label: 'SUBMIT',
+                  const SizedBox(height: 16),
+                  ClayButton(
+                    label: 'Submit',
+                    variant: ClayButtonVariant.primary,
                     onTap: () async {
                       if (titleCtrl.text.isEmpty || descCtrl.text.isEmpty) return;
                       final locState = ref.read(locationProvider);
                       final authState = ref.read(authProvider);
                       final wardId = authState.user?['ward']?['_id'] ?? authState.user?['ward'];
-                      
-                      final body = {
+
+                      final body = <String, dynamic>{
                         'title': titleCtrl.text,
                         'description': descCtrl.text,
                         'incident_type': type,
@@ -245,7 +258,7 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
                       if (wardId != null) {
                         body['ward'] = wardId;
                       }
-                      
+
                       try {
                         await ApiClient.post('/incidents', body);
                         if (mounted) {
@@ -254,19 +267,19 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
                           _fetchData();
                         }
                       } catch (e) {
-                         if (mounted) {
-                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                         }
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                        }
                       }
                     },
                   ),
                   const SizedBox(height: 24),
                 ],
               );
-            }
+            },
           ),
         );
-      }
+      },
     );
   }
 
@@ -274,158 +287,165 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
   Widget build(BuildContext context) {
     final locationState = ref.watch(locationProvider);
     final authState = ref.watch(authProvider);
+    final wardName = authState.user?['ward']?['name'] ?? 'Unassigned Ward';
 
     return Scaffold(
-      backgroundColor: NB.cream,
+      backgroundColor: Clay.bg,
       appBar: AppBar(
-        title: const Text('Resident Dashboard', style: TextStyle(fontWeight: FontWeight.w900, fontFamily: 'Space Grotesk', color: NB.white)),
-        backgroundColor: NB.mint,
+        title: const Text('Resident Dashboard', style: TextStyle(fontWeight: FontWeight.w800, color: Clay.text)),
+        backgroundColor: Clay.surface,
         elevation: 0,
-        iconTheme: const IconThemeData(color: NB.black),
+        iconTheme: const IconThemeData(color: Clay.text),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: NB.black),
+            icon: const Icon(Icons.feed_outlined, color: Clay.text),
+            onPressed: () => context.push('/resident/feed'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Clay.text),
             onPressed: () async {
               await ref.read(authProvider.notifier).logout();
               if (mounted) context.go('/auth');
             },
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
-          child: Container(color: NB.black, height: 4),
-        ),
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: NB.black))
-        : Column(
-            children: [
-              // Ward Header
-              Container(
-                padding: const EdgeInsets.all(16),
-                color: NB.white,
-                decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: NB.black, width: 3)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('YOUR LOCAL WARD', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: NB.textMuted)),
-                        Text(authState.user?['ward']?['name'] ?? 'Unassigned Ward', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                      ],
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Clay.primary))
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                if (authState.user?['ward'] == null)
+                  ClayCard(
+                    padding: const EdgeInsets.all(12),
+                    child: const Text(
+                      'No ward assigned. Showing general area data. Contact local authority to assign a ward.',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Clay.textMuted),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text('WARD SCORE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: NB.textMuted)),
-                        Text('${_wardData?['safety_score'] ?? 100}%', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: NB.mint)),
-                      ],
-                    )
-                  ],
-                ),
-              ),
-
-              // Map
-              if (locationState.position != null)
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      border: Border(bottom: BorderSide(color: NB.black, width: 3)),
-                    ),
-                    child: _buildMap(locationState),
                   ),
-                ),
+                if (authState.user?['ward'] == null) const SizedBox(height: 12),
 
-              // Vitals & Incidents
-              Expanded(
-                flex: 3,
-                child: SingleChildScrollView(
+                ClayCard(
                   padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: NBStatCard(
-                              label: 'ACTIVE ISSUES', 
-                              value: '${_wardData?['open_incidents'] ?? 0}', 
-                              color: NB.orange,
-                              icon: Icons.assignment_late,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: NBStatCard(
-                              label: 'ACTIVE CITIZENS', 
-                              value: '${_wardData?['active_users_today'] ?? 0}', 
-                              color: NB.blue,
-                              icon: Icons.people,
-                            ),
-                          ),
+                          const Text('Your Local Ward', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: Clay.textMuted)),
+                          const SizedBox(height: 4),
+                          Text(wardName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Clay.text)),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      
-                      NBButton(
-                        label: 'REPORT ISSUE',
-                        icon: Icons.add_circle_outline,
-                        color: NB.white,
-                        onTap: _showReportAnomalyModal,
-                      ),
-                      
-                      const SizedBox(height: 20),
-                      const Text('WARD BULLETIN', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2)),
-                      const SizedBox(height: 12),
-                      
-                      if (_incidents.isEmpty)
-                         const Center(child: Text('No active incidents in this ward.', style: TextStyle(fontWeight: FontWeight.bold, color: NB.textMuted)))
-                      else
-                        ..._incidents.map((inc) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: NBCard(
-                            padding: const EdgeInsets.all(12),
-                            borderWidth: 2,
-                            color: NB.white,
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 12, height: 12,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: inc['severity'] == 'critical' ? NB.critical : (inc['severity'] == 'high' ? NB.red : NB.orange),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(inc['title'] ?? 'Alert', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-                                      Text(inc['status'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: NB.textMuted)),
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                        )),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text('Ward Score', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 10, color: Clay.textMuted)),
+                          Text('${_wardData?['safety_score'] ?? 100}%', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Clay.safe)),
+                        ],
+                      )
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
+
+                const SizedBox(height: 16),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClayCard(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Active Issues', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: Clay.textMuted)),
+                            const SizedBox(height: 6),
+                            Text('${_wardData?['open_incidents'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: Clay.high)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ClayCard(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Active Citizens', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: Clay.textMuted)),
+                            const SizedBox(height: 6),
+                            Text('${_wardData?['active_users_today'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: Clay.primary)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                if (locationState.position != null)
+                  ClayCard(
+                    padding: EdgeInsets.zero,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: SizedBox(height: 240, child: _buildMap(locationState)),
+                    ),
+                  ),
+
+                const SizedBox(height: 16),
+
+                ClayButton(
+                  label: 'Report Issue',
+                  variant: ClayButtonVariant.primary,
+                  onTap: _showReportAnomalyModal,
+                ),
+
+                const SizedBox(height: 16),
+
+                const Text('Ward Bulletin', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Clay.text)),
+                const SizedBox(height: 8),
+
+                if (_incidents.isEmpty)
+                  const Center(child: Text('No active incidents in this ward.', style: TextStyle(fontWeight: FontWeight.w600, color: Clay.textMuted)))
+                else
+                  ..._incidents.map((inc) {
+                    final sev = (inc['severity'] ?? 'low').toString().toLowerCase();
+                    Color sevColor = Clay.moderate;
+                    if (sev == 'critical') sevColor = Clay.critical;
+                    if (sev == 'high') sevColor = Clay.high;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ClayCard(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            Container(width: 12, height: 12, decoration: BoxDecoration(color: sevColor, shape: BoxShape.circle)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(inc['title'] ?? 'Alert', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Clay.text)),
+                                  Text(inc['status'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10, color: Clay.textMuted)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+              ],
+            ),
       floatingActionButton: _buildSosButton(locationState),
     );
   }
 
   Widget _buildMap(LocationState state) {
-    final LatLng currentPos = LatLng(state.position!.latitude, state.position!.longitude);
+    final currentPos = LatLng(state.position!.latitude, state.position!.longitude);
 
     final List<Polygon> polygons = _zones.map((z) {
       if (z['boundary'] != null && z['boundary']['coordinates'] != null) {
@@ -434,8 +454,8 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
         final isSafe = z['risk_level'] == 'safe';
         return Polygon(
           points: points,
-          color: isSafe ? NB.mint.withOpacity(0.3) : NB.red.withOpacity(0.3),
-          borderColor: isSafe ? NB.mint : NB.red,
+          color: isSafe ? Clay.safe.withOpacity(0.2) : Clay.high.withOpacity(0.2),
+          borderColor: isSafe ? Clay.safe : Clay.high,
           borderStrokeWidth: 2,
         );
       }
@@ -457,13 +477,13 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
           markers: [
             Marker(
               point: currentPos,
-              width: 20,
-              height: 20,
+              width: 26,
+              height: 26,
               child: Container(
                 decoration: BoxDecoration(
-                  color: NB.blue,
+                  color: Clay.primary,
                   shape: BoxShape.circle,
-                  border: Border.all(color: NB.white, width: 2),
+                  border: Border.all(color: Colors.white, width: 2),
                 ),
               ),
             ),
@@ -476,7 +496,7 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
   Widget _buildSosButton(LocationState locState) {
     return GestureDetector(
       onLongPress: () {
-         _sosPressCount = 0;
+        _sosPressCount = 0;
         _triggerSos(locState);
       },
       onTap: () => _handleSosPress(locState),
@@ -484,21 +504,17 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
         animation: _pulseAnimation,
         builder: (context, child) {
           return Container(
-            width: 64,
-            height: 64,
+            width: 68,
+            height: 68,
             margin: const EdgeInsets.only(bottom: 10),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: NB.red,
-              border: Border.all(color: NB.black, width: 3),
+              color: Clay.critical,
               boxShadow: [
-                BoxShadow(
-                  color: NB.black,
-                  offset: const Offset(4, 4),
-                ),
+                const BoxShadow(color: Color(0x401B1D2A), offset: Offset(4, 4), blurRadius: 10),
                 if (_isSosActive)
                   BoxShadow(
-                    color: NB.red.withOpacity(0.8),
+                    color: Clay.critical.withOpacity(0.7),
                     blurRadius: _pulseAnimation.value * 2,
                     spreadRadius: _pulseAnimation.value,
                   ),
@@ -507,7 +523,7 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
             child: const Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.warning_rounded, color: NB.white, size: 24),
+                Icon(Icons.warning_rounded, color: Colors.white, size: 24),
               ],
             ),
           );

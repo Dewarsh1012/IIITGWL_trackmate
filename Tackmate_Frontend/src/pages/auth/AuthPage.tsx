@@ -15,6 +15,12 @@ import {
 } from './schemas';
 import { Loader2, Copy, Check, Fingerprint, ArrowRight, Shield, Map, Users, Building2 } from 'lucide-react';
 
+declare global {
+    interface Window {
+        ethereum?: any;
+    }
+}
+
 const C = {
   bg: '#F0EDFA', surface: '#FFFFFF', surfaceAlt: '#F7F5FF', dark: '#1B1D2A', text: '#1B1D2A',
   textSecondary: '#4A4D68', textMuted: '#8B8FA8', primary: '#6C63FF', primaryLight: '#8B85FF',
@@ -28,6 +34,7 @@ type RegisterFormFields = {
     destination_region?: string; trip_start_date?: string; trip_end_date?: string;
     business_name?: string; category?: 'accommodation' | 'food_beverage' | 'transport' | 'medical' | 'retail' | 'tour_operator' | 'other';
     address?: string; designation?: string; department?: string; authority_code?: string;
+    wallet_address?: string;
 };
 
 const roles: Array<{ id: RegisterRole; label: string; sub: string; color: string; icon: ReactElement }> = [
@@ -247,7 +254,22 @@ function LoginForm({ onSubmit }: { onSubmit: (data: LoginInput) => void }) {
 function RegisterForm({ role, onSubmit }: { role: RegisterRole; onSubmit: (data: RegisterFormFields) => void }) {
     const schemaByRole = { tourist: touristRegisterSchema, resident: residentRegisterSchema, business: businessRegisterSchema, authority: authorityRegisterSchema } as const;
     const schema = schemaByRole[role];
-    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormFields>({ resolver: zodResolver(schema as never) });
+    const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<RegisterFormFields>({ resolver: zodResolver(schema as never) });
+    const [walletAddress, setWalletAddress] = useState<string | null>(null);
+
+    const connectWallet = async () => {
+        if (typeof window.ethereum !== 'undefined') {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                setWalletAddress(accounts[0]);
+                setValue('wallet_address', accounts[0]);
+            } catch (error) {
+                console.error("User rejected request", error);
+            }
+        } else {
+            alert("MetaMask is not installed. Please install it to use Web3 features.");
+        }
+    };
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -309,6 +331,22 @@ function RegisterForm({ role, onSubmit }: { role: RegisterRole; onSubmit: (data:
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div><label style={labelStyle}>Password</label><input {...register('password')} type="password" style={inputStyle} placeholder="••••••••" />{errors.password && <p style={errStyle}>{errors.password.message as string}</p>}</div>
                 <div><label style={labelStyle}>Confirm Password</label><input {...register('confirm_password')} type="password" style={inputStyle} placeholder="••••••••" />{errors.confirm_password && <p style={errStyle}>{errors.confirm_password.message as string}</p>}</div>
+            </div>
+
+            <div style={sectionBoxStyle}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12, color: C.primary }}>Web3 Identity (Optional)</div>
+                {walletAddress ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(52,211,153,0.1)', padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(52,211,153,0.2)' }}>
+                        <Check size={16} color={C.safe} />
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: C.safe, fontWeight: 600 }}>{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
+                        <input type="hidden" {...register('wallet_address')} />
+                    </div>
+                ) : (
+                    <button type="button" onClick={connectWallet} style={{ width: '100%', padding: '12px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, color: C.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.15s' }}>
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" style={{ width: 18, height: 18 }} />
+                        Connect MetaMask Wallet
+                    </button>
+                )}
             </div>
 
             <button type="submit" disabled={isSubmitting} style={submitBtnStyle}

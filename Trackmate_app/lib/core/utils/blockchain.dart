@@ -50,6 +50,6 @@ class BlockchainIdGenerator {
         break;
     }
     
-    return '\$prefix\$truncated';
+    return '$prefix$truncated';
   }
 }

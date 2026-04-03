@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/nb_widgets.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/clay_widgets.dart';
 
 class AuthorityZonesPage extends ConsumerStatefulWidget {
   const AuthorityZonesPage({super.key});
@@ -29,66 +29,107 @@ class _AuthorityZonesPageState extends ConsumerState<AuthorityZonesPage> {
         setState(() => _zones = res['data'] ?? []);
       }
     } catch (_) {
+      // ignore
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Color _riskColor(String risk) {
+    switch (risk) {
+      case 'safe':
+        return Clay.safe;
+      case 'moderate':
+        return Clay.moderate;
+      case 'high':
+        return Clay.high;
+      case 'restricted':
+        return Clay.restricted;
+      default:
+        return Clay.textMuted;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NB.cream,
+      backgroundColor: Clay.bg,
       appBar: AppBar(
-        title: const Text('Zone Management', style: TextStyle(fontWeight: FontWeight.w900, fontFamily: 'Space Grotesk', color: NB.white)),
-        backgroundColor: NB.black,
-        iconTheme: const IconThemeData(color: NB.white),
+        title: const Text('Zone Management', style: TextStyle(fontWeight: FontWeight.w800, color: Clay.text)),
+        backgroundColor: Clay.surface,
+        iconTheme: const IconThemeData(color: Clay.text),
+        actions: [
+          IconButton(onPressed: _fetchZones, icon: const Icon(Icons.refresh, color: Clay.text)),
+        ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: NB.black))
+          ? const Center(child: CircularProgressIndicator(color: Clay.primary))
           : _zones.isEmpty
-              ? const Center(child: Text('No zones configured.', style: TextStyle(fontWeight: FontWeight.bold)))
+              ? const Center(
+                  child: Text(
+                    'No zones configured.',
+                    style: TextStyle(fontWeight: FontWeight.w600, color: Clay.textMuted),
+                  ),
+                )
               : ListView.separated(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   itemCount: _zones.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, i) {
-                    final z = _zones[i];
-                    final isSafe = z['risk_level'] == 'safe';
-                    return NBCard(
-                      color: NB.white,
-                      topBorderColor: isSafe ? NB.mint : NB.red,
+                    final zone = _zones[i];
+                    final risk = (zone['risk_level'] ?? 'unknown').toString().toLowerCase();
+                    final riskColor = _riskColor(risk);
+
+                    return ClayCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(z['name'] ?? 'Untitled Zone', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                              NBBadge(label: z['risk_level'].toString().toUpperCase(), color: isSafe ? NB.mint : NB.red, textColor: isSafe ? NB.black : NB.white),
+                              Expanded(
+                                child: Text(
+                                  zone['name'] ?? 'Untitled Zone',
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Clay.text),
+                                ),
+                              ),
+                              ClayBadge(
+                                label: risk.toUpperCase(),
+                                color: riskColor.withValues(alpha: 0.14),
+                                textColor: riskColor,
+                              ),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(z['description'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: NB.textSecondary)),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 6),
+                          Text(
+                            zone['description'] ?? 'No description.',
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Clay.textSecondary),
+                          ),
+                          const SizedBox(height: 10),
                           Row(
                             children: [
-                              const Icon(Icons.people, size: 14, color: NB.textMuted),
+                              const Icon(Icons.people, size: 14, color: Clay.textMuted),
                               const SizedBox(width: 4),
-                              Text('${z['current_capacity'] ?? 0} active users', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: NB.textMuted)),
+                              Text(
+                                '${zone['current_capacity'] ?? 0} active users',
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Clay.textMuted),
+                              ),
                             ],
-                          )
+                          ),
                         ],
                       ),
                     );
                   },
                 ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: NB.yellow,
-        shape: RoundedRectangleBorder(side: const BorderSide(color: NB.black, width: 3), borderRadius: BorderRadius.circular(16)),
-        child: const Icon(Icons.add, color: NB.black),
+        backgroundColor: Clay.primary,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.add),
         onPressed: () {
-          // Future: Open map to draw zone polygon
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Zone creation coming soon')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Zone creation UI will be added next.')),
+          );
         },
       ),
     );

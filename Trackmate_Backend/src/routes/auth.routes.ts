@@ -26,6 +26,7 @@ const baseRegisterSchema = z.object({
     phone: z.string().optional(),
     role: z.nativeEnum(UserRole),
     preferred_language: z.string().optional(),
+    wallet_address: z.string().optional(),
 });
 
 const touristExtras = z.object({
@@ -141,7 +142,7 @@ router.post('/register', authRateLimiter, async (req, res: Response, next) => {
         await profile.save();
 
         // Generate blockchain ID
-        const blockchain_id = generateBlockchainId({
+        const blockchain_id = base.wallet_address || generateBlockchainId({
             userId: profile._id.toString(),
             role: base.role,
             idHash,
