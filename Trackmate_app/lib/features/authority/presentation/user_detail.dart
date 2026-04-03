@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/nb_widgets.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/socket_service.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/clay_widgets.dart';
 
 class UserDetailPage extends ConsumerStatefulWidget {
   final String userId;
@@ -20,7 +20,7 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage> {
   List<dynamic> _locations = [];
   List<dynamic> _incidents = [];
   bool _isLoading = true;
-  
+
   double? _liveLat;
   double? _liveLng;
 
@@ -34,13 +34,11 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage> {
   void _setupSockets() {
     SocketService.instance.on('location:update', (data) {
       if (data == null) return;
-      if (data['userId'] == widget.userId) {
-        if (mounted) {
-          setState(() {
-            _liveLat = data['latitude'];
-            _liveLng = data['longitude'];
-          });
-        }
+      if (data['userId'] == widget.userId && mounted) {
+        setState(() {
+          _liveLat = (data['latitude'] as num?)?.toDouble();
+          _liveLng = (data['longitude'] as num?)?.toDouble();
+        });
       }
     });
   }
@@ -53,28 +51,47 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage> {
 
   Future<void> _fetchData() async {
     try {
-      final res = await Future.wait([
+      final results = await Future.wait([
         ApiClient.get('/profiles/${widget.userId}'),
         ApiClient.get('/locations/user/${widget.userId}?hours=48'),
         ApiClient.get('/incidents?reporter=${widget.userId}&limit=10'),
       ]);
 
-      if (mounted) {
-        setState(() {
-          if (res[0]['success'] == true) _profile = res[0]['data'];
-          if (res[1]['success'] == true) {
-            _locations = res[1]['data'] ?? [];
-            if (_locations.isNotEmpty) {
-              _liveLat = _locations[0]['latitude'];
-              _liveLng = _locations[0]['longitude'];
-            }
+      if (!mounted) return;
+
+      setState(() {
+        if (results[0]['success'] == true) _profile = results[0]['data'];
+        if (results[1]['success'] == true) {
+          _locations = results[1]['data'] ?? [];
+          if (_locations.isNotEmpty) {
+            _liveLat = (_locations[0]['latitude'] as num?)?.toDouble();
+            _liveLng = (_locations[0]['longitude'] as num?)?.toDouble();
           }
-          if (res[2]['success'] == true) _incidents = res[2]['data'] ?? [];
-          _isLoading = false;
-        });
-      }
+        }
+        if (results[2]['success'] == true) _incidents = results[2]['data'] ?? [];
+        _isLoading = false;
+      });
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Color _roleColor(String role) {
+    if (role == 'resident') return Clay.safe;
+    if (role == 'business') return Clay.moderate;
+    return Clay.primary;
+  }
+
+  Color _severityColor(String severity) {
+    switch (severity) {
+      case 'critical':
+        return Clay.critical;
+      case 'high':
+        return Clay.high;
+      case 'medium':
+        return Clay.moderate;
+      default:
+        return Clay.primary;
     }
   }
 
@@ -82,213 +99,222 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: NB.cream,
-        appBar: AppBar(backgroundColor: NB.black, iconTheme: const IconThemeData(color: NB.white)),
-        body: const Center(child: CircularProgressIndicator(color: NB.black)),
+        backgroundColor: Clay.bg,
+        appBar: AppBar(backgroundColor: Clay.surface, iconTheme: const IconThemeData(color: Clay.text)),
+        body: const Center(child: CircularProgressIndicator(color: Clay.primary)),
       );
     }
 
     if (_profile == null) {
       return Scaffold(
-        backgroundColor: NB.cream,
-        appBar: AppBar(backgroundColor: NB.black, iconTheme: const IconThemeData(color: NB.white)),
-        body: const Center(child: Text('User not found.', style: TextStyle(fontWeight: FontWeight.bold))),
+        backgroundColor: Clay.bg,
+        appBar: AppBar(backgroundColor: Clay.surface, iconTheme: const IconThemeData(color: Clay.text)),
+        body: const Center(
+          child: Text('User not found.', style: TextStyle(fontWeight: FontWeight.w600, color: Clay.textMuted)),
+        ),
       );
     }
 
-    final role = _profile!['role'] ?? 'tourist';
-    Color accent = NB.blue;
-    if (role == 'resident') accent = NB.mint;
-    if (role == 'business') accent = NB.orange;
+    final role = (_profile!['role'] ?? 'tourist').toString();
+    final accent = _roleColor(role);
+    final safety = _profile!['safety_score'] ?? 0;
 
     return Scaffold(
-      backgroundColor: NB.cream,
+      backgroundColor: Clay.bg,
       appBar: AppBar(
-        title: Text(_profile!['full_name'] ?? 'User Profile', style: const TextStyle(fontWeight: FontWeight.w900, fontFamily: 'Space Grotesk', color: NB.white)),
-        backgroundColor: NB.black,
-        iconTheme: const IconThemeData(color: NB.white),
+        title: Text(
+          _profile!['full_name'] ?? 'User Profile',
+          style: const TextStyle(fontWeight: FontWeight.w800, color: Clay.text),
+        ),
+        backgroundColor: Clay.surface,
+        iconTheme: const IconThemeData(color: Clay.text),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // User Meta
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: NB.white,
-              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: NB.black, width: 3))),
-              child: Row(
-                children: [
-                  Container(
-                    width: 56, height: 56,
-                    decoration: BoxDecoration(color: accent, border: Border.all(color: NB.black, width: 2)),
-                    alignment: Alignment.center,
-                    child: Text(_profile!['full_name']?.substring(0, 1).toUpperCase() ?? '?', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24, color: accent == NB.blue ? NB.white : NB.black)),
+      body: ListView(
+        padding: const EdgeInsets.all(12),
+        children: [
+          ClayCard(
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(_profile!['full_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            NBBadge(label: role.toString().toUpperCase(), color: accent, textColor: accent == NB.blue ? NB.white : NB.black),
-                            const SizedBox(width: 8),
-                            if (_profile!['is_verified'] == true) 
-                              const Icon(Icons.verified, color: NB.mint, size: 18)
-                          ],
-                        )
-                      ],
-                    ),
+                  child: Text(
+                    (_profile!['full_name'] ?? '?').toString().substring(0, 1).toUpperCase(),
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 24, color: accent),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${_profile!['safety_score'] ?? 0}%', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24, color: (_profile!['safety_score'] ?? 0) >= 80 ? NB.mint : NB.orange)),
-                      const Text('SAFETY SCORE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 8, color: NB.textMuted))
+                      Text(_profile!['full_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Clay.text)),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          ClayBadge(label: role.toUpperCase(), color: accent.withValues(alpha: 0.14), textColor: accent),
+                          const SizedBox(width: 8),
+                          if (_profile!['is_verified'] == true)
+                            const Icon(Icons.verified, color: Clay.safe, size: 18),
+                        ],
+                      ),
                     ],
-                  )
-                ],
-              ),
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '$safety%',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 24,
+                        color: safety >= 80 ? Clay.safe : Clay.moderate,
+                      ),
+                    ),
+                    const Text('SAFETY SCORE', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 9, color: Clay.textMuted)),
+                  ],
+                ),
+              ],
             ),
-
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Contact
-                  NBCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('CONTACT & ID', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.2, color: NB.textMuted)),
-                        const Divider(color: NB.black, thickness: 2, height: 24),
-                        _infoRow(Icons.email, _profile!['email'] ?? 'No email'),
-                        const SizedBox(height: 8),
-                        _infoRow(Icons.phone, _profile!['phone'] ?? 'No phone'),
-                        const SizedBox(height: 8),
-                        _infoRow(Icons.credit_card, _profile!['id_type'] != null ? '${_profile!['id_type'].toString().toUpperCase()} ...${_profile!['id_last_four']}' : 'No ID provided'),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(color: NB.cream, border: Border.all(color: NB.black, width: 2)),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('BLOCKCHAIN ID', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10)),
-                              const SizedBox(height: 2),
-                              Text(_profile!['blockchain_id'] ?? 'NOT MINTED', style: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 11, color: NB.blue, fontWeight: FontWeight.bold)),
-                            ],
+          ),
+          const SizedBox(height: 10),
+          ClayCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('CONTACT & ID', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 0.6, color: Clay.textMuted)),
+                const SizedBox(height: 12),
+                _infoRow(Icons.email, _profile!['email'] ?? 'No email'),
+                const SizedBox(height: 8),
+                _infoRow(Icons.phone, _profile!['phone'] ?? 'No phone'),
+                const SizedBox(height: 8),
+                _infoRow(
+                  Icons.credit_card,
+                  _profile!['id_type'] != null
+                      ? '${_profile!['id_type'].toString().toUpperCase()} ...${_profile!['id_last_four']}'
+                      : 'No ID provided',
+                ),
+                const SizedBox(height: 12),
+                ClayInset(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('BLOCKCHAIN ID', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: Clay.textMuted)),
+                      const SizedBox(height: 2),
+                      Text(
+                        _profile!['blockchain_id'] ?? 'NOT MINTED',
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Clay.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          ClayCard(
+            padding: const EdgeInsets.all(0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('LIVE LOCATION', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Clay.text)),
+                      if (_liveLat != null)
+                        const Text('ONLINE', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 10, color: Clay.safe))
+                      else
+                        const Text('OFFLINE', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 10, color: Clay.high)),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  height: 260,
+                  child: _liveLat == null
+                      ? const Center(
+                          child: Text(
+                            'No location feed',
+                            style: TextStyle(fontWeight: FontWeight.w600, color: Clay.textMuted),
                           ),
                         )
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Map
-                  NBCard(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: NB.black, width: 3)), color: NB.white),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('LIVE LOCATION', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2)),
-                              if (_liveLat != null)
-                                Row(
-                                  children: [
-                                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: NB.mint, shape: BoxShape.circle)),
-                                    const SizedBox(width: 6),
-                                    const Text('ONLINE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: NB.mint)),
-                                  ],
-                                )
-                              else
-                                const Text('OFFLINE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: NB.red)),
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          height: 250,
-                          child: _liveLat == null 
-                            ? Container(color: NB.cream, alignment: Alignment.center, child: const Text('No location feed', style: TextStyle(fontWeight: FontWeight.bold, color: NB.textMuted)))
-                            : FlutterMap(
-                                options: MapOptions(
-                                  initialCenter: LatLng(_liveLat!, _liveLng!),
-                                  initialZoom: 15,
-                                ),
-                                children: [
-                                  TileLayer(
-                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                    userAgentPackageName: 'com.example.trackmate_app',
-                                  ),
-                                  MarkerLayer(
-                                    markers: [
-                                      Marker(
-                                        point: LatLng(_liveLat!, _liveLng!),
-                                        width: 20, height: 20,
-                                        child: Container(decoration: BoxDecoration(color: accent, shape: BoxShape.circle, border: Border.all(color: NB.black, width: 2))),
-                                      ),
-                                    ],
-                                  )
-                                ],
-                              ),
-                        )
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Incidents
-                  const Text('REPORTED INCIDENTS', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1.5, color: NB.black)),
-                  const Divider(color: NB.black, thickness: 3),
-                  const SizedBox(height: 12),
-                  
-                  if (_incidents.isEmpty)
-                    const Center(child: Text('No incidents reported by this user.', style: TextStyle(fontWeight: FontWeight.bold, color: NB.textMuted)))
-                  else
-                    ..._incidents.map((inc) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: NBCard(
-                        padding: const EdgeInsets.all(12),
-                        borderWidth: 2,
-                        color: NB.white,
-                        child: Row(
+                      : FlutterMap(
+                          options: MapOptions(initialCenter: LatLng(_liveLat!, _liveLng!), initialZoom: 15),
                           children: [
-                            Container(
-                              width: 12, height: 12,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: inc['severity'] == 'critical' ? NB.critical : (inc['severity'] == 'high' ? NB.red : NB.orange),
-                              ),
+                            TileLayer(
+                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.example.trackmate_app',
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(inc['title'] ?? 'Alert', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-                                  Text(inc['status'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: NB.textMuted)),
-                                ],
-                              ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: LatLng(_liveLat!, _liveLng!),
+                                  width: 22,
+                                  height: 22,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: accent,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            NBBadge(label: inc['severity'].toString().toUpperCase(), color: inc['severity'] == 'critical' ? NB.critical : (inc['severity'] == 'high' ? NB.red : NB.orange), textColor: NB.white),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text('REPORTED INCIDENTS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.6, color: Clay.text)),
+          const SizedBox(height: 8),
+          if (_incidents.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text('No incidents reported by this user.', style: TextStyle(fontWeight: FontWeight.w600, color: Clay.textMuted)),
+              ),
+            )
+          else
+            ..._incidents.map((incident) {
+              final severity = (incident['severity'] ?? 'low').toString().toLowerCase();
+              final color = _severityColor(severity);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: ClayCard(
+                  child: Row(
+                    children: [
+                      Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(incident['title'] ?? 'Alert', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Clay.text)),
+                            Text(incident['status'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10, color: Clay.textMuted)),
                           ],
                         ),
                       ),
-                    )),
-                ],
-              ),
-            ),
-          ],
-        ),
+                      ClayBadge(
+                        label: severity.toUpperCase(),
+                        color: color.withValues(alpha: 0.14),
+                        textColor: color,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+        ],
       ),
     );
   }
@@ -296,9 +322,11 @@ class _UserDetailPageState extends ConsumerState<UserDetailPage> {
   Widget _infoRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: NB.textMuted),
+        const Icon(Icons.circle, size: 6, color: Clay.textMuted),
         const SizedBox(width: 8),
-        Expanded(child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: NB.black))),
+        Icon(icon, size: 15, color: Clay.textMuted),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Clay.text))),
       ],
     );
   }

@@ -40,6 +40,9 @@ class LocationNotifier extends Notifier<LocationState> {
   StreamSubscription<Position>? _positionStream;
   Timer? _syncTimer;
   Position? _lastPosition;
+  String? _userId;
+  String? _role;
+  bool _profileLoaded = false;
 
   @override
   LocationState build() {
@@ -77,6 +80,8 @@ class LocationNotifier extends Notifier<LocationState> {
 
     state = state.copyWith(hasPermission: true, error: null);
 
+    await _ensureUserProfile();
+
     _positionStream = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
@@ -85,12 +90,8 @@ class LocationNotifier extends Notifier<LocationState> {
     ).listen((Position position) {
       _lastPosition = position;
       state = state.copyWith(position: position, error: null);
-      
-      // Emit socket for live tracking
-      SocketService.instance.emit('location_update', {
-        'latitude': position.latitude,
-        'longitude': position.longitude,
-      });
+
+      _emitSocketLocation(position);
     });
 
     // HTTP sync every 30s
@@ -112,6 +113,34 @@ class LocationNotifier extends Notifier<LocationState> {
         // ignore
       }
     }
+  }
+
+  Future<void> _ensureUserProfile() async {
+    if (_profileLoaded) return;
+    try {
+      final profile = await ApiClient.getUserProfile();
+      _userId = profile?['_id'] ?? profile?['id'];
+      _role = profile?['role'];
+      if (_userId != null) {
+        SocketService.instance.emit('join:user', _userId);
+      }
+    } finally {
+      _profileLoaded = true;
+    }
+  }
+
+  void _emitSocketLocation(Position position) {
+    _ensureUserProfile().then((_) {
+      if (_userId == null) return;
+      SocketService.instance.emit('location_update', {
+        'userId': _userId,
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'accuracy': position.accuracy,
+        'speed': position.speed,
+        'role': _role,
+      });
+    });
   }
 
   Future<void> _syncLocationWithBackend() async {

@@ -5,22 +5,23 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.bgLight,
+      scaffoldBackgroundColor: Clay.bg,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.trustBlue,
-        primary: AppColors.trustBlue,
-        error: AppColors.emergencyRed,
+        seedColor: Clay.primary,
+        primary: Clay.primary,
+        error: Clay.critical,
+        surface: Clay.surface,
       ),
-      fontFamily: 'Arial', // Fallback as specified, Flutter actually defaults to Roboto on Android / SF on iOS.
+      fontFamily: 'Plus Jakarta Sans',
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textDark,
+        backgroundColor: Clay.surface,
+        foregroundColor: Clay.text,
         elevation: 0,
         centerTitle: false,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.trustBlue,
+          backgroundColor: Clay.primary,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
@@ -34,21 +35,21 @@ class AppTheme {
   static ThemeData get authorityTheme {
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.authBg,
+      scaffoldBackgroundColor: Clay.bg,
       colorScheme: ColorScheme.dark(
-        primary: AppColors.trustBlue,
-        surface: AppColors.authSurface,
-        error: AppColors.emergencyRed,
+        primary: Clay.primary,
+        surface: Clay.surface,
+        error: Clay.critical,
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.authSurface,
-        foregroundColor: AppColors.textLight,
+        backgroundColor: Clay.surface,
+        foregroundColor: Clay.text,
         elevation: 1,
       ),
       cardTheme: CardThemeData(
-        color: AppColors.authSurface,
+        color: Clay.surface,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.authBorder, width: 1),
+          side: const BorderSide(color: Clay.border, width: 1),
           borderRadius: BorderRadius.circular(12),
         ),
       ),
