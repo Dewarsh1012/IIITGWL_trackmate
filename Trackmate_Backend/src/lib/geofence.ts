@@ -2,6 +2,66 @@ import { IZone } from '../types';
 
 const EARTH_RADIUS_KM = 6371;
 
+type GeoJsonPolygon = { type: 'Polygon'; coordinates: number[][][] };
+type GeoJsonMultiPolygon = { type: 'MultiPolygon'; coordinates: number[][][][] };
+type GeoJsonGeometry = GeoJsonPolygon | GeoJsonMultiPolygon;
+type GeoJsonFeature = { type: 'Feature'; geometry: GeoJsonGeometry | null };
+type GeoJsonFeatureCollection = { type: 'FeatureCollection'; features: GeoJsonFeature[] };
+
+function isPointInRing(point: [number, number], ring: number[][]): boolean {
+    if (!Array.isArray(ring) || ring.length < 3) return false;
+    const [x, y] = point;
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = ring[i][0];
+        const yi = ring[i][1];
+        const xj = ring[j][0];
+        const yj = ring[j][1];
+        if (![xi, yi, xj, yj].every(Number.isFinite)) continue;
+        const intersect = (yi > y) !== (yj > y) &&
+            x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1e-12) + xi;
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+function isPointInPolygon(point: [number, number], polygon: number[][][]): boolean {
+    if (!Array.isArray(polygon) || polygon.length === 0) return false;
+    const [outer, ...holes] = polygon;
+    if (!isPointInRing(point, outer)) return false;
+    for (const hole of holes) {
+        if (isPointInRing(point, hole)) return false;
+    }
+    return true;
+}
+
+function getGeoJsonGeometries(geojson: unknown): GeoJsonGeometry[] {
+    if (!geojson || typeof geojson !== 'object') return [];
+    const type = (geojson as { type?: string }).type;
+    if (type === 'Polygon' || type === 'MultiPolygon') return [geojson as GeoJsonGeometry];
+    if (type === 'Feature') {
+        const geometry = (geojson as GeoJsonFeature).geometry;
+        return geometry && (geometry.type === 'Polygon' || geometry.type === 'MultiPolygon') ? [geometry] : [];
+    }
+    if (type === 'FeatureCollection') {
+        const features = (geojson as GeoJsonFeatureCollection).features || [];
+        return features.flatMap((feature) => {
+            const geometry = feature?.geometry;
+            if (geometry && (geometry.type === 'Polygon' || geometry.type === 'MultiPolygon')) return [geometry];
+            return [];
+        });
+    }
+    return [];
+}
+
+function isPointInGeojson(lat: number, lon: number, geojson: GeoJsonGeometry): boolean {
+    const point: [number, number] = [lon, lat];
+    if (geojson.type === 'Polygon') {
+        return isPointInPolygon(point, geojson.coordinates);
+    }
+    return geojson.coordinates.some((poly) => isPointInPolygon(point, poly));
+}
+
 /**
  * Calculates the Haversine distance between two GPS coordinates, in kilometres.
  */
@@ -32,6 +92,10 @@ export function distanceInMeters(lat1: number, lon1: number, lat2: number, lon2:
  * Determines if a point (lat, lon) falls within a circular zone.
  */
 export function isPointInZone(lat: number, lon: number, zone: IZone): boolean {
+    const geometries = getGeoJsonGeometries(zone.geojson);
+    if (geometries.length > 0) {
+        return geometries.some((geometry) => isPointInGeojson(lat, lon, geometry));
+    }
     const dist = distanceInMeters(lat, lon, zone.center_lat, zone.center_lng);
     return dist <= zone.radius_meters;
 }

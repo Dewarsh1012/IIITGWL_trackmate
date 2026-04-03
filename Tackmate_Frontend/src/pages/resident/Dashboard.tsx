@@ -1,14 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { Link } from 'react-router-dom';
-import { Shield, AlertTriangle, TrendingUp, Plus, Layers, Activity, Loader2, Users } from 'lucide-react';
+import { Shield, AlertTriangle, TrendingUp, Plus, Layers, Activity, Loader2, Users, Check, ShieldAlert, X } from 'lucide-react';
 import AlertPanel from '../../components/alerts/AlertPanel';
 import TouristMap, { type ZoneData } from '../../components/maps/TouristMap';
-import { useRef } from 'react';
 
-const NB = { black: '#FFFBF0', yellow: '#FFE500', red: '#FF3B3B', blue: '#2B6FFF', mint: '#00D084', orange: '#FF7A00', cream: '#0A0A0A', white: '#111111' };
+const C = {
+  bg: '#F0EDFA', surface: '#FFFFFF', surfaceAlt: '#F7F5FF', dark: '#1B1D2A', text: '#1B1D2A',
+  textSecondary: '#4A4D68', textMuted: '#8B8FA8', primary: '#6C63FF', primaryLight: '#8B85FF',
+  safe: '#34D399', moderate: '#FBBF24', high: '#F87171', critical: '#EF4444', orange: '#FF7A00',
+  border: 'rgba(27,29,42,0.08)',
+};
+
+const clayCard: React.CSSProperties = { background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: '6px 6px 14px rgba(27,29,42,0.10), -3px -3px 10px rgba(255,255,255,0.9)' };
 
 export default function ResidentDashboard() {
   const { user } = useAuth();
@@ -18,11 +24,9 @@ export default function ResidentDashboard() {
   const [analytics, setAnalytics] = useState<any>(null);
   const { socket } = useSocket();
   const [zones, setZones] = useState<ZoneData[]>([]);
-  
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
-
   const [sosLoading, setSosLoading] = useState(false);
   const [sosSuccess, setSosSuccess] = useState(false);
   const sosIntervalRef = useRef<number | null>(null);
@@ -47,26 +51,10 @@ export default function ResidentDashboard() {
     return () => clearInterval(interval);
   }, [socket, user, userLat, userLng]);
 
-  const handleSOSStart = () => {
-    if (sosIntervalRef.current) clearInterval(sosIntervalRef.current);
-    setCountdown(3);
-    sosIntervalRef.current = window.setInterval(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
-  };
+  const handleSOSStart = () => { if (sosIntervalRef.current) clearInterval(sosIntervalRef.current); setCountdown(3); sosIntervalRef.current = window.setInterval(() => { setCountdown((prev) => prev - 1); }, 1000); };
+  const handleSOSEnd = () => { if (sosIntervalRef.current) { clearInterval(sosIntervalRef.current); sosIntervalRef.current = null; } setCountdown(0); };
 
-  const handleSOSEnd = () => { 
-    if (sosIntervalRef.current) { clearInterval(sosIntervalRef.current); sosIntervalRef.current = null; } 
-    setCountdown(0); 
-  };
-
-  useEffect(() => {
-    if (countdown === 0 && sosIntervalRef.current) {
-      clearInterval(sosIntervalRef.current);
-      sosIntervalRef.current = null;
-      triggerSOS();
-    }
-  }, [countdown]);
+  useEffect(() => { if (countdown === 0 && sosIntervalRef.current) { clearInterval(sosIntervalRef.current); sosIntervalRef.current = null; triggerSOS(); } }, [countdown]);
 
   const triggerSOS = async () => {
     setSosLoading(true);
@@ -89,18 +77,12 @@ export default function ResidentDashboard() {
         });
       }
       return () => { clearInterval(interval); if (socket) socket.off('new-incident'); };
-    } else {
-      // No ward assigned — fetch general incidents and stop loading
-      fetchGeneralData();
-    }
+    } else { fetchGeneralData(); }
   }, [user, socket]);
 
   const fetchGeneralData = async () => {
     try {
-      const [incidentsRes, zonesRes] = await Promise.all([
-        api.get('/incidents?limit=5'),
-        api.get('/zones')
-      ]);
+      const [incidentsRes, zonesRes] = await Promise.all([api.get('/incidents?limit=5'), api.get('/zones')]);
       if (incidentsRes.data.success) setIncidents(incidentsRes.data.data || []);
       if (zonesRes.data.success) setZones(zonesRes.data.data || []);
     } catch {} finally { setLoading(false); }
@@ -119,99 +101,99 @@ export default function ResidentDashboard() {
     } catch {} finally { setLoading(false); }
   };
 
-  const sevColor = (s: string) => ({ critical: NB.red, high: NB.orange }[s] || NB.blue);
+  const sevColor = (s: string) => ({ critical: C.critical, high: C.high }[s] || C.primary);
+  const sevBg = (s: string) => ({ critical: 'rgba(239,68,68,0.08)', high: 'rgba(248,113,113,0.08)' }[s] || 'rgba(108,99,255,0.06)');
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: NB.cream }}>
-      <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: C.bg, flexDirection: 'column', gap: 12 }}>
+      <Loader2 size={32} style={{ animation: 'spin-slow 1s linear infinite', color: C.primary }} />
+      <p style={{ fontSize: '0.78rem', fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Loading ward data...</p>
     </div>
   );
 
   const score = analytics?.safety_score || 85;
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: 24, background: NB.cream, fontFamily: "'Space Grotesk', sans-serif", paddingBottom: 80 }}>
-      {/* No-ward info banner */}
+    <div style={{ flex: 1, overflowY: 'auto', padding: 24, background: C.bg, fontFamily: "'Plus Jakarta Sans', sans-serif", paddingBottom: 100 }}>
+      {/* No-ward banner */}
       {!user?.ward && (
-        <div style={{ background: '#FFF8E1', border: `2px solid ${NB.yellow}`, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', fontWeight: 600, color: '#6B6B00' }}>
-          <AlertTriangle size={16} color={NB.orange} />
-          No ward assigned to your account. Showing general area data. Contact local authority to get assigned to a ward.
+        <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 16, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', fontWeight: 600, color: '#92400E' }}>
+          <AlertTriangle size={16} color={C.moderate} />
+          No ward assigned to your account. Showing general area data. Contact local authority to get assigned.
         </div>
       )}
+
       {/* Ward Header */}
       <section className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 160px', gap: 16, marginBottom: 20 }}>
-        <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ ...clayCard, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: NB.black, margin: 0 }}>{wardData?.name || 'Your Area'}</h2>
-            <p style={{ margin: '4px 0 0', color: '#6B6B6B', fontSize: '0.8rem', fontWeight: 500 }}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: C.text, margin: 0 }}>{wardData?.name || 'Your Area'}</h2>
+            <p style={{ margin: '4px 0 0', color: C.textMuted, fontSize: '0.8rem', fontWeight: 500 }}>
               {wardData ? `Live Monitoring · ${wardData.district}, ${wardData.state}` : 'General Monitoring · All Areas'}
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <AlertPanel />
             <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', color: '#6B6B6B', margin: 0 }}>Score</p>
-              <p style={{ color: score > 80 ? NB.mint : NB.orange, fontWeight: 700, margin: '2px 0 0', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.85rem' }}>
+              <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: C.textMuted, margin: 0 }}>Score</p>
+              <p style={{ color: score > 80 ? C.safe : C.moderate, fontWeight: 700, margin: '2px 0 0', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.85rem' }}>
                 <TrendingUp size={12} /> Healthy
               </p>
             </div>
             <div style={{ position: 'relative', width: 64, height: 64 }}>
               <svg width="64" height="64" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="32" cy="32" r="26" fill="none" stroke={NB.cream} strokeWidth="7" />
-                <circle cx="32" cy="32" r="26" fill="none" stroke={score > 80 ? NB.mint : NB.orange} strokeWidth="7" strokeDasharray="163.4" strokeDashoffset={163.4 - (163.4 * score / 100)} />
+                <circle cx="32" cy="32" r="26" fill="none" stroke={C.border} strokeWidth="6" />
+                <circle cx="32" cy="32" r="26" fill="none" stroke={score > 80 ? C.safe : C.moderate} strokeWidth="6" strokeDasharray="163.4" strokeDashoffset={163.4 - (163.4 * score / 100)} strokeLinecap="round" />
               </svg>
-              <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontWeight: 800, fontSize: '0.88rem', color: NB.black }}>{score}</span>
+              <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontWeight: 800, fontSize: '0.88rem', color: C.text }}>{score}</span>
             </div>
           </div>
         </div>
-        <div style={{ background: NB.black, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Users size={24} color={NB.yellow} />
-          <p style={{ fontSize: '1.8rem', fontWeight: 800, color: NB.white, margin: 0, fontFamily: "'JetBrains Mono', monospace" }}>{analytics?.resident_count || 42}</p>
+        <div style={{ background: 'linear-gradient(135deg, #1B1D2A, #252840)', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', gap: 8, boxShadow: '6px 6px 14px rgba(27,29,42,0.10), -3px -3px 10px rgba(255,255,255,0.9)' }}>
+          <Users size={24} color={C.primary} />
+          <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#FFFFFF', margin: 0, fontFamily: "'JetBrains Mono', monospace" }}>{analytics?.resident_count || 42}</p>
           <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', margin: 0 }}>Active Circle</p>
         </div>
       </section>
 
+      {/* SOS Section */}
       <section style={{ marginBottom: 20 }}>
         {countdown > 0 ? (
-            <div style={{ background: '#FF0033', padding: '16px', border: `3px solid ${NB.black}`, color: NB.white, textAlign: 'center', animation: 'nb-pulse 1s infinite' }}>
-              <h2 style={{ fontSize: '3rem', margin: 0, fontWeight: 900 }}>{countdown}</h2>
-              <p style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Release to Cancel SOS</p>
-            </div>
+          <div style={{ background: 'linear-gradient(135deg, #EF4444, #DC2626)', padding: '20px', borderRadius: 20, color: '#FFFFFF', textAlign: 'center', boxShadow: '0 8px 30px rgba(239,68,68,0.3)', animation: 'nb-pulse 1s infinite' }}>
+            <h2 style={{ fontSize: '3rem', margin: 0, fontWeight: 900 }}>{countdown}</h2>
+            <p style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Release to Cancel SOS</p>
+          </div>
         ) : sosSuccess ? (
-            <div style={{ background: NB.black, padding: '16px', border: `3px solid ${NB.black}`, color: NB.mint, textAlign: 'center' }}>
-              <AlertTriangle size={32} style={{ margin: '0 auto 10px' }} />
-              <h3 style={{ fontSize: '1.2rem', margin: '0 0 4px', fontWeight: 800 }}>HELP DISPATCHED</h3>
-              <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700 }}>Authorities have been notified and mapped to your live location.</p>
-            </div>
+          <div style={{ background: 'linear-gradient(135deg, #1B1D2A, #252840)', padding: '20px', borderRadius: 20, color: C.safe, textAlign: 'center', boxShadow: '6px 6px 14px rgba(27,29,42,0.10), -3px -3px 10px rgba(255,255,255,0.9)' }}>
+            <Check size={32} style={{ margin: '0 auto 10px' }} />
+            <h3 style={{ fontSize: '1.2rem', margin: '0 0 4px', fontWeight: 800 }}>HELP DISPATCHED</h3>
+            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Authorities notified and mapped to your live location.</p>
+          </div>
         ) : (
-            <button
-              onMouseDown={handleSOSStart} onMouseUp={handleSOSEnd} onMouseLeave={handleSOSEnd}
-              onTouchStart={handleSOSStart} onTouchEnd={handleSOSEnd}
-              disabled={sosLoading}
-              style={{ width: '100%', padding: '20px', background: '#FF0033', border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, opacity: sosLoading ? 0.7 : 1 }}
-            >
-              <span style={{ fontWeight: 800, fontSize: '1.4rem', color: NB.white, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Hold for Emergency
-              </span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.05em' }}>
-                Hold for 3 seconds to dispatch help
-              </span>
-            </button>
+          <button
+            onMouseDown={handleSOSStart} onMouseUp={handleSOSEnd} onMouseLeave={handleSOSEnd}
+            onTouchStart={handleSOSStart} onTouchEnd={handleSOSEnd}
+            disabled={sosLoading}
+            style={{ width: '100%', padding: '20px', background: 'linear-gradient(135deg, #F87171, #EF4444)', border: 'none', borderRadius: 20, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, opacity: sosLoading ? 0.7 : 1, boxShadow: '0 8px 24px rgba(239,68,68,0.3)', transition: 'all 0.15s' }}
+          >
+            <ShieldAlert size={28} color="#FFFFFF" />
+            <span style={{ fontWeight: 800, fontSize: '1.2rem', color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Hold for Emergency</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.05em' }}>Hold for 3 seconds to dispatch help</span>
+          </button>
         )}
       </section>
 
       {/* Map Section */}
-      <section style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, height: 400, position: 'relative', overflow: 'hidden', marginBottom: 20, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ flex: 1, position: 'relative', background: '#FFFBF0' }}>
-            <TouristMap lat={userLat || wardData?.latitude} lng={userLng || wardData?.longitude} zones={zones} />
+      <section style={{ ...clayCard, height: 400, position: 'relative', overflow: 'hidden', marginBottom: 20, display: 'flex', flexDirection: 'column', padding: 0 }}>
+        <div style={{ flex: 1, position: 'relative' }}>
+          <TouristMap lat={userLat || wardData?.latitude} lng={userLng || wardData?.longitude} zones={zones} />
         </div>
-        {/* Map Legend (below map) */}
-        <div style={{ background: NB.cream, borderTop: `3px solid ${NB.black}`, padding: '10px 14px', display: 'flex', gap: 14, overflowX: 'auto' }}>
-            {[{ label: 'Safe', color: NB.mint }, { label: 'Moderate', color: NB.orange }, { label: 'Restricted', color: NB.red }].map(l => (
-                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', background: '#FFFFFF', color: '#000000', border: `1.5px solid ${NB.black}` }}>
-                  <div style={{ width: 8, height: 8, background: l.color }} />{l.label}
-                </div>
-            ))}
+        <div style={{ background: C.surfaceAlt, borderTop: `1px solid ${C.border}`, padding: '10px 14px', display: 'flex', gap: 10, overflowX: 'auto', borderRadius: '0 0 20px 20px' }}>
+          {[{ label: 'Safe', color: C.safe }, { label: 'Moderate', color: C.moderate }, { label: 'Restricted', color: C.high }].map(l => (
+            <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.65rem', fontWeight: 700, padding: '4px 10px', background: C.surface, color: C.text, borderRadius: 10, border: `1px solid ${C.border}` }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: l.color }} />{l.label}
+            </div>
+          ))}
         </div>
       </section>
 
@@ -219,47 +201,47 @@ export default function ResidentDashboard() {
       <section className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ fontWeight: 800, color: NB.black, margin: 0 }}>Recent Incidents</h3>
-            <Link to="/resident/incidents" style={{ fontSize: '0.72rem', fontWeight: 700, color: NB.blue, textDecoration: 'none', textTransform: 'uppercase' }}>View Map</Link>
+            <h3 style={{ fontWeight: 800, color: C.text, margin: 0 }}>Recent Incidents</h3>
+            <Link to="/resident/incidents" style={{ fontSize: '0.72rem', fontWeight: 700, color: C.primary, textDecoration: 'none', textTransform: 'uppercase' }}>View Map</Link>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {incidents.length > 0 ? incidents.map(inc => (
-              <div key={inc._id} style={{ background: NB.white, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, padding: '12px', display: 'flex', gap: 10, borderLeft: `5px solid ${sevColor(inc.severity)}` }}>
+              <div key={inc._id} style={{ ...clayCard, padding: '14px', display: 'flex', gap: 10, borderLeft: `4px solid ${sevColor(inc.severity)}`, background: sevBg(inc.severity) }}>
                 <AlertTriangle size={16} color={sevColor(inc.severity)} style={{ flexShrink: 0, marginTop: 2 }} />
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <h4 style={{ fontWeight: 700, color: NB.black, margin: 0, fontSize: '0.85rem' }}>{inc.title}</h4>
-                    <span style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', background: sevColor(inc.severity), color: NB.white, padding: '2px 5px' }}>{inc.severity}</span>
+                    <h4 style={{ fontWeight: 700, color: C.text, margin: 0, fontSize: '0.85rem' }}>{inc.title}</h4>
+                    <span style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', background: sevColor(inc.severity), color: '#FFFFFF', padding: '3px 8px', borderRadius: 8 }}>{inc.severity}</span>
                   </div>
-                  <p style={{ fontSize: '0.75rem', color: '#6B6B6B', margin: '3px 0 0' }}>{inc.description || 'No description.'}</p>
+                  <p style={{ fontSize: '0.75rem', color: C.textMuted, margin: '3px 0 0' }}>{inc.description || 'No description.'}</p>
                 </div>
               </div>
             )) : (
-              <div style={{ padding: '24px', textAlign: 'center', border: `2px dashed ${NB.mint}`, background: '#F0FFF8' }}>
-                <Shield size={20} color={NB.mint} style={{ margin: '0 auto 8px' }} />
-                <p style={{ fontSize: '0.82rem', color: '#6B6B6B', fontWeight: 600 }}>Ward is currently clear.</p>
+              <div style={{ padding: '24px', textAlign: 'center', border: `2px dashed rgba(52,211,153,0.3)`, borderRadius: 16, background: 'rgba(52,211,153,0.04)' }}>
+                <Shield size={20} color={C.safe} style={{ margin: '0 auto 8px' }} />
+                <p style={{ fontSize: '0.82rem', color: C.textMuted, fontWeight: 600 }}>Ward is currently clear.</p>
               </div>
             )}
           </div>
         </div>
 
         <div>
-          <h3 style={{ fontWeight: 800, color: NB.black, margin: '0 0 12px' }}>Community Vitals</h3>
-          <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}` }}>
+          <h3 style={{ fontWeight: 800, color: C.text, margin: '0 0 12px' }}>Community Vitals</h3>
+          <div style={{ ...clayCard, padding: 0, overflow: 'hidden' }}>
             {[
-              { icon: <Activity size={18} color={NB.blue} />, label: 'Police Patrol Frequency', sub: 'Community verified', value: 'High', trend: '+12%', tc: NB.mint },
-              { icon: <Layers size={18} color={NB.orange} />, label: 'Street Light Coverage', sub: 'Status: Operational', value: '94%', trend: 'Check-in due', tc: '#9A9A9A' },
+              { icon: <Activity size={18} color={C.primary} />, label: 'Police Patrol Frequency', sub: 'Community verified', value: 'High', trend: '+12%', tc: C.safe },
+              { icon: <Layers size={18} color={C.moderate} />, label: 'Street Light Coverage', sub: 'Status: Operational', value: '94%', trend: 'Check-in due', tc: C.textMuted },
             ].map((item, i) => (
-              <div key={i} style={{ padding: '14px 16px', display: 'flex', justifyContent: 'space-between', borderBottom: i === 0 ? `2px solid ${NB.cream}` : 'none' }}>
+              <div key={i} style={{ padding: '16px 18px', display: 'flex', justifyContent: 'space-between', borderBottom: i === 0 ? `1px solid ${C.border}` : 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 34, height: 34, background: NB.cream, border: `2px solid ${NB.black}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</div>
+                  <div style={{ width: 38, height: 38, background: C.surfaceAlt, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '2px 2px 4px rgba(27,29,42,0.06), -1px -1px 3px rgba(255,255,255,0.8)' }}>{item.icon}</div>
                   <div>
-                    <p style={{ fontWeight: 700, color: NB.black, margin: 0, fontSize: '0.85rem' }}>{item.label}</p>
-                    <p style={{ fontSize: '0.7rem', color: '#6B6B6B', margin: 0 }}>{item.sub}</p>
+                    <p style={{ fontWeight: 700, color: C.text, margin: 0, fontSize: '0.85rem' }}>{item.label}</p>
+                    <p style={{ fontSize: '0.7rem', color: C.textMuted, margin: 0 }}>{item.sub}</p>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <p style={{ fontWeight: 800, color: NB.black, margin: 0 }}>{item.value}</p>
+                  <p style={{ fontWeight: 800, color: C.text, margin: 0 }}>{item.value}</p>
                   <p style={{ fontSize: '0.65rem', color: item.tc, fontWeight: 700, margin: 0 }}>{item.trend}</p>
                 </div>
               </div>
@@ -268,7 +250,8 @@ export default function ResidentDashboard() {
         </div>
       </section>
 
-      <Link to="/resident/report" style={{ position: 'fixed', bottom: 80, right: 24, background: NB.red, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, width: 52, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: NB.white, zIndex: 30 }}>
+      {/* Report FAB */}
+      <Link to="/resident/report" style={{ position: 'fixed', bottom: 80, right: 24, background: 'linear-gradient(135deg, #F87171, #EF4444)', borderRadius: '50%', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: '#FFFFFF', zIndex: 30, boxShadow: '0 8px 24px rgba(248,113,113,0.3)' }}>
         <Plus size={24} />
       </Link>
     </div>
