@@ -295,6 +295,37 @@ export default function AuthorityDashboard() {
                     ))}
                 </div>
 
+                {/* Live Monitoring Panel */}
+                <div className="responsive-container" style={{ padding: '16px 28px 0' }}>
+                    <div style={{ ...clayCard, padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                        <div>
+                            <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.textMuted }}>Live Monitoring</p>
+                            <h3 style={{ margin: '4px 0 0', fontWeight: 800, color: C.text, fontSize: '1rem' }}>Authority Command Live Map</h3>
+                            <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: C.textMuted }}>Tracking {Object.keys(userLocations).length} live devices across zones.</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button
+                                onClick={() => {
+                                    setFilteredUser(null);
+                                    setFocusLocation(null);
+                                }}
+                                style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '8px 14px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', color: C.text }}
+                            >
+                                Reset View
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const first = Object.values(userLocations)[0];
+                                    if (first) setFocusLocation({ lat: first.lat, lng: first.lng });
+                                }}
+                                style={{ background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', border: 'none', borderRadius: 12, padding: '8px 14px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', color: '#FFFFFF', boxShadow: '0 6px 12px rgba(108,99,255,0.25)' }}
+                            >
+                                Focus Live
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Map */}
                 <div className="responsive-container" style={{ padding: '20px 28px 0', flex: 1, position: 'relative', minHeight: 420 }}>
                     <div style={{ ...clayCard, overflow: 'hidden', height: 420, position: 'relative', padding: 0 }}>
