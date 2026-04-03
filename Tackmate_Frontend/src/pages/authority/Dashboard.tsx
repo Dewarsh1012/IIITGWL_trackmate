@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import api from '../../lib/api';
@@ -47,6 +48,7 @@ const getSeverityStyle = (sev: string): React.CSSProperties => {
 export default function AuthorityDashboard() {
     const { user } = useAuth();
     const { socket } = useSocket();
+    const navigate = useNavigate();
     const [incidents, setIncidents] = useState<any[]>([]);
     const [summary, setSummary] = useState({ totalUsers: 0, openIncidents: 0, sosLastHour: 0, activeUsersToday: 0, totalTourists: 0, totalResidents: 0, totalBusinesses: 0 });
     const [loading, setLoading] = useState(true);
@@ -429,8 +431,8 @@ export default function AuthorityDashboard() {
                                                     <p style={{ fontWeight: 700, color: C.text, margin: 0, fontSize: '0.88rem' }}>{incident.title}</p>
                                                     <p style={{ fontSize: '0.72rem', color: C.textMuted, margin: 0, fontWeight: 500 }}>{incident.zone?.name || 'Unknown Location'}</p>
                                                 </td>
-                                                <td>
-                                                    <p style={{ fontWeight: 600, color: C.text, margin: 0, fontSize: '0.85rem' }}>{incident.reporter?.full_name || 'System'}</p>
+                                                <td onClick={e => { e.stopPropagation(); if (incident.reporter?._id) navigate(`/authority/user/${incident.reporter._id}`); }} style={{ cursor: incident.reporter?._id ? 'pointer' : 'default' }}>
+                                                    <p style={{ fontWeight: 600, color: incident.reporter?._id ? C.primary : C.text, margin: 0, fontSize: '0.85rem', textDecoration: incident.reporter?._id ? 'underline' : 'none' }}>{incident.reporter?.full_name || 'System'}</p>
                                                     <p style={{ fontSize: '0.7rem', color: C.primary, margin: 0, fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }}>{incident.reporter?.blockchain_id || 'LOCAL-AI'}</p>
                                                 </td>
                                                 <td>

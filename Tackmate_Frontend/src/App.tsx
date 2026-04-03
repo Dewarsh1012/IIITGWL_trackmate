@@ -22,6 +22,7 @@ import AuthorityIncidents from './pages/authority/Incidents';
 import AuthorityRosters from './pages/authority/AuthorityRosters';
 import AuthorityZones from './pages/authority/ZoneManagement';
 import AlertComposer from './pages/authority/AlertComposer';
+import UserDetail from './pages/authority/UserDetail';
 
 export default function App() {
   return (
@@ -86,6 +87,7 @@ export default function App() {
                     <Route path="efir" element={<AuthorityEfir />} />
                     <Route path="analytics" element={<AuthorityAnalytics />} />
                     <Route path="alerts" element={<AlertComposer />} />
+                    <Route path="user/:userId" element={<UserDetail />} />
                     <Route path="*" element={<Navigate to="dashboard" replace />} />
                   </Routes>
                 </div>
