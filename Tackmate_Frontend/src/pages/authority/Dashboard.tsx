@@ -238,43 +238,46 @@ export default function AuthorityDashboard() {
                     </div>
                 </div>
 
-                {/* Emergency Alerts */}
-                {emergencyAlerts.map(alert => (
-                    <div key={`sos-${alert._id}`} className="responsive-container" style={{
-                        margin: '16px 28px 0',
-                        background: 'linear-gradient(135deg, #EF4444, #DC2626)',
-                        borderRadius: 20,
-                        boxShadow: '0 8px 30px rgba(239,68,68,0.3)',
-                        padding: '18px 22px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        animation: 'nb-shake 0.5s ease-in-out infinite alternate'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                            <div style={{ background: 'rgba(255,255,255,0.2)', padding: 10, borderRadius: 16 }}>
-                                <AlertTriangle size={28} color="#FFFFFF" />
+                {/* Emergency Alerts Navbar Banner */}
+                {emergencyAlerts.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                        {emergencyAlerts.map(alert => (
+                            <div key={`sos-${alert._id}`} className="responsive-container" style={{
+                                width: '100%',
+                                background: 'linear-gradient(135deg, #EF4444, #DC2626)',
+                                padding: '14px 28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                animation: 'nb-pulse 1.5s infinite',
+                                borderBottom: '2px solid #B91C1C',
+                                boxShadow: '0 4px 12px rgba(239,68,68,0.3)',
+                                zIndex: 900
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                                    <AlertTriangle size={24} color="#FFFFFF" strokeWidth={2.5} />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <h2 style={{ color: '#FFFFFF', fontWeight: 900, margin: 0, fontSize: '1rem', letterSpacing: '0.04em' }}>EMERGENCY: {alert.title}</h2>
+                                        <span style={{ color: '#FFFFFF', fontWeight: 600, fontSize: '0.85rem', paddingLeft: 12, borderLeft: '1px solid rgba(255,255,255,0.3)' }}>
+                                            Reporter: {alert.reporter?.full_name || 'Unknown'} | Zone: {alert.zone?.name || 'Unknown'} | Loc: {alert.latitude?.toFixed(4)}, {alert.longitude?.toFixed(4)}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: 12 }}>
+                                    <button onClick={() => setFocusLocation({ lat: alert.latitude, lng: alert.longitude })} style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 10, padding: '8px 16px', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer', color: '#FFFFFF', fontSize: '0.8rem', transition: 'all 0.2s' }}>
+                                        Track Location
+                                    </button>
+                                    <button onClick={() => {
+                                        setEmergencyAlerts(prev => prev.filter(a => a._id !== alert._id));
+                                        handleUpdateIncident(alert._id, 'acknowledged');
+                                    }} style={{ background: '#FFFFFF', border: 'none', borderRadius: 10, padding: '8px 16px', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer', color: C.critical, fontSize: '0.8rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', transition: 'all 0.2s' }}>
+                                        Acknowledge
+                                    </button>
+                                </div>
                             </div>
-                            <div>
-                                <h2 style={{ color: '#FFFFFF', fontWeight: 800, margin: 0, fontSize: '1.1rem' }}>EMERGENCY: {alert.title}</h2>
-                                <p style={{ color: 'rgba(255,255,255,0.85)', margin: '4px 0 0', fontWeight: 600, fontSize: '0.82rem' }}>
-                                    Reporter: {alert.reporter?.full_name || 'Unknown'} | Location: {alert.zone?.name || 'Unknown Zone'} | Coordinates: {alert.latitude?.toFixed(4)}, {alert.longitude?.toFixed(4)}
-                                </p>
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 10 }}>
-                            <button onClick={() => setFocusLocation({ lat: alert.latitude, lng: alert.longitude })} style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 14, padding: '10px 18px', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer', color: '#FFFFFF', fontSize: '0.82rem' }}>
-                                View on Map
-                            </button>
-                            <button onClick={() => {
-                                setEmergencyAlerts(prev => prev.filter(a => a._id !== alert._id));
-                                handleUpdateIncident(alert._id, 'acknowledged');
-                            }} style={{ background: '#FFFFFF', border: 'none', borderRadius: 14, padding: '10px 18px', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer', color: C.critical, fontSize: '0.82rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                                Acknowledge
-                            </button>
-                        </div>
+                        ))}
                     </div>
-                ))}
+                )}
 
                 {notice && (
                     <div style={{ margin: '16px 28px 0', background: notice.type === 'success' ? 'rgba(52,211,153,0.08)' : 'rgba(248,113,113,0.08)', border: `1px solid ${notice.type === 'success' ? C.safe : C.high}30`, borderRadius: 14, padding: '12px 16px', fontSize: '0.82rem', fontWeight: 700, color: notice.type === 'success' ? '#059669' : '#DC2626' }}>

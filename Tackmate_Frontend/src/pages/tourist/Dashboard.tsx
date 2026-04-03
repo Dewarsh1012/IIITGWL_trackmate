@@ -422,10 +422,10 @@ export default function TouristDashboard() {
                     <button onMouseDown={handleSOSStart} onMouseUp={handleSOSEnd} onMouseLeave={handleSOSEnd} onTouchStart={handleSOSStart} onTouchEnd={handleSOSEnd}
                         style={{ width: 80, height: 80, background: 'linear-gradient(135deg, #F87171, #EF4444)', border: 'none', borderRadius: '50%', boxShadow: countdown > 0 ? '0 0 0 10px rgba(239,68,68,0.3), 0 8px 24px rgba(239,68,68,0.4)' : '0 8px 24px rgba(239,68,68,0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', color: '#FFFFFF', transform: countdown > 0 ? 'scale(1.1)' : undefined, transition: 'all 0.2s', outline: 'none', animation: countdown === 0 ? 'pulse-glow 2s ease-in-out infinite' : undefined }}
                     >
-                        {sosLoading ? <Loader2 size={28} style={{ animation: 'spin-slow 1s linear infinite' }} /> : countdown > 0 ? <span style={{ fontSize: '1.8rem', fontWeight: 800 }}>{countdown}</span> : <><ShieldAlert size={28} /><span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase' }}>Hold SOS</span></>}
+                        {sosLoading ? <Loader2 size={28} style={{ animation: 'spin-slow 1s linear infinite' }} /> : countdown > 0 ? <span style={{ fontSize: '1.8rem', fontWeight: 800 }}>{countdown}</span> : <><ShieldAlert size={28} /><span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase' }}>Hold 3s</span></>}
                     </button>
                 )}
-                {countdown > 0 && <div style={{ position: 'absolute', top: 10, right: '110%', whiteSpace: 'nowrap', background: 'linear-gradient(135deg, #F87171, #EF4444)', color: '#FFFFFF', borderRadius: 12, padding: '8px 16px', fontWeight: 800, fontSize: '0.78rem', boxShadow: '0 4px 12px rgba(239,68,68,0.3)' }}>TRANSMITTING IN {countdown}s...</div>}
+                {countdown > 0 && <div style={{ position: 'absolute', top: 10, right: '110%', whiteSpace: 'nowrap', background: 'linear-gradient(135deg, #F87171, #EF4444)', color: '#FFFFFF', borderRadius: 12, padding: '8px 16px', fontWeight: 800, fontSize: '0.78rem', boxShadow: '0 4px 12px rgba(239,68,68,0.3)' }}>HOLDING ({countdown}s)</div>}
             </div>
 
             {/* Report Modal */}
