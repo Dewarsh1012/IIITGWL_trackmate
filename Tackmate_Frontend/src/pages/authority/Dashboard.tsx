@@ -32,6 +32,7 @@ export default function AuthorityDashboard() {
     const [filteredUser, setFilteredUser] = useState<string | null>(null);
     const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [drawColor, setDrawColor] = useState(NB.red);
+    const [emergencyAlerts, setEmergencyAlerts] = useState<any[]>([]);
 
     const fetchDashboardData = async () => {
         setLoading(true);
@@ -70,6 +71,11 @@ export default function AuthorityDashboard() {
         const interval = setInterval(fetchDashboardData, 60000);
         if (socket) {
             socket.on('new-incident', (incident: any) => { setIncidents(prev => [incident, ...prev.slice(0, 9)]); fetchDashboardData(); });
+            socket.on('sos:triggered', (incident: any) => { 
+                setEmergencyAlerts(prev => [incident, ...prev]); 
+                setIncidents(prev => [incident, ...prev.slice(0, 9)]); 
+                fetchDashboardData(); 
+            });
             socket.on('location:update', (data: any) => {
                 // Handle both flattened and nested location data
                 const lat = data.latitude || (data.location?.coordinates && data.location.coordinates[1]);
@@ -89,7 +95,7 @@ export default function AuthorityDashboard() {
                 }
             });
         }
-        return () => { clearInterval(interval); if (socket) { socket.off('new-incident'); socket.off('location:update'); } };
+        return () => { clearInterval(interval); if (socket) { socket.off('new-incident'); socket.off('sos:triggered'); socket.off('location:update'); } };
     }, [socket]);
 
     const handleUpdateIncident = async (id: string, status: string) => {
@@ -192,6 +198,46 @@ export default function AuthorityDashboard() {
                         </button>
                     </div>
                 </div>
+
+                {emergencyAlerts.map(alert => (
+                    <div key={`sos-${alert._id}`} className="responsive-container" style={{
+                        margin: '16px 28px 0',
+                        background: '#FF0033', // Deep critical red
+                        border: `4px solid ${NB.black}`,
+                        boxShadow: `6px 6px 0 ${NB.black}`,
+                        padding: '16px 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        animation: 'nb-shake 0.5s ease-in-out infinite alternate'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <div style={{ background: NB.white, color: '#FF0033', padding: '8px', border: `3px solid ${NB.black}`, borderRadius: '50%' }}>
+                                <AlertTriangle size={32} />
+                            </div>
+                            <div>
+                                <h2 style={{ color: NB.white, fontWeight: 800, margin: 0, textTransform: 'uppercase', fontSize: '1.2rem', letterSpacing: '0.05em' }}>EMERGENCY: {alert.title}</h2>
+                                <p style={{ color: 'rgba(255,255,255,0.9)', margin: '4px 0 0', fontWeight: 600, fontSize: '0.85rem' }}>
+                                    Reporter: {alert.reporter?.full_name || 'Unknown'} | Location: {alert.zone?.name || 'Unknown Zone'} | Coordinates: {alert.latitude?.toFixed(4)}, {alert.longitude?.toFixed(4)}
+                                </p>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button onClick={() => {
+                                setFocusLocation({ lat: alert.latitude, lng: alert.longitude });
+                            }} style={{ background: NB.yellow, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, padding: '10px 16px', fontFamily: 'inherit', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', color: NB.black }}>
+                                View on Map
+                            </button>
+                            <button onClick={() => {
+                                setEmergencyAlerts(prev => prev.filter(a => a._id !== alert._id));
+                                handleUpdateIncident(alert._id, 'acknowledged');
+                            }} style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, padding: '10px 16px', fontFamily: 'inherit', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', color: NB.black }}>
+                                Acknowledge
+                            </button>
+                        </div>
+                    </div>
+                ))}
+
 
                 {notice && (
                     <div style={{ margin: '16px 28px 0', background: notice.type === 'success' ? NB.mint : '#FFF0F0', border: `3px solid ${notice.type === 'success' ? NB.black : NB.red}`, boxShadow: `3px 3px 0 ${NB.black}`, padding: '10px 14px', fontSize: '0.82rem', fontWeight: 700, color: notice.type === 'success' ? NB.black : NB.red }}>
