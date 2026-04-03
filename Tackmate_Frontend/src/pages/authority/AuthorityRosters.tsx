@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle, Loader2, AlertTriangle, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../lib/api';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import AuthoritySidebar from '../../components/layout/AuthoritySidebar';
 
 const C = {
@@ -32,6 +32,7 @@ const clayCard: React.CSSProperties = {
 export default function AuthorityRosters() {
     const { } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
     const pathPart = location.pathname.split('/').pop() || 'tourists';
     const roleMap: Record<string, string> = { tourists: 'tourist', residents: 'resident', businesses: 'business' };
     const role = roleMap[pathPart] || 'tourist';
@@ -96,7 +97,7 @@ export default function AuthorityRosters() {
                                 {filteredProfiles.length === 0 ? (
                                     <tr><td colSpan={5} style={{ textAlign: 'center', padding: '36px', color: C.textMuted, fontWeight: 600 }}>No {role} accounts found in the database.</td></tr>
                                 ) : filteredProfiles.map(p => (
-                                    <tr key={p._id}>
+                                    <tr key={p._id} onClick={() => navigate(`/authority/user/${p._id}`)} style={{ cursor: 'pointer', transition: 'background 0.1s' }} onMouseEnter={e => (e.currentTarget.style.background = `${roleAccent}11`)} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                                 <div style={{ width: 36, height: 36, background: `${roleAccent}22`, border: `1px solid ${C.border}`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.95rem', color: C.text, borderRadius: 12 }}>
