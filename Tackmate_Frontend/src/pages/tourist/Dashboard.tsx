@@ -216,6 +216,23 @@ export default function TouristDashboard() {
           <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.cream, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ fontWeight: 800, color: NB.black, margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}><MapIcon size={16} /> Live Safety GIS</h3>
             <div style={{ display: 'flex', gap: 8 }}>
+              <button 
+                onClick={() => {
+                  setToast({ message: 'Fetching location...', type: 'info' });
+                  navigator.geolocation.getCurrentPosition(
+                    (pos) => { 
+                      setUserLat(pos.coords.latitude); 
+                      setUserLng(pos.coords.longitude); 
+                      setToast({ message: 'Location updated', type: 'success' });
+                    },
+                    (err) => setToast({ message: 'Location access denied or unavailable', type: 'error' }),
+                    { enableHighAccuracy: true }
+                  );
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', background: NB.blue, color: NB.white, border: `1.5px solid ${NB.black}`, cursor: 'pointer' }}
+              >
+                <NearMe size={10} /> Locate Me
+              </button>
               {[{ label: 'Safe', color: NB.mint }, { label: 'Moderate', color: NB.orange }, { label: 'Restricted', color: NB.red }].map(l => (
                 <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', background: '#FFFFFF', color: '#000000', border: `1.5px solid ${NB.black}` }}>
                   <div style={{ width: 8, height: 8, background: l.color }} />{l.label}
