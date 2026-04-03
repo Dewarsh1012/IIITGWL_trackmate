@@ -29,7 +29,8 @@ export default function ResidentReport() {
                 severity: 'medium',
                 latitude: lat,
                 longitude: lng,
-                source: 'user_app'
+                source: 'resident_report',
+                is_public: true,
             });
             navigate('/resident/dashboard');
         } catch (err) {

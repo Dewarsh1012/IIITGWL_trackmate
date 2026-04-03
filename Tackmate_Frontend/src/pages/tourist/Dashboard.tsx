@@ -13,7 +13,39 @@ import {
 } from 'lucide-react';
 import AlertPanel from '../../components/alerts/AlertPanel';
 
-const NB = { black: '#FFFBF0', yellow: '#FFE500', red: '#FF3B3B', blue: '#2B6FFF', mint: '#00D084', orange: '#FF7A00', cream: '#0A0A0A', white: '#111111' };
+/* ── Clay color palette (correct) ── */
+const C = {
+  bg: '#F0EDFA',
+  surface: '#FFFFFF',
+  surfaceAlt: '#F7F5FF',
+  dark: '#1B1D2A',
+  text: '#1B1D2A',
+  textSecondary: '#4A4D68',
+  textMuted: '#8B8FA8',
+  primary: '#6C63FF',
+  primaryLight: '#8B85FF',
+  accent: '#FF6B8A',
+  safe: '#34D399',
+  moderate: '#FBBF24',
+  high: '#F87171',
+  restricted: '#A78BFA',
+  critical: '#EF4444',
+  border: 'rgba(27,29,42,0.08)',
+};
+
+const clayCard: React.CSSProperties = {
+  background: C.surface,
+  borderRadius: 20,
+  border: `1px solid ${C.border}`,
+  boxShadow: '6px 6px 14px rgba(27,29,42,0.10), -3px -3px 10px rgba(255,255,255,0.9)',
+};
+
+const clayCardInner: React.CSSProperties = {
+  background: C.surfaceAlt,
+  borderRadius: 14,
+  border: `1px solid ${C.border}`,
+  boxShadow: 'inset 3px 3px 6px rgba(27,29,42,0.06), inset -2px -2px 4px rgba(255,255,255,0.8)',
+};
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371000; const toRad = (d: number) => (d * Math.PI) / 180;
@@ -22,29 +54,29 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function NBToast({ message, type, onClose }: { message: string; type: 'success' | 'error' | 'info'; onClose: () => void }) {
+function ClayToast({ message, type, onClose }: { message: string; type: 'success' | 'error' | 'info'; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, [onClose]);
-  const bg = type === 'success' ? NB.mint : type === 'error' ? NB.red : NB.blue;
+  const bg = type === 'success' ? 'linear-gradient(135deg, #34D399, #2DD4BF)' : type === 'error' ? 'linear-gradient(135deg, #F87171, #EF4444)' : 'linear-gradient(135deg, #6C63FF, #8B85FF)';
   return (
-    <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: bg, color: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '0.88rem' }}>
+    <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: bg, color: '#FFFFFF', borderRadius: 16, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: '14px 22px', display: 'flex', alignItems: 'center', gap: 10, fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: '0.88rem', animation: 'clay-slide-up 0.3s ease-out' }}>
       {type === 'success' ? <Check size={16} /> : type === 'error' ? <X size={16} /> : <Radio size={16} />}
       {message}
-      <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', marginLeft: 8 }}><X size={12} /></button>
+      <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.25)', border: 'none', color: '#FFF', cursor: 'pointer', borderRadius: 8, padding: '2px 6px', marginLeft: 8 }}><X size={12} /></button>
     </div>
   );
 }
 
-function NBModal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+function ClayModal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} />
-      <div style={{ position: 'relative', width: '100%', maxWidth: 484, background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `6px 6px 0 ${NB.black}`, fontFamily: "'Space Grotesk', sans-serif" }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `3px solid ${NB.black}`, background: NB.yellow }}>
-          <h3 style={{ fontWeight: 800, color: NB.black, margin: 0, fontSize: '1rem' }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(27,29,42,0.4)', backdropFilter: 'blur(4px)' }} />
+      <div style={{ position: 'relative', width: '100%', maxWidth: 484, background: C.surface, borderRadius: 24, boxShadow: '0 20px 60px rgba(27,29,42,0.2)', fontFamily: "'Plus Jakarta Sans', sans-serif", overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: `1px solid ${C.border}`, background: 'linear-gradient(135deg, rgba(108,99,255,0.08), rgba(139,133,255,0.04))' }}>
+          <h3 style={{ fontWeight: 800, color: C.text, margin: 0, fontSize: '1rem' }}>{title}</h3>
+          <button onClick={onClose} style={{ background: C.surfaceAlt, border: 'none', cursor: 'pointer', borderRadius: 10, padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} color={C.textMuted} /></button>
         </div>
-        <div style={{ padding: '20px' }}>{children}</div>
+        <div style={{ padding: 24 }}>{children}</div>
       </div>
     </div>
   );
@@ -74,8 +106,7 @@ export default function TouristDashboard() {
   const [updateTripModalOpen, setUpdateTripModalOpen] = useState(false);
   const [iotModalOpen, setIotModalOpen] = useState(false);
 
-  // ── GPS tracking ─────────────────────────────────────────────────────
-
+  /* ── GPS tracking ── */
   useEffect(() => {
     if ('geolocation' in navigator) {
       watchIdRef.current = navigator.geolocation.watchPosition(
@@ -87,7 +118,7 @@ export default function TouristDashboard() {
     return () => { if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current); };
   }, []);
 
-  // Emit location via socket every 5 seconds for live tracking
+  /* Emit location via socket every 5s */
   useEffect(() => {
     if (!socket || !user || !userLat || !userLng) return;
     const interval = setInterval(() => {
@@ -96,7 +127,7 @@ export default function TouristDashboard() {
     return () => clearInterval(interval);
   }, [socket, user, userLat, userLng]);
 
-  // Listen for zone alerts from backend
+  /* Zone alerts from backend */
   useEffect(() => {
     if (!socket) return;
     const handleZoneAlert = (data: any) => {
@@ -160,9 +191,7 @@ export default function TouristDashboard() {
   const handleSOSStart = () => {
     if (sosIntervalRef.current) clearInterval(sosIntervalRef.current);
     setCountdown(3);
-    sosIntervalRef.current = setInterval(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
+    sosIntervalRef.current = setInterval(() => { setCountdown((prev) => prev - 1); }, 1000);
   };
 
   const handleSOSEnd = () => { 
@@ -188,54 +217,49 @@ export default function TouristDashboard() {
   };
 
   const filteredZones = searchQuery.trim() ? zones.filter(z => z.name.toLowerCase().includes(searchQuery.toLowerCase())) : zones;
-
   const safetyScore = user?.safety_score ?? 85;
 
   return (
-    <div style={{ background: NB.cream, minHeight: '100vh', fontFamily: "'Space Grotesk', sans-serif", padding: '0 0 80px' }}>
-      {toast && <NBToast {...toast} onClose={() => setToast(null)} />}
+    <div style={{ background: C.bg, minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', sans-serif", padding: '0 0 80px' }}>
+      {toast && <ClayToast {...toast} onClose={() => setToast(null)} />}
 
       {/* Safety Banner */}
-      <div className="top-header responsive-container" style={{ background: NB.black, borderBottom: `3px solid ${NB.black}`, padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 36, height: 36, background: NB.mint, border: `2px solid ${NB.mint}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Shield size={20} color={NB.black} /></div>
+      <div className="top-header responsive-container" style={{ background: 'linear-gradient(135deg, #1B1D2A, #252840)', borderBottom: 'none', padding: '16px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg, #34D399, #2DD4BF)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(52,211,153,0.3)' }}><Shield size={20} color="#FFFFFF" /></div>
           <div>
-            <h2 style={{ color: NB.white, fontWeight: 800, fontSize: '0.95rem', margin: 0 }}>System Protected — Monitoring Active</h2>
+            <h2 style={{ color: '#FFFFFF', fontWeight: 800, fontSize: '0.95rem', margin: 0 }}>System Protected — Monitoring Active</h2>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', margin: 0, fontWeight: 500 }}>Your location is being monitored by {activeTrip?.destination_region || 'local authorities'}.</p>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <AlertPanel />
-          <div style={{ background: NB.yellow, border: `2px solid ${NB.yellow}`, padding: '6px 14px', fontWeight: 800, fontSize: '0.78rem', textTransform: 'uppercase', color: '#000000' }}>Safety Score: {safetyScore}%</div>
+          <div style={{ background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', borderRadius: 12, padding: '8px 16px', fontWeight: 700, fontSize: '0.78rem', color: '#FFFFFF', boxShadow: '0 4px 12px rgba(108,99,255,0.3)' }}>Safety Score: {safetyScore}%</div>
         </div>
       </div>
 
       <div className="responsive-grid responsive-container" style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 20, padding: '20px 24px', maxWidth: 1440, margin: '0 auto' }}>
         {/* Map column */}
-        <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, overflow: 'hidden', minHeight: 600, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.cream, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontWeight: 800, color: NB.black, margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}><MapIcon size={16} /> Live Safety GIS</h3>
+        <div style={{ ...clayCard, overflow: 'hidden', minHeight: 600, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, background: C.surfaceAlt, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '20px 20px 0 0' }}>
+            <h3 style={{ fontWeight: 800, color: C.text, margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}><MapIcon size={16} color={C.primary} /> Live Safety GIS</h3>
             <div style={{ display: 'flex', gap: 8 }}>
               <button 
                 onClick={() => {
                   setToast({ message: 'Fetching location...', type: 'info' });
                   navigator.geolocation.getCurrentPosition(
-                    (pos) => { 
-                      setUserLat(pos.coords.latitude); 
-                      setUserLng(pos.coords.longitude); 
-                      setToast({ message: 'Location updated', type: 'success' });
-                    },
-                    (err) => setToast({ message: 'Location access denied or unavailable', type: 'error' }),
+                    (pos) => { setUserLat(pos.coords.latitude); setUserLng(pos.coords.longitude); setToast({ message: 'Location updated', type: 'success' }); },
+                    () => setToast({ message: 'Location access denied or unavailable', type: 'error' }),
                     { enableHighAccuracy: true }
                   );
                 }}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', background: NB.blue, color: NB.white, border: `1.5px solid ${NB.black}`, cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.68rem', fontWeight: 700, padding: '5px 12px', background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', color: '#FFFFFF', border: 'none', cursor: 'pointer', borderRadius: 10, boxShadow: '0 2px 8px rgba(108,99,255,0.25)' }}
               >
                 <NearMe size={10} /> Locate Me
               </button>
-              {[{ label: 'Safe', color: NB.mint }, { label: 'Moderate', color: NB.orange }, { label: 'Restricted', color: NB.red }].map(l => (
-                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', background: '#FFFFFF', color: '#000000', border: `1.5px solid ${NB.black}` }}>
-                  <div style={{ width: 8, height: 8, background: l.color }} />{l.label}
+              {[{ label: 'Safe', color: C.safe }, { label: 'Moderate', color: C.moderate }, { label: 'Restricted', color: C.high }].map(l => (
+                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.65rem', fontWeight: 700, padding: '5px 10px', background: C.surfaceAlt, color: C.text, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: l.color }} />{l.label}
                 </div>
               ))}
             </div>
@@ -245,15 +269,15 @@ export default function TouristDashboard() {
             {/* Search */}
             <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 100, width: 260 }}>
               <div style={{ position: 'relative' }}>
-                <MapPin size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: NB.black }} />
-                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search zones..." style={{ width: '100%', padding: '9px 12px 9px 30px', background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, fontFamily: "'Space Grotesk', sans-serif", fontSize: '0.8rem', fontWeight: 600, outline: 'none' }} />
+                <MapPin size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.textMuted }} />
+                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search zones..." style={{ width: '100%', padding: '10px 14px 10px 32px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: '0 4px 12px rgba(27,29,42,0.08)', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '0.82rem', fontWeight: 600, outline: 'none', color: C.text }} />
               </div>
               {searchQuery.trim() && filteredZones.length > 0 && (
-                <div style={{ background: NB.white, border: `2px solid ${NB.black}`, borderTop: 'none', maxHeight: 180, overflowY: 'auto' }}>
+                <div style={{ background: C.surface, borderRadius: '0 0 14px 14px', border: `1px solid ${C.border}`, borderTop: 'none', maxHeight: 180, overflowY: 'auto', boxShadow: '0 4px 12px rgba(27,29,42,0.08)' }}>
                   {filteredZones.map(zone => (
-                    <button key={zone._id} onClick={() => { setHighlightZoneId(zone._id); setSearchQuery(''); setTimeout(() => setHighlightZoneId(null), 8000); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', borderBottom: `1px solid ${NB.cream}`, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontFamily: 'inherit' }}>
-                      <div style={{ width: 8, height: 8, background: zone.risk_level === 'safe' ? NB.mint : zone.risk_level === 'moderate' ? NB.orange : NB.red }} />
-                      <span style={{ fontWeight: 600, fontSize: '0.82rem' }}>{zone.name}</span>
+                    <button key={zone._id} onClick={() => { setHighlightZoneId(zone._id); setSearchQuery(''); setTimeout(() => setHighlightZoneId(null), 8000); }} style={{ width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: zone.risk_level === 'safe' ? C.safe : zone.risk_level === 'moderate' ? C.moderate : C.high }} />
+                      <span style={{ fontWeight: 600, fontSize: '0.82rem', color: C.text }}>{zone.name}</span>
                     </button>
                   ))}
                 </div>
@@ -265,27 +289,27 @@ export default function TouristDashboard() {
         {/* Info column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Trip info */}
-          <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, overflow: 'hidden' }}>
-            <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.yellow, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Calendar size={15} color="#000000" /><h3 style={{ fontWeight: 800, color: '#000000', margin: 0, fontSize: '0.88rem' }}>Active Itinerary</h3>
+          <div style={{ ...clayCard, overflow: 'hidden', padding: 0 }}>
+            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, background: 'linear-gradient(135deg, rgba(108,99,255,0.08), rgba(139,133,255,0.04))', display: 'flex', alignItems: 'center', gap: 8, borderRadius: '20px 20px 0 0' }}>
+              <Calendar size={15} color={C.primary} /><h3 style={{ fontWeight: 800, color: C.text, margin: 0, fontSize: '0.88rem' }}>Active Itinerary</h3>
             </div>
-            <div style={{ padding: '16px' }}>
+            <div style={{ padding: 18 }}>
               {activeTrip ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', background: NB.cream, padding: '10px 12px', border: `2px solid ${NB.black}` }}>
-                    <div><p style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', margin: 0 }}>Destination</p><p style={{ fontWeight: 700, color: NB.black, margin: '2px 0 0', fontSize: '0.9rem' }}>{activeTrip.destination_region}</p></div>
-                    <div style={{ textAlign: 'right' }}><p style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', margin: 0 }}>Duration</p><p style={{ fontWeight: 700, color: NB.black, margin: '2px 0 0', fontSize: '0.78rem' }}>{new Date(activeTrip.start_date).toLocaleDateString()} – {new Date(activeTrip.end_date).toLocaleDateString()}</p></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', ...clayCardInner, padding: '12px 14px' }}>
+                    <div><p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, margin: 0 }}>Destination</p><p style={{ fontWeight: 700, color: C.text, margin: '2px 0 0', fontSize: '0.9rem' }}>{activeTrip.destination_region}</p></div>
+                    <div style={{ textAlign: 'right' }}><p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, margin: 0 }}>Duration</p><p style={{ fontWeight: 600, color: C.text, margin: '2px 0 0', fontSize: '0.78rem' }}>{new Date(activeTrip.start_date).toLocaleDateString()} – {new Date(activeTrip.end_date).toLocaleDateString()}</p></div>
                   </div>
-                  {verifyResult && <div style={{ padding: '10px 12px', background: '#E8F5FF', border: `2px solid ${NB.blue}`, fontSize: '0.82rem', fontWeight: 600, color: NB.blue }}>{verifyResult}</div>}
+                  {verifyResult && <div style={{ padding: '10px 14px', background: 'rgba(108,99,255,0.06)', borderRadius: 12, border: `1px solid rgba(108,99,255,0.15)`, fontSize: '0.82rem', fontWeight: 600, color: C.primary }}>{verifyResult}</div>}
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => setUpdateTripModalOpen(true)} style={{ flex: 1, padding: '9px', background: NB.yellow, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase', color: '#000000' }}>Update Plan</button>
-                    <button onClick={handleVerifyStay} style={{ flex: 1, padding: '9px', background: NB.cream, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase' }}>Verify Stay</button>
+                    <button onClick={() => setUpdateTripModalOpen(true)} style={{ flex: 1, padding: 10, background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', border: 'none', borderRadius: 12, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase', color: '#FFFFFF', boxShadow: '0 4px 12px rgba(108,99,255,0.25)' }}>Update Plan</button>
+                    <button onClick={handleVerifyStay} style={{ flex: 1, padding: 10, background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase', color: C.text, boxShadow: '4px 4px 8px rgba(27,29,42,0.08), -2px -2px 6px rgba(255,255,255,0.9)' }}>Verify Stay</button>
                   </div>
                 </div>
               ) : (
-                <div style={{ padding: '24px', textAlign: 'center', border: `2px dashed ${NB.black}` }}>
-                  <p style={{ fontSize: '0.85rem', color: '#6B6B6B', marginBottom: 12, fontWeight: 500 }}>No active trip found for your profile.</p>
-                  <Link to="/tourist/plan" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: NB.yellow, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, padding: '8px 16px', textDecoration: 'none', color: NB.black, fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase' }}>
+                <div style={{ padding: 24, textAlign: 'center', border: `2px dashed ${C.border}`, borderRadius: 14 }}>
+                  <p style={{ fontSize: '0.85rem', color: C.textMuted, marginBottom: 14, fontWeight: 500 }}>No active trip found for your profile.</p>
+                  <Link to="/tourist/plan" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', borderRadius: 12, padding: '10px 20px', textDecoration: 'none', color: '#FFFFFF', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', boxShadow: '0 4px 12px rgba(108,99,255,0.25)' }}>
                     <NearMe size={14} /> Start Planning
                   </Link>
                 </div>
@@ -294,51 +318,52 @@ export default function TouristDashboard() {
           </div>
 
           {/* Quick Actions */}
-          <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '16px' }}>
-            <h3 style={{ fontWeight: 800, color: NB.black, margin: '0 0 14px', fontSize: '0.88rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Safety Services</h3>
+          <div style={{ ...clayCard, padding: 18 }}>
+            <h3 style={{ fontWeight: 800, color: C.text, margin: '0 0 14px', fontSize: '0.88rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Safety Services</h3>
             <div className="responsive-flex-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {[
-                { icon: checkinDone ? <Check size={22} color={NB.mint} /> : checkinLoading ? <Loader2 size={22} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={22} color={NB.blue} />, label: checkinDone ? 'Checked In ✓' : 'Daily Check-in', action: handleCheckin, accent: NB.blue },
-                { icon: <AlertTriangle size={22} color={NB.orange} />, label: 'Report Anomaly', action: () => setReportModalOpen(true), accent: NB.orange },
-                { icon: <Watch size={22} color={NB.blue} />, label: 'IoT Sync', action: () => setIotModalOpen(true), accent: NB.blue },
-                { icon: <ShieldAlert size={22} color='#8B5CF6' />, label: 'Safe House', action: handleSafeHouse, accent: '#8B5CF6' },
+                { icon: checkinDone ? <Check size={22} color={C.safe} /> : checkinLoading ? <Loader2 size={22} style={{ animation: 'spin-slow 1s linear infinite' }} /> : <CheckCircle2 size={22} color={C.primary} />, label: checkinDone ? 'Checked In ✓' : 'Daily Check-in', action: handleCheckin, gradient: 'rgba(108,99,255,0.06)' },
+                { icon: <AlertTriangle size={22} color={C.moderate} />, label: 'Report Anomaly', action: () => setReportModalOpen(true), gradient: 'rgba(251,191,36,0.08)' },
+                { icon: <Watch size={22} color={C.primary} />, label: 'IoT Sync', action: () => setIotModalOpen(true), gradient: 'rgba(108,99,255,0.06)' },
+                { icon: <ShieldAlert size={22} color={C.restricted} />, label: 'Safe House', action: handleSafeHouse, gradient: 'rgba(167,139,250,0.08)' },
               ].map((btn, i) => (
-                <button key={i} onClick={btn.action} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 8px', background: NB.cream, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.1s' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = NB.cream; }}
+                <button key={i} onClick={btn.action} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 8px', background: btn.gradient, border: `1px solid ${C.border}`, borderRadius: 16, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s', boxShadow: '4px 4px 8px rgba(27,29,42,0.06), -2px -2px 6px rgba(255,255,255,0.9)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '6px 6px 14px rgba(27,29,42,0.1), -3px -3px 10px rgba(255,255,255,0.9)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '4px 4px 8px rgba(27,29,42,0.06), -2px -2px 6px rgba(255,255,255,0.9)'; }}
                 >
                   {btn.icon}
-                  <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: NB.black }}>{btn.label}</span>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.text }}>{btn.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Alerts */}
-          <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, flex: 1, overflow: 'hidden' }}>
-            <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.cream, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontWeight: 800, color: NB.black, margin: 0, fontSize: '0.88rem' }}>Safety Broadcasts</h3>
+          <div style={{ ...clayCard, flex: 1, overflow: 'hidden', padding: 0 }}>
+            <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, background: C.surfaceAlt, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '20px 20px 0 0' }}>
+              <h3 style={{ fontWeight: 800, color: C.text, margin: 0, fontSize: '0.88rem' }}>Safety Broadcasts</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button onClick={fetchTouristData} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><RefreshCw size={13} className={loading ? 'animate-spin' : ''} /></button>
-                {alerts.length > 0 && <span style={{ padding: '2px 8px', background: NB.red, color: NB.white, fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase' }}>{alerts.length} Active</span>}
+                <button onClick={fetchTouristData} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted }}><RefreshCw size={13} className={loading ? 'animate-spin' : ''} /></button>
+                {alerts.length > 0 && <span style={{ padding: '3px 10px', background: 'linear-gradient(135deg, #F87171, #EF4444)', color: '#FFFFFF', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', borderRadius: 20 }}>{alerts.length} Active</span>}
               </div>
             </div>
-            <div style={{ padding: '12px', maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ padding: 14, maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {alerts.length > 0 ? alerts.map(alert => {
-                const col = alert.severity === 'critical' ? NB.red : alert.severity === 'high' ? NB.orange : NB.blue;
+                const col = alert.severity === 'critical' ? C.critical : alert.severity === 'high' ? C.high : C.primary;
+                const bgCol = alert.severity === 'critical' ? 'rgba(239,68,68,0.06)' : alert.severity === 'high' ? 'rgba(248,113,113,0.06)' : 'rgba(108,99,255,0.06)';
                 return (
-                  <div key={alert._id} style={{ padding: '10px 12px', background: NB.cream, border: `2px solid ${col}`, display: 'flex', gap: 10 }}>
+                  <div key={alert._id} style={{ padding: '12px 14px', background: bgCol, border: `1px solid ${col}20`, borderRadius: 14, display: 'flex', gap: 10 }}>
                     <AlertTriangle size={16} color={col} style={{ flexShrink: 0, marginTop: 1 }} />
                     <div>
-                      <p style={{ fontWeight: 700, color: NB.black, margin: 0, fontSize: '0.82rem' }}>{alert.title}</p>
-                      <p style={{ fontSize: '0.72rem', color: '#6B6B6B', margin: '2px 0 0', fontWeight: 500 }}>{alert.description || alert.zone?.name || new Date(alert.created_at).toLocaleString()}</p>
+                      <p style={{ fontWeight: 700, color: C.text, margin: 0, fontSize: '0.82rem' }}>{alert.title}</p>
+                      <p style={{ fontSize: '0.72rem', color: C.textMuted, margin: '2px 0 0', fontWeight: 500 }}>{alert.description || alert.zone?.name || new Date(alert.created_at).toLocaleString()}</p>
                     </div>
                   </div>
                 );
               }) : (
-                <div style={{ padding: '20px', textAlign: 'center', border: `2px dashed ${NB.black}` }}>
-                  <Check size={20} color={NB.mint} style={{ margin: '0 auto 6px' }} />
-                  <p style={{ fontSize: '0.78rem', color: '#6B6B6B', fontWeight: 600 }}>All sectors clear. Enjoy your trip!</p>
+                <div style={{ padding: 24, textAlign: 'center', border: `2px dashed ${C.border}`, borderRadius: 14 }}>
+                  <Check size={20} color={C.safe} style={{ margin: '0 auto 6px' }} />
+                  <p style={{ fontSize: '0.78rem', color: C.textMuted, fontWeight: 600 }}>All sectors clear. Enjoy your trip!</p>
                 </div>
               )}
             </div>
@@ -349,17 +374,17 @@ export default function TouristDashboard() {
       {/* SOS Button */}
       <div style={{ position: 'fixed', bottom: 80, right: 32, zIndex: 1000 }}>
         {sosSuccess ? (
-          <div style={{ width: 80, height: 80, background: NB.mint, border: `4px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: NB.black }}>
+          <div style={{ width: 80, height: 80, background: 'linear-gradient(135deg, #34D399, #2DD4BF)', borderRadius: '50%', boxShadow: '0 8px 24px rgba(52,211,153,0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: '#FFFFFF' }}>
             <Check size={28} /><span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase' }}>Alert Sent</span>
           </div>
         ) : (
           <button onMouseDown={handleSOSStart} onMouseUp={handleSOSEnd} onMouseLeave={handleSOSEnd} onTouchStart={handleSOSStart} onTouchEnd={handleSOSEnd}
-            style={{ width: 80, height: 80, background: NB.red, border: `4px solid ${NB.black}`, boxShadow: countdown > 0 ? `0 0 0 8px rgba(255,59,59,0.4)` : `4px 4px 0 ${NB.black}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', color: NB.white, transform: countdown > 0 ? 'scale(1.1)' : undefined, transition: 'all 0.2s', outline: 'none' }}
+            style={{ width: 80, height: 80, background: 'linear-gradient(135deg, #F87171, #EF4444)', border: 'none', borderRadius: '50%', boxShadow: countdown > 0 ? '0 0 0 10px rgba(239,68,68,0.3), 0 8px 24px rgba(239,68,68,0.4)' : '0 8px 24px rgba(239,68,68,0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', color: '#FFFFFF', transform: countdown > 0 ? 'scale(1.1)' : undefined, transition: 'all 0.2s', outline: 'none', animation: countdown === 0 ? 'pulse-glow 2s ease-in-out infinite' : undefined }}
           >
-            {sosLoading ? <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} /> : countdown > 0 ? <span style={{ fontSize: '1.8rem', fontWeight: 800 }}>{countdown}</span> : <><ShieldAlert size={28} /><span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase' }}>Hold SOS</span></>}
+            {sosLoading ? <Loader2 size={28} style={{ animation: 'spin-slow 1s linear infinite' }} /> : countdown > 0 ? <span style={{ fontSize: '1.8rem', fontWeight: 800 }}>{countdown}</span> : <><ShieldAlert size={28} /><span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase' }}>Hold SOS</span></>}
           </button>
         )}
-        {countdown > 0 && <div style={{ position: 'absolute', top: 0, right: '110%', whiteSpace: 'nowrap', background: NB.red, color: NB.white, borderRight: `3px solid ${NB.black}`, padding: '8px 14px', fontWeight: 800, fontSize: '0.78rem' }}>TRANSMITTING IN {countdown}s...</div>}
+        {countdown > 0 && <div style={{ position: 'absolute', top: 10, right: '110%', whiteSpace: 'nowrap', background: 'linear-gradient(135deg, #F87171, #EF4444)', color: '#FFFFFF', borderRadius: 12, padding: '8px 16px', fontWeight: 800, fontSize: '0.78rem', boxShadow: '0 4px 12px rgba(239,68,68,0.3)' }}>TRANSMITTING IN {countdown}s...</div>}
       </div>
 
       {/* Report Modal */}
@@ -371,21 +396,21 @@ export default function TouristDashboard() {
         onSuccess={() => { setToast({ message: 'Trip updated', type: 'success' }); fetchTouristData(); }}
         onError={(m) => setToast({ message: m, type: 'error' })}
       />
-      <NBModal open={iotModalOpen} onClose={() => setIotModalOpen(false)} title="IoT Device Sync">
+      <ClayModal open={iotModalOpen} onClose={() => setIotModalOpen(false)} title="IoT Device Sync">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[{ icon: <Bluetooth size={20} color={NB.blue} />, label: 'Bluetooth Pair', sub: 'Search for nearby IoT bands', action: () => { setToast({ message: 'Searching Bluetooth...', type: 'info' }); setIotModalOpen(false); } },
-            { icon: <Wifi size={20} color={NB.mint} />, label: 'WiFi Direct', sub: 'Connect via local network', action: () => { setToast({ message: 'WiFi scan initiated', type: 'info' }); setIotModalOpen(false); } }].map((b, i) => (
-            <button key={i} onClick={b.action} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', background: NB.cream, border: `2px solid ${NB.black}`, boxShadow: `2px 2px 0 ${NB.black}`, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%' }}>
-              {b.icon}<div><p style={{ fontWeight: 700, color: NB.black, margin: 0, fontSize: '0.9rem' }}>{b.label}</p><p style={{ fontSize: '0.72rem', color: '#6B6B6B', margin: 0 }}>{b.sub}</p></div>
+          {[{ icon: <Bluetooth size={20} color={C.primary} />, label: 'Bluetooth Pair', sub: 'Search for nearby IoT bands', action: () => { setToast({ message: 'Searching Bluetooth...', type: 'info' }); setIotModalOpen(false); } },
+            { icon: <Wifi size={20} color={C.safe} />, label: 'WiFi Direct', sub: 'Connect via local network', action: () => { setToast({ message: 'WiFi scan initiated', type: 'info' }); setIotModalOpen(false); } }].map((b, i) => (
+            <button key={i} onClick={b.action} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%', boxShadow: '4px 4px 8px rgba(27,29,42,0.06), -2px -2px 6px rgba(255,255,255,0.9)', transition: 'all 0.15s' }}>
+              {b.icon}<div><p style={{ fontWeight: 700, color: C.text, margin: 0, fontSize: '0.9rem' }}>{b.label}</p><p style={{ fontSize: '0.72rem', color: C.textMuted, margin: 0 }}>{b.sub}</p></div>
             </button>
           ))}
         </div>
-      </NBModal>
+      </ClayModal>
     </div>
   );
 }
 
-const nbInputStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', background: '#FFFBF0', border: '2px solid #0A0A0A', fontFamily: "'Space Grotesk', sans-serif", fontSize: '0.88rem', fontWeight: 500, outline: 'none', color: '#0A0A0A', borderRadius: 0 };
+const clayInputStyle: React.CSSProperties = { width: '100%', padding: '11px 14px', background: '#F7F5FF', border: '1px solid rgba(27,29,42,0.08)', borderRadius: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '0.88rem', fontWeight: 500, outline: 'none', color: '#1B1D2A', boxShadow: 'inset 3px 3px 6px rgba(27,29,42,0.06), inset -2px -2px 4px rgba(255,255,255,0.8)' };
 
 function ReportAnomalyModal({ open, onClose, userLat, userLng, onSuccess, onError }: { open: boolean; onClose: () => void; userLat: number | null; userLng: number | null; onSuccess: (title: string) => void; onError: (msg: string) => void; }) {
   const [title, setTitle] = useState(''); const [description, setDescription] = useState(''); const [incidentType, setIncidentType] = useState('suspicious_activity'); const [severity, setSeverity] = useState('medium'); const [submitting, setSubmitting] = useState(false);
@@ -397,29 +422,29 @@ function ReportAnomalyModal({ open, onClose, userLat, userLng, onSuccess, onErro
     } catch (err: any) { onError(err.response?.data?.message || 'Failed to submit'); } finally { setSubmitting(false); }
   };
   return (
-    <NBModal open={open} onClose={onClose} title="Report Safety Anomaly">
+    <ClayModal open={open} onClose={onClose} title="Report Safety Anomaly">
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Incident Type</label>
-          <select value={incidentType} onChange={e => setIncidentType(e.target.value)} style={nbInputStyle}><option value="suspicious_activity">Suspicious Activity</option><option value="theft">Theft</option><option value="harassment">Harassment</option><option value="natural_hazard">Natural Hazard</option><option value="medical">Medical Emergency</option><option value="other">Other</option></select>
+        <div><label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, display: 'block', marginBottom: 6 }}>Incident Type</label>
+          <select value={incidentType} onChange={e => setIncidentType(e.target.value)} style={clayInputStyle}><option value="suspicious_activity">Suspicious Activity</option><option value="theft">Theft</option><option value="harassment">Harassment</option><option value="natural_hazard">Natural Hazard</option><option value="medical">Medical Emergency</option><option value="other">Other</option></select>
         </div>
-        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Title</label><input value={title} onChange={e => setTitle(e.target.value)} style={nbInputStyle} placeholder="Brief summary" required /></div>
-        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} style={{ ...nbInputStyle, resize: 'vertical', minHeight: 80 }} rows={3} placeholder="Details about what you observed..." /></div>
-        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Severity</label>
+        <div><label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, display: 'block', marginBottom: 6 }}>Title</label><input value={title} onChange={e => setTitle(e.target.value)} style={clayInputStyle} placeholder="Brief summary" required /></div>
+        <div><label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, display: 'block', marginBottom: 6 }}>Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} style={{ ...clayInputStyle, resize: 'vertical' as const, minHeight: 80 }} rows={3} placeholder="Details about what you observed..." /></div>
+        <div><label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, display: 'block', marginBottom: 6 }}>Severity</label>
           <div style={{ display: 'flex', gap: 8 }}>
             {(['low', 'medium', 'high', 'critical'] as const).map(s => {
-              const col = s === 'low' ? NB.mint : s === 'medium' ? NB.blue : s === 'high' ? NB.orange : NB.red;
-              return <button key={s} type="button" onClick={() => setSeverity(s)} style={{ flex: 1, padding: '8px 4px', background: severity === s ? col : NB.cream, color: severity === s ? NB.white : NB.black, border: `2px solid ${severity === s ? col : NB.black}`, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', cursor: 'pointer' }}>{s}</button>;
+              const col = s === 'low' ? C.safe : s === 'medium' ? C.primary : s === 'high' ? C.moderate : C.critical;
+              return <button key={s} type="button" onClick={() => setSeverity(s)} style={{ flex: 1, padding: '8px 4px', background: severity === s ? col : C.surfaceAlt, color: severity === s ? '#FFFFFF' : C.text, border: severity === s ? 'none' : `1px solid ${C.border}`, borderRadius: 10, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', cursor: 'pointer', boxShadow: severity === s ? `0 4px 12px ${col}40` : '4px 4px 8px rgba(27,29,42,0.06), -2px -2px 6px rgba(255,255,255,0.9)' }}>{s}</button>;
             })}
           </div>
         </div>
-        <div style={{ padding: '8px 12px', background: NB.cream, border: `2px solid ${NB.black}`, fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, color: '#6B6B6B' }}>
-          <MapPin size={12} color={NB.blue} /> {userLat?.toFixed(4)}, {userLng?.toFixed(4)} (auto-detected)
+        <div style={{ padding: '10px 14px', background: C.surfaceAlt, borderRadius: 12, border: `1px solid ${C.border}`, fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, color: C.textMuted }}>
+          <MapPin size={12} color={C.primary} /> {userLat?.toFixed(4)}, {userLng?.toFixed(4)} (auto-detected)
         </div>
-        <button type="submit" disabled={submitting || !title.trim()} style={{ width: '100%', padding: '12px', background: NB.orange, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, fontFamily: 'inherit', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: NB.white, opacity: (submitting || !title.trim()) ? 0.6 : 1 }}>
-          {submitting ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={16} />} Submit Report
+        <button type="submit" disabled={submitting || !title.trim()} style={{ width: '100%', padding: 13, background: 'linear-gradient(135deg, #FBBF24, #F59E0B)', border: 'none', borderRadius: 14, fontFamily: 'inherit', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: '#FFFFFF', boxShadow: '0 4px 12px rgba(251,191,36,0.3)', opacity: (submitting || !title.trim()) ? 0.6 : 1 }}>
+          {submitting ? <Loader2 size={16} style={{ animation: 'spin-slow 1s linear infinite' }} /> : <Send size={16} />} Submit Report
         </button>
       </form>
-    </NBModal>
+    </ClayModal>
   );
 }
 
@@ -432,90 +457,17 @@ function UpdateTripModal({ open, onClose, trip, onSuccess, onError }: { open: bo
     catch (err: any) { onError(err.response?.data?.message || 'Failed to update trip'); } finally { setSubmitting(false); }
   };
   return (
-    <NBModal open={open} onClose={onClose} title="Update Travel Plan">
+    <ClayModal open={open} onClose={onClose} title="Update Travel Plan">
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Destination Region</label><input value={destination} onChange={e => setDestination(e.target.value)} style={nbInputStyle} placeholder="e.g. Tawang District" required /></div>
+        <div><label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, display: 'block', marginBottom: 6 }}>Destination Region</label><input value={destination} onChange={e => setDestination(e.target.value)} style={clayInputStyle} placeholder="e.g. Tawang District" required /></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Start Date</label><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={nbInputStyle} required /></div>
-          <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>End Date</label><input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={nbInputStyle} required /></div>
+          <div><label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, display: 'block', marginBottom: 6 }}>Start Date</label><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={clayInputStyle} required /></div>
+          <div><label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, display: 'block', marginBottom: 6 }}>End Date</label><input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={clayInputStyle} required /></div>
         </div>
-        <button type="submit" disabled={submitting} style={{ width: '100%', padding: '12px', background: NB.yellow, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, fontFamily: 'inherit', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: NB.black }}>
-          {submitting ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={16} />} Save Changes
+        <button type="submit" disabled={submitting} style={{ width: '100%', padding: 13, background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', border: 'none', borderRadius: 14, fontFamily: 'inherit', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: '#FFFFFF', boxShadow: '0 4px 12px rgba(108,99,255,0.25)' }}>
+          {submitting ? <Loader2 size={16} style={{ animation: 'spin-slow 1s linear infinite' }} /> : <Check size={16} />} Save Changes
         </button>
       </form>
-    </NBModal>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// Create Trip Modal
-// ═══════════════════════════════════════════════════════════════════════
-
-function CreateTripModal({ open, onClose, onSuccess, onError }: {
-  open: boolean; onClose: () => void;
-  onSuccess: () => void; onError: (msg: string) => void;
-}) {
-  const [destination, setDestination] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [entryPoint, setEntryPoint] = useState('');
-  const [vehicleDetails, setVehicleDetails] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!destination.trim() || !startDate || !endDate) return;
-    setSubmitting(true);
-    try {
-      await api.post('/trips', {
-        destination_region: destination,
-        start_date: startDate,
-        end_date: endDate,
-        entry_point: entryPoint || undefined,
-        vehicle_details: vehicleDetails || undefined,
-      });
-      onSuccess();
-      setDestination(''); setStartDate(''); setEndDate(''); setEntryPoint(''); setVehicleDetails('');
-      onClose();
-    } catch (err: any) {
-      onError(err.response?.data?.message || 'Failed to create trip');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const InputClass = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400 [color-scheme:dark]";
-
-  return (
-    <NBModal open={open} onClose={onClose} title="Plan Your Trip">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Destination Region *</label>
-          <input value={destination} onChange={e => setDestination(e.target.value)} className={InputClass} placeholder="e.g. Tawang District, Arunachal Pradesh" required />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Start Date *</label>
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={InputClass} required />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">End Date *</label>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={InputClass} required />
-          </div>
-        </div>
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Entry Point</label>
-          <input value={entryPoint} onChange={e => setEntryPoint(e.target.value)} className={InputClass} placeholder="e.g. Guwahati Airport" />
-        </div>
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Vehicle Details</label>
-          <input value={vehicleDetails} onChange={e => setVehicleDetails(e.target.value)} className={InputClass} placeholder="e.g. Self-drive SUV, AS-01-XX-1234" />
-        </div>
-        <button type="submit" disabled={submitting || !destination.trim() || !startDate || !endDate} className="w-full py-3 bg-gradient-to-r from-primary to-blue-600 rounded-lg font-bold text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 border-none outline-none cursor-pointer">
-          {submitting ? <Loader2 className="size-4 animate-spin" /> : <NearMe className="size-4" />}
-          {submitting ? 'Creating Trip...' : 'Start My Trip'}
-        </button>
-      </form>
-    </NBModal>
+    </ClayModal>
   );
 }
