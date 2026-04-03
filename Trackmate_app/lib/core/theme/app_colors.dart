@@ -22,4 +22,11 @@ class AppColors {
   static const emergencyRed = NB.red;
   static const trustBlue = NB.blue;
   static const primary = NB.yellow;
+
+  static const bgLight = NB.cream;
+  static const textDark = NB.black;
+  static const textLight = NB.white;
+  static const authBg = Color(0xFF0F1115);
+  static const authSurface = Color(0xFF171B24);
+  static const authBorder = Color(0xFF2B3341);
 }

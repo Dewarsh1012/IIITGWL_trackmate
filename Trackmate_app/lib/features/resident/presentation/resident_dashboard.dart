@@ -85,7 +85,7 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
     setState(() => _isSosActive = true);
     
     try {
-      final body = {
+      final body = <String, dynamic>{
         'title': 'Emergency SOS Alert - Resident',
         'description': 'Resident triggered panic button from mobile app.',
         'incident_type': 'sos_panic',
@@ -230,7 +230,7 @@ class _ResidentDashboardState extends ConsumerState<ResidentDashboard> with Sing
                       final authState = ref.read(authProvider);
                       final wardId = authState.user?['ward']?['_id'] ?? authState.user?['ward'];
                       
-                      final body = {
+                      final body = <String, dynamic>{
                         'title': titleCtrl.text,
                         'description': descCtrl.text,
                         'incident_type': type,

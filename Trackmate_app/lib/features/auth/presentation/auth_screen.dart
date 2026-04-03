@@ -153,8 +153,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           await ref.read(authProvider.notifier).login(_emailCtrl.text, _passCtrl.text);
           final state = ref.read(authProvider);
           if (state.isAuthenticated && mounted) {
-            String role = state.userProfile?['role'] ?? 'tourist';
-            context.go('/\$role/dashboard');
+            String role = state.user?['role'] ?? 'tourist';
+            context.go('/$role/dashboard');
           }
         }, isLoading: authState.isLoading),
       ],
@@ -459,11 +459,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final state = ref.read(authProvider);
     if (state.isAuthenticated && mounted) {
       setState(() {
-        _blockchainId = state.userProfile?['blockchain_id'] ?? state.userProfile?['blockchainId'];
+        _blockchainId = state.user?['blockchain_id'] ?? state.user?['blockchainId'];
       });
       // If no blockchain ID was returned but auth succeeded, route directly
       if (_blockchainId == null) {
-        context.go('/\$_role/dashboard');
+        context.go('/$_role/dashboard');
       }
     }
   }

@@ -115,7 +115,7 @@ class _BusinessDashboardState extends ConsumerState<BusinessDashboard> {
                 // Header block
                 Container(
                   padding: const EdgeInsets.all(16),
-                  margin: const EdgeInsets.bottom(16),
+                  margin: const EdgeInsets.only(bottom: 16),
                   color: NB.white,
                   decoration: BoxDecoration(
                     border: Border.all(color: NB.black, width: 3),

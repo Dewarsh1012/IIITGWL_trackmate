@@ -79,7 +79,7 @@ class _TouristDashboardState extends ConsumerState<TouristDashboard> with Single
     
     try {
       // POST incident
-      final body = {
+      final body = <String, dynamic>{
         'title': 'Emergency SOS Alert',
         'description': 'User triggered panic button from mobile app.',
         'incident_type': 'sos_panic',
@@ -223,7 +223,7 @@ class _TouristDashboardState extends ConsumerState<TouristDashboard> with Single
                     onTap: () async {
                       if (titleCtrl.text.isEmpty || descCtrl.text.isEmpty) return;
                       final locState = ref.read(locationProvider);
-                      final body = {
+                      final body = <String, dynamic>{
                         'title': titleCtrl.text,
                         'description': descCtrl.text,
                         'incident_type': type,
