@@ -98,6 +98,7 @@ export default function TouristDashboard() {
     const [countdown, setCountdown] = useState(0);
     const [checkinLoading, setCheckinLoading] = useState(false);
     const [checkinDone, setCheckinDone] = useState(false);
+    const [verifyLoading, setVerifyLoading] = useState(false);
     const [verifyResult, setVerifyResult] = useState<string | null>(null);
     const [highlightZoneId, setHighlightZoneId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -140,6 +141,7 @@ export default function TouristDashboard() {
     }, [socket]);
 
     const fetchTouristData = useCallback(async () => {
+        setLoading(true);
         try {
             const [tripRes, alertsRes, zonesRes] = await Promise.all([api.get('/trips/active'), api.get('/incidents?limit=10'), api.get('/zones')]);
             if (tripRes.data.success) setActiveTrip(tripRes.data.data);
@@ -162,6 +164,7 @@ export default function TouristDashboard() {
             const res = await api.post('/locations', { latitude: userLat, longitude: userLng, source: 'gps' });
             setCheckinDone(true);
             const zone = res.data.data?.zone;
+            await api.post('/incidents', { title: 'Tourist Checked In', description: `User checked in at ${userLat.toFixed(4)}, ${userLng.toFixed(4)}` + (zone ? ` (${zone.name})` : ''), incident_type: 'other', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(() => {});
             setToast({ message: zone ? `Checked in at ${zone.name}` : 'Daily check-in recorded ✓', type: 'success' });
             setTimeout(() => setCheckinDone(false), 5000);
         } catch { setToast({ message: 'Check-in failed. Try again.', type: 'error' }); } finally { setCheckinLoading(false); }
@@ -169,13 +172,22 @@ export default function TouristDashboard() {
 
     const handleVerifyStay = async () => {
         if (!userLat || !userLng) { setToast({ message: 'Unable to get location', type: 'error' }); return; }
+        setVerifyLoading(true);
         try {
             const res = await api.post('/locations', { latitude: userLat, longitude: userLng, source: 'gps' });
             const zone = res.data.data?.zone;
-            if (zone) { setVerifyResult(`✓ You are in "${zone.name}" — ${zone.risk_level} zone`); setHighlightZoneId(zone._id); setTimeout(() => setHighlightZoneId(null), 8000); }
-            else { setVerifyResult('ℹ You are not inside any registered zone'); }
+            if (zone) { 
+                setVerifyResult(`✓ You are in "${zone.name}" — ${zone.risk_level} zone`); 
+                setHighlightZoneId(zone._id); 
+                setTimeout(() => setHighlightZoneId(null), 8000); 
+                api.post('/incidents', { title: 'Stay Verified', description: `User verified stay in ${zone.name}`, incident_type: 'other', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(()=>{});
+            }
+            else { 
+                setVerifyResult('ℹ You are not inside any registered zone'); 
+                api.post('/incidents', { title: 'Stay Verification Failed', description: `User not in any registered zone`, incident_type: 'other', severity: 'medium', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(()=>{});
+            }
             setTimeout(() => setVerifyResult(null), 6000);
-        } catch { setToast({ message: 'Verification failed', type: 'error' }); }
+        } catch { setToast({ message: 'Verification failed', type: 'error' }); } finally { setVerifyLoading(false); }
     };
 
     const handleSafeHouse = () => {
@@ -185,6 +197,7 @@ export default function TouristDashboard() {
         let nearest = safeZones[0]; let minDist = haversine(userLat, userLng, nearest.center_lat, nearest.center_lng);
         for (const z of safeZones) { const d = haversine(userLat, userLng, z.center_lat, z.center_lng); if (d < minDist) { nearest = z; minDist = d; } }
         setHighlightZoneId(nearest._id);
+        api.post('/incidents', { title: 'Safe House Requested', description: `User navigating to ${nearest.name}`, incident_type: 'other', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(()=>{});
         setToast({ message: `Nearest safe zone: ${nearest.name} (${Math.round(minDist)}m)`, type: 'success' });
         setTimeout(() => setHighlightZoneId(null), 10000);
     };
@@ -304,7 +317,9 @@ export default function TouristDashboard() {
                                     {verifyResult && <div style={{ padding: '10px 14px', background: 'rgba(108,99,255,0.06)', borderRadius: 12, border: `1px solid rgba(108,99,255,0.15)`, fontSize: '0.82rem', fontWeight: 600, color: C.primary }}>{verifyResult}</div>}
                                     <div style={{ display: 'flex', gap: 8 }}>
                                         <button onClick={() => setUpdateTripModalOpen(true)} style={{ flex: 1, padding: 10, background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', border: 'none', borderRadius: 12, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase', color: '#FFFFFF', boxShadow: '0 4px 12px rgba(108,99,255,0.25)' }}>Update Plan</button>
-                                        <button onClick={handleVerifyStay} style={{ flex: 1, padding: 10, background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase', color: C.text, boxShadow: '4px 4px 8px rgba(27,29,42,0.08), -2px -2px 6px rgba(255,255,255,0.9)' }}>Verify Stay</button>
+                                        <button onClick={handleVerifyStay} disabled={verifyLoading} style={{ flex: 1, padding: 10, background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: verifyLoading ? 'default' : 'pointer', textTransform: 'uppercase', color: C.text, boxShadow: '4px 4px 8px rgba(27,29,42,0.08), -2px -2px 6px rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: verifyLoading ? 0.7 : 1 }}>
+                                            {verifyLoading ? <Loader2 size={14} className="animate-spin" /> : 'Verify Stay'}
+                                        </button>
                                     </div>
                                 </div>
                             ) : (
@@ -426,7 +441,7 @@ function ReportAnomalyModal({ open, onClose, userLat, userLng, onSuccess, onErro
         <ClayModal open={open} onClose={onClose} title="Report Safety Anomaly">
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div><label style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Incident Type</label>
-                    <select value={incidentType} onChange={e => setIncidentType(e.target.value)} style={nbInputStyle}><option value="suspicious_activity">Suspicious Activity</option><option value="crime">Crime (Theft/Harassment)</option><option value="medical_emergency">Medical Emergency</option><option value="natural_disaster">Natural Disaster</option><option value="infrastructure_hazard">Infrastructure Hazard</option><option value="accident">Accident / Other</option></select>
+                    <select value={incidentType} onChange={e => setIncidentType(e.target.value)} style={clayInputStyle}><option value="suspicious_activity">Suspicious Activity</option><option value="crime">Crime (Theft/Harassment)</option><option value="medical_emergency">Medical Emergency</option><option value="natural_disaster">Natural Disaster</option><option value="infrastructure_hazard">Infrastructure Hazard</option><option value="accident">Accident / Other</option></select>
                 </div>
                 <div><label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, display: 'block', marginBottom: 6 }}>Title</label><input value={title} onChange={e => setTitle(e.target.value)} style={clayInputStyle} placeholder="Brief summary" required /></div>
                 <div><label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, display: 'block', marginBottom: 6 }}>Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} style={{ ...clayInputStyle, resize: 'vertical' as const, minHeight: 80 }} rows={3} placeholder="Details about what you observed..." /></div>
