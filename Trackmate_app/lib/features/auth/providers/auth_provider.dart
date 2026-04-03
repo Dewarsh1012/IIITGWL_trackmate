@@ -1,31 +1,41 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/socket_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthState {
   final bool isLoading;
   final bool isAuthenticated;
-  final Map<String, dynamic>? userProfile;
+  final Map<String, dynamic>? user;
   final String? error;
+  final String? blockchainId;
 
   AuthState({
     this.isLoading = false,
     this.isAuthenticated = false,
-    this.userProfile,
+    this.user,
     this.error,
+    this.blockchainId,
   });
+
+  String get role => user?['role'] ?? 'tourist';
+  String get fullName => user?['full_name'] ?? 'User';
+  String get userId => user?['_id'] ?? user?['id'] ?? '';
 
   AuthState copyWith({
     bool? isLoading,
     bool? isAuthenticated,
-    Map<String, dynamic>? userProfile,
+    Map<String, dynamic>? user,
     String? error,
+    String? blockchainId,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
-      userProfile: userProfile ?? this.userProfile,
+      user: user ?? this.user,
       error: error,
+      blockchainId: blockchainId ?? this.blockchainId,
     );
   }
 }
@@ -34,21 +44,32 @@ class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() {
     Future.microtask(() => checkSession());
-    return AuthState();
+    return AuthState(isLoading: true);
   }
 
   Future<void> checkSession() async {
     state = state.copyWith(isLoading: true);
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
-    
+    final token = await ApiClient.getToken();
+
     if (token != null) {
-      // In a real app we'd fetch profile from /api/v1/profiles/me
-      // Mocking the success for rapid UI iteration
-      state = state.copyWith(isLoading: false, isAuthenticated: true);
-    } else {
-      state = state.copyWith(isLoading: false, isAuthenticated: false);
+      try {
+        final res = await ApiClient.get('/auth/me');
+        if (res['success'] == true && res['data'] != null) {
+          final user = res['data'] as Map<String, dynamic>;
+          await ApiClient.saveUserProfile(user);
+          await SocketService.instance.connect();
+          state = state.copyWith(
+            isLoading: false,
+            isAuthenticated: true,
+            user: user,
+          );
+          return;
+        }
+      } catch (_) {
+        await ApiClient.clearToken();
+      }
     }
+    state = state.copyWith(isLoading: false, isAuthenticated: false);
   }
 
   Future<void> login(String email, String password) async {
@@ -59,19 +80,31 @@ class AuthNotifier extends Notifier<AuthState> {
         'password': password,
       });
 
-      if (res['success'] == true && res['token'] != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', res['token']);
+      if (res['success'] == true && res['data'] != null) {
+        final data = res['data'];
+        final token = data['accessToken'] as String;
+        final user = data['user'] as Map<String, dynamic>;
+
+        await ApiClient.setToken(token);
+        await ApiClient.saveUserProfile(user);
+        await SocketService.instance.connect();
+
         state = state.copyWith(
           isLoading: false,
           isAuthenticated: true,
-          userProfile: res['user'],
+          user: user,
         );
       } else {
-        state = state.copyWith(isLoading: false, error: 'Login failed');
+        state = state.copyWith(
+          isLoading: false,
+          error: res['message'] ?? 'Login failed',
+        );
       }
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
     }
   }
 
@@ -80,25 +113,39 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final res = await ApiClient.post('/auth/register', payload);
 
-      if (res['success'] == true && res['token'] != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', res['token']);
+      if (res['success'] == true && res['data'] != null) {
+        final data = res['data'];
+        final token = data['accessToken'] as String;
+        final user = data['user'] as Map<String, dynamic>;
+        final blockchainId = data['blockchainId'] as String?;
+
+        await ApiClient.setToken(token);
+        await ApiClient.saveUserProfile(user);
+        await SocketService.instance.connect();
+
         state = state.copyWith(
           isLoading: false,
           isAuthenticated: true,
-          userProfile: res['user'],
+          user: user,
+          blockchainId: blockchainId,
         );
       } else {
-        state = state.copyWith(isLoading: false, error: 'Registration failed');
+        state = state.copyWith(
+          isLoading: false,
+          error: res['message'] ?? 'Registration failed',
+        );
       }
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
     }
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
+    SocketService.instance.disconnect();
+    await ApiClient.clearToken();
     state = AuthState();
   }
 }

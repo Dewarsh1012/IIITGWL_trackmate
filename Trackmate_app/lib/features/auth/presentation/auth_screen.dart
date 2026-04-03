@@ -524,7 +524,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ),
                     const SizedBox(height: 24),
                     _buildSubmitButton('ENTER DASHBOARD', () {
-                      context.go('/tourist/dashboard');
+                      final role = ref.read(authProvider).role;
+                      context.go('/$role/dashboard');
                     })
                   ],
                 ),

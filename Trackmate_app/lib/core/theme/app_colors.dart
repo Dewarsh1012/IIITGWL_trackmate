@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 
+class NB {
+  static const Color black = Color(0xFF0A0A0A);
+  static const Color yellow = Color(0xFFFFE500);
+  static const Color red = Color(0xFFFF3B3B);
+  static const Color blue = Color(0xFF2B6FFF);
+  static const Color mint = Color(0xFF00D084);
+  static const Color orange = Color(0xFFFF7A00);
+  static const Color cream = Color(0xFFFFFBF0);
+  static const Color white = Color(0xFFFFFFFF);
+  static const Color violet = Color(0xFF8B5CF6);
+  static const Color pink = Color(0xFFFF4F9A);
+  static const Color critical = Color(0xFFFF0033);
+  static const Color textMuted = Color(0xFF6B6B6B);
+  static const Color textSecondary = Color(0xFF3A3A3A);
+}
+
 class AppColors {
-  // Brand
-  static const Color trustBlue = Color.fromRGBO(14, 109, 233, 1); // Approximate HSL(215, 88%, 45%)
-  
-  // Status
-  static const Color safeGreen = Color.fromRGBO(22, 161, 73, 1); // HSL(142, 76%, 36%)
-  static const Color alertAmber = Color.fromRGBO(246, 167, 10, 1); // HSL(38, 92%, 50%)
-  static const Color emergencyRed = Color.fromRGBO(234, 56, 56, 1); // HSL(0, 84%, 60%)
-
-  // Authority Theme
-  static const Color authBg = Color.fromRGBO(12, 18, 28, 1); // HSL(220, 40%, 8%)
-  static const Color authSurface = Color.fromRGBO(20, 28, 41, 1); // HSL(220, 35%, 12%)
-  static const Color authBorder = Color.fromRGBO(36, 48, 66, 1); // HSL(220, 30%, 20%)
-
-  // General App surface and text
-  static const Color bgLight = Color(0xFFF8F7F5);
-  static const Color textDark = Color(0xFF1E293B);
-  static const Color textLight = Color(0xFFF8FAFC);
+  static const safeGreen = NB.mint;
+  static const alertAmber = NB.orange;
+  static const emergencyRed = NB.red;
+  static const trustBlue = NB.blue;
+  static const primary = NB.yellow;
 }
