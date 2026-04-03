@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MapPin, Loader2, Activity, Shield } from 'lucide-react';
+import { MapPin, Loader2, Activity, Shield, Users, Clock } from 'lucide-react';
 import api from '../../lib/api';
 import AuthoritySidebar from '../../components/layout/AuthoritySidebar';
 
@@ -17,13 +17,18 @@ const riskColor = (level: string) => {
 export default function AuthorityZones() {
     const [loading, setLoading] = useState(true);
     const [zones, setZones] = useState<any[]>([]);
+    const [safeHouseRequests, setSafeHouseRequests] = useState<any[]>([]);
 
     useEffect(() => { fetchZones(); }, []);
 
     const fetchZones = async () => {
         try {
-            const res = await api.get('/zones');
-            if (res.data.success) setZones(res.data.data);
+            const [zonesRes, shRes] = await Promise.all([
+                api.get('/zones'),
+                api.get('/incidents?incident_type=safe_house_request&limit=50').catch(() => ({ data: { success: false, data: [] } })),
+            ]);
+            if (zonesRes.data.success) setZones(zonesRes.data.data);
+            if (shRes.data.success) setSafeHouseRequests(shRes.data.data || []);
         } catch { console.error('Failed to fetch zones'); } finally { setLoading(false); }
     };
 
@@ -44,11 +49,12 @@ export default function AuthorityZones() {
                 </div>
 
                 {/* Summary bar */}
-                <div style={{ display: 'flex', gap: 16, padding: '20px 28px 0' }}>
+                <div style={{ display: 'flex', gap: 16, padding: '20px 28px 0', flexWrap: 'wrap' }}>
                     {[
                         { label: 'Total Zones', value: zones.length, color: NB.black },
                         { label: 'High Risk', value: zones.filter(z => ['CRITICAL', 'HIGH'].includes(z.risk_level?.toUpperCase())).length, color: NB.red },
                         { label: 'Safe', value: zones.filter(z => !['CRITICAL', 'HIGH'].includes(z.risk_level?.toUpperCase())).length, color: NB.mint },
+                        { label: 'Safe House Requests', value: safeHouseRequests.length, color: NB.blue },
                     ].map((s, i) => (
                         <div key={i} style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `3px 3px 0 ${NB.black}`, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
                             <span style={{ fontSize: '1.6rem', fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: s.color }}>{s.value}</span>
@@ -66,6 +72,11 @@ export default function AuthorityZones() {
                     ) : zones.map(zone => {
                         const rc = riskColor(zone.risk_level);
                         const isHighRisk = ['CRITICAL', 'HIGH'].includes(zone.risk_level?.toUpperCase());
+                        const isSafeZone = zone.risk_level?.toLowerCase() === 'safe' || zone.risk_level?.toLowerCase() === 'moderate';
+                        // Match safe house requests to this zone by checking if the description mentions this zone name
+                        const zoneRequests = safeHouseRequests.filter(sh =>
+                            sh.description?.toLowerCase().includes(zone.name?.toLowerCase())
+                        );
                         return (
                             <div key={zone._id} style={{
                                 background: NB.white,
@@ -108,6 +119,40 @@ export default function AuthorityZones() {
                                         </p>
                                     </div>
                                 </div>
+
+                                {/* Safe House Requests for this zone */}
+                                {isSafeZone && (
+                                    <div style={{ marginTop: 14, borderTop: `2px solid ${NB.black}`, paddingTop: 14 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                            <p style={{ fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6B6B6B', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                <Users size={12} /> Safe House Requests
+                                            </p>
+                                            {zoneRequests.length > 0 && (
+                                                <span style={{ padding: '2px 8px', background: NB.blue, color: NB.white, fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase' }}>{zoneRequests.length}</span>
+                                            )}
+                                        </div>
+                                        {zoneRequests.length > 0 ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 120, overflowY: 'auto' }}>
+                                                {zoneRequests.slice(0, 5).map(req => (
+                                                    <div key={req._id} style={{ padding: '8px 10px', background: NB.cream, border: `1px solid ${NB.blue}40`, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem' }}>
+                                                        <div style={{ width: 24, height: 24, background: NB.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.65rem', color: NB.white, flexShrink: 0 }}>
+                                                            {req.reporter?.full_name?.charAt(0) || '?'}
+                                                        </div>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <span style={{ fontWeight: 700, color: NB.black }}>{req.reporter?.full_name || 'Unknown'}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: '#6B6B6B', fontSize: '0.65rem', flexShrink: 0 }}>
+                                                            <Clock size={10} />
+                                                            {new Date(req.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p style={{ fontSize: '0.72rem', color: '#6B6B6B', margin: 0, fontStyle: 'italic' }}>No requests for this zone</p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         );
                     })}

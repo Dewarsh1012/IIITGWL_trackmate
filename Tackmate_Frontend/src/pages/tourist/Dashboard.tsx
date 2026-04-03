@@ -106,6 +106,7 @@ export default function TouristDashboard() {
     const [reportModalOpen, setReportModalOpen] = useState(false);
     const [updateTripModalOpen, setUpdateTripModalOpen] = useState(false);
     const [iotModalOpen, setIotModalOpen] = useState(false);
+    const [proximityAlerts, setProximityAlerts] = useState<any[]>([]);
 
     /* ── GPS tracking ── */
     useEffect(() => {
@@ -136,8 +137,17 @@ export default function TouristDashboard() {
             const color = data.zone?.risk_level === 'high' || data.zone?.risk_level === 'restricted' ? 'error' : 'info';
             setToast({ message: data.message, type: color as any });
         };
+        const handleRedZoneProximity = (data: any) => {
+            setProximityAlerts(prev => {
+                const exists = prev.some(a => a.zone?.id === data.zone?.id);
+                if (exists) return prev.map(a => a.zone?.id === data.zone?.id ? { ...data, _id: `prox-${data.zone.id}`, receivedAt: Date.now() } : a);
+                return [{ ...data, _id: `prox-${data.zone?.id || Date.now()}`, receivedAt: Date.now() }, ...prev].slice(0, 5);
+            });
+            setToast({ message: data.message, type: 'error' });
+        };
         socket.on('zone_alert', handleZoneAlert);
-        return () => { socket.off('zone_alert', handleZoneAlert); };
+        socket.on('red_zone_proximity', handleRedZoneProximity);
+        return () => { socket.off('zone_alert', handleZoneAlert); socket.off('red_zone_proximity', handleRedZoneProximity); };
     }, [socket]);
 
     const fetchTouristData = useCallback(async () => {
@@ -164,7 +174,7 @@ export default function TouristDashboard() {
             const res = await api.post('/locations', { latitude: userLat, longitude: userLng, source: 'gps' });
             setCheckinDone(true);
             const zone = res.data.data?.zone;
-            await api.post('/incidents', { title: 'Tourist Checked In', description: `User checked in at ${userLat.toFixed(4)}, ${userLng.toFixed(4)}` + (zone ? ` (${zone.name})` : ''), incident_type: 'other', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(() => {});
+            await api.post('/incidents', { title: 'Tourist Checked In', description: `User checked in at ${userLat.toFixed(4)}, ${userLng.toFixed(4)}` + (zone ? ` (${zone.name})` : ''), incident_type: 'checkin', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(() => {});
             setToast({ message: zone ? `Checked in at ${zone.name}` : 'Daily check-in recorded ✓', type: 'success' });
             setTimeout(() => setCheckinDone(false), 5000);
         } catch { setToast({ message: 'Check-in failed. Try again.', type: 'error' }); } finally { setCheckinLoading(false); }
@@ -180,11 +190,11 @@ export default function TouristDashboard() {
                 setVerifyResult(`✓ You are in "${zone.name}" — ${zone.risk_level} zone`); 
                 setHighlightZoneId(zone._id); 
                 setTimeout(() => setHighlightZoneId(null), 8000); 
-                api.post('/incidents', { title: 'Stay Verified', description: `User verified stay in ${zone.name}`, incident_type: 'other', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(()=>{});
+                api.post('/incidents', { title: 'Stay Verified', description: `User verified stay in ${zone.name}`, incident_type: 'checkin', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(()=>{});
             }
             else { 
                 setVerifyResult('ℹ You are not inside any registered zone'); 
-                api.post('/incidents', { title: 'Stay Verification Failed', description: `User not in any registered zone`, incident_type: 'other', severity: 'medium', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(()=>{});
+                api.post('/incidents', { title: 'Stay Verification Failed', description: `User not in any registered zone`, incident_type: 'checkin', severity: 'medium', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(()=>{});
             }
             setTimeout(() => setVerifyResult(null), 6000);
         } catch { setToast({ message: 'Verification failed', type: 'error' }); } finally { setVerifyLoading(false); }
@@ -197,7 +207,7 @@ export default function TouristDashboard() {
         let nearest = safeZones[0]; let minDist = haversine(userLat, userLng, nearest.center_lat, nearest.center_lng);
         for (const z of safeZones) { const d = haversine(userLat, userLng, z.center_lat, z.center_lng); if (d < minDist) { nearest = z; minDist = d; } }
         setHighlightZoneId(nearest._id);
-        api.post('/incidents', { title: 'Safe House Requested', description: `User navigating to ${nearest.name}`, incident_type: 'other', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(()=>{});
+        api.post('/incidents', { title: 'Safe House Requested', description: `User navigating to ${nearest.name}`, incident_type: 'safe_house_request', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(()=>{});
         setToast({ message: `Nearest safe zone: ${nearest.name} (${Math.round(minDist)}m)`, type: 'success' });
         setTimeout(() => setHighlightZoneId(null), 10000);
     };
@@ -360,10 +370,25 @@ export default function TouristDashboard() {
                             <h3 style={{ fontWeight: 800, color: C.text, margin: 0, fontSize: '0.88rem' }}>Safety Broadcasts</h3>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <button onClick={fetchTouristData} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted }}><RefreshCw size={13} className={loading ? 'animate-spin' : ''} /></button>
-                                {alerts.length > 0 && <span style={{ padding: '3px 10px', background: 'linear-gradient(135deg, #F87171, #EF4444)', color: '#FFFFFF', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', borderRadius: 20 }}>{alerts.length} Active</span>}
+                                {(alerts.length + proximityAlerts.length) > 0 && <span style={{ padding: '3px 10px', background: 'linear-gradient(135deg, #F87171, #EF4444)', color: '#FFFFFF', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', borderRadius: 20 }}>{alerts.length + proximityAlerts.length} Active</span>}
                             </div>
                         </div>
-                        <div style={{ padding: 14, maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div style={{ padding: 14, maxHeight: 280, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {/* Red Zone Proximity Alerts */}
+                            {proximityAlerts.map(pa => (
+                                <div key={pa._id} style={{ padding: '12px 14px', background: 'linear-gradient(135deg, rgba(239,68,68,0.08), rgba(248,113,113,0.04))', border: `1px solid rgba(239,68,68,0.25)`, borderRadius: 14, display: 'flex', gap: 10, animation: 'nb-pulse 2s infinite' }}>
+                                    <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #EF4444, #DC2626)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        <ShieldAlert size={16} color="#FFFFFF" />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ fontWeight: 800, color: C.critical, margin: 0, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>⚡ RED ZONE NEARBY</p>
+                                        <p style={{ fontWeight: 700, color: C.text, margin: '2px 0 0', fontSize: '0.82rem' }}>{pa.zone?.name} — {pa.distance_meters}m away</p>
+                                        <p style={{ fontSize: '0.68rem', color: C.textMuted, margin: '2px 0 0', fontWeight: 500 }}>{pa.zone?.risk_level} zone · {new Date(pa.timestamp).toLocaleTimeString()}</p>
+                                    </div>
+                                    <button onClick={() => setProximityAlerts(prev => prev.filter(a => a._id !== pa._id))} style={{ background: 'rgba(239,68,68,0.1)', border: 'none', borderRadius: 8, padding: '4px 6px', cursor: 'pointer', alignSelf: 'flex-start' }}><X size={12} color={C.critical} /></button>
+                                </div>
+                            ))}
+                            {/* Regular alerts */}
                             {alerts.length > 0 ? alerts.map(alert => {
                                 const col = alert.severity === 'critical' ? C.critical : alert.severity === 'high' ? C.high : C.primary;
                                 const bgCol = alert.severity === 'critical' ? 'rgba(239,68,68,0.06)' : alert.severity === 'high' ? 'rgba(248,113,113,0.06)' : 'rgba(108,99,255,0.06)';
@@ -376,7 +401,7 @@ export default function TouristDashboard() {
                                         </div>
                                     </div>
                                 );
-                            }) : (
+                            }) : proximityAlerts.length === 0 && (
                                 <div style={{ padding: 24, textAlign: 'center', border: `2px dashed ${C.border}`, borderRadius: 14 }}>
                                     <Check size={20} color={C.safe} style={{ margin: '0 auto 6px' }} />
                                     <p style={{ fontSize: '0.78rem', color: C.textMuted, fontWeight: 600 }}>All sectors clear. Enjoy your trip!</p>

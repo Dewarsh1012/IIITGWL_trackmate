@@ -230,7 +230,7 @@ export default function UserDetail() {
               </div>
             </div>
 
-            {/* Incidents */}
+            {/* Incidents Split Sections */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Blockchain ID Card */}
               <div style={{ background: NB.black, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, padding: '16px' }}>
@@ -244,6 +244,33 @@ export default function UserDetail() {
                     <p style={{ color: NB.white, fontWeight: 700, margin: '2px 0 0', fontSize: '0.85rem' }}>{profile.ward?.name || profile.ward}</p>
                   </div>
                 )}
+              </div>
+
+              {/* Daily Check-Ins */}
+              <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, overflow: 'hidden' }}>
+                <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.cream, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontWeight: 800, color: NB.black, margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <CheckCircle size={14} color={NB.mint} /> Daily Check-Ins
+                  </h3>
+                  {incidents.filter(i => i.incident_type === 'checkin').length > 0 && <span style={{ padding: '2px 8px', background: NB.mint, color: NB.white, fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase' }}>{incidents.filter(i => i.incident_type === 'checkin').length}</span>}
+                </div>
+                <div style={{ padding: '12px', maxHeight: 180, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {incidents.filter(i => i.incident_type === 'checkin').length > 0 ? incidents.filter(i => i.incident_type === 'checkin').map(ci => (
+                    <div key={ci._id} style={{ padding: '10px 12px', background: NB.cream, border: `2px solid ${NB.mint}`, display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <CheckCircle size={14} color={NB.mint} style={{ flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontWeight: 700, color: NB.black, margin: 0, fontSize: '0.78rem' }}>{ci.title}</p>
+                        <p style={{ fontSize: '0.68rem', color: '#6B6B6B', margin: '2px 0 0', fontWeight: 500 }}>
+                          {new Date(ci.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  )) : (
+                    <div style={{ padding: '16px', textAlign: 'center', color: '#6B6B6B', fontSize: '0.78rem', fontWeight: 600, border: `2px dashed rgba(255,251,240,0.2)` }}>
+                      No check-ins recorded
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Location History */}
@@ -267,14 +294,16 @@ export default function UserDetail() {
                 </div>
               </div>
 
-              {/* Incidents */}
-              <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, flex: 1, overflow: 'hidden' }}>
+              {/* Anomaly Reports (Incident Responses) */}
+              <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, overflow: 'hidden' }}>
                 <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.cream, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ fontWeight: 800, color: NB.black, margin: 0, fontSize: '0.88rem' }}>Reported Incidents</h3>
-                  {incidents.length > 0 && <span style={{ padding: '2px 8px', background: NB.red, color: NB.white, fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase' }}>{incidents.length}</span>}
+                  <h3 style={{ fontWeight: 800, color: NB.black, margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <AlertTriangle size={14} color={NB.red} /> Incident Reports
+                  </h3>
+                  {incidents.filter(i => i.incident_type !== 'checkin' && i.incident_type !== 'safe_house_request').length > 0 && <span style={{ padding: '2px 8px', background: NB.red, color: NB.white, fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase' }}>{incidents.filter(i => i.incident_type !== 'checkin' && i.incident_type !== 'safe_house_request').length}</span>}
                 </div>
                 <div style={{ padding: '12px', maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {incidents.length > 0 ? incidents.map(inc => (
+                  {incidents.filter(i => i.incident_type !== 'checkin' && i.incident_type !== 'safe_house_request').length > 0 ? incidents.filter(i => i.incident_type !== 'checkin' && i.incident_type !== 'safe_house_request').map(inc => (
                     <div key={inc._id} style={{ padding: '10px 12px', background: NB.cream, border: `2px solid ${sevColor(inc.severity)}`, display: 'flex', gap: 10 }}>
                       <AlertTriangle size={14} color={sevColor(inc.severity)} style={{ flexShrink: 0, marginTop: 2 }} />
                       <div style={{ flex: 1 }}>
@@ -283,14 +312,41 @@ export default function UserDetail() {
                           <span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', background: sevColor(inc.severity), color: NB.white, padding: '2px 5px', flexShrink: 0 }}>{inc.severity}</span>
                         </div>
                         <p style={{ fontSize: '0.7rem', color: '#6B6B6B', margin: '2px 0 0', fontWeight: 500 }}>
-                          {inc.status} · {new Date(inc.created_at).toLocaleDateString()}
+                          {inc.incident_type} · {inc.status} · {new Date(inc.created_at).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
                   )) : (
                     <div style={{ padding: '20px', textAlign: 'center', border: `2px dashed rgba(255,251,240,0.2)` }}>
                       <Shield size={18} color={NB.mint} style={{ margin: '0 auto 6px' }} />
-                      <p style={{ fontSize: '0.78rem', color: '#6B6B6B', fontWeight: 600 }}>No incidents reported by this user</p>
+                      <p style={{ fontSize: '0.78rem', color: '#6B6B6B', fontWeight: 600 }}>No anomaly reports from this user</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Safe House Requests */}
+              <div style={{ background: NB.white, border: `3px solid ${NB.black}`, boxShadow: `4px 4px 0 ${NB.black}`, overflow: 'hidden' }}>
+                <div style={{ padding: '12px 16px', borderBottom: `2px solid ${NB.black}`, background: NB.cream, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontWeight: 800, color: NB.black, margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Shield size={14} color={NB.blue} /> Safe House Requests
+                  </h3>
+                  {incidents.filter(i => i.incident_type === 'safe_house_request').length > 0 && <span style={{ padding: '2px 8px', background: NB.blue, color: NB.white, fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase' }}>{incidents.filter(i => i.incident_type === 'safe_house_request').length}</span>}
+                </div>
+                <div style={{ padding: '12px', maxHeight: 160, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {incidents.filter(i => i.incident_type === 'safe_house_request').length > 0 ? incidents.filter(i => i.incident_type === 'safe_house_request').map(sh => (
+                    <div key={sh._id} style={{ padding: '10px 12px', background: NB.cream, border: `2px solid ${NB.blue}`, display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <MapPin size={14} color={NB.blue} style={{ flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontWeight: 700, color: NB.black, margin: 0, fontSize: '0.78rem' }}>{sh.description || sh.title}</p>
+                        <p style={{ fontSize: '0.68rem', color: '#6B6B6B', margin: '2px 0 0', fontWeight: 500 }}>
+                          {new Date(sh.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  )) : (
+                    <div style={{ padding: '16px', textAlign: 'center', color: '#6B6B6B', fontSize: '0.78rem', fontWeight: 600, border: `2px dashed rgba(255,251,240,0.2)` }}>
+                      No safe house requests
                     </div>
                   )}
                 </div>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import api from '../../lib/api';
-import { AlertTriangle, RefreshCw, Loader2, TrendingUp, Search, Users, Zap, Shield, MapPin, Eye, Activity, Globe } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Loader2, TrendingUp, Search, Users, Zap, Shield, MapPin, Eye, Activity, Globe, CheckCircle2, Clock } from 'lucide-react';
 import AuthorityMap from '../../components/maps/AuthorityMap';
 import AuthoritySidebar from '../../components/layout/AuthoritySidebar';
 import type { ZoneData } from '../../components/maps/TouristMap';
@@ -60,15 +60,17 @@ export default function AuthorityDashboard() {
     const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [drawColor, setDrawColor] = useState(C.high);
     const [emergencyAlerts, setEmergencyAlerts] = useState<any[]>([]);
+    const [checkins, setCheckins] = useState<any[]>([]);
 
     const fetchDashboardData = async () => {
         setLoading(true);
         try {
-            const [incidentsRes, summaryRes, zonesRes, locationsRes] = await Promise.all([
+            const [incidentsRes, summaryRes, zonesRes, locationsRes, checkinsRes] = await Promise.all([
                 api.get('/incidents?limit=10'),
                 api.get('/analytics/summary'),
                 api.get('/zones'),
-                api.get('/locations/all')
+                api.get('/locations/all'),
+                api.get('/locations/checkins/all').catch(() => ({ data: { success: false, data: [] } })),
             ]);
 
             if (incidentsRes.data.success) setIncidents(incidentsRes.data.data);
@@ -101,6 +103,7 @@ export default function AuthorityDashboard() {
                 });
                 setUserLocations(locMap);
             }
+            if (checkinsRes.data.success) setCheckins(checkinsRes.data.data || []);
         } catch (err) { console.error(err); } finally { setLoading(false); }
     };
 
@@ -108,7 +111,13 @@ export default function AuthorityDashboard() {
         fetchDashboardData();
         const interval = setInterval(fetchDashboardData, 60000);
         if (socket) {
-            socket.on('new-incident', (incident: any) => { setIncidents(prev => [incident, ...prev.slice(0, 9)]); fetchDashboardData(); });
+            socket.on('new-incident', (incident: any) => {
+                setIncidents(prev => [incident, ...prev.slice(0, 9)]);
+                if (incident.incident_type === 'checkin') {
+                    setCheckins(prev => [incident, ...prev.slice(0, 49)]);
+                }
+                fetchDashboardData();
+            });
             socket.on('sos:triggered', (incident: any) => {
                 setEmergencyAlerts(prev => [incident, ...prev]);
                 setIncidents(prev => [incident, ...prev.slice(0, 9)]);
@@ -404,6 +413,70 @@ export default function AuthorityDashboard() {
                                 ))}
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* Daily Check-Ins Section */}
+                <div style={{ padding: '20px 28px 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                        <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: C.text, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ width: 4, height: 24, borderRadius: 4, background: 'linear-gradient(180deg, #34D399, #2DD4BF)', display: 'inline-block' }} />
+                            Daily Check-Ins
+                            {checkins.length > 0 && <span style={{ padding: '3px 10px', background: 'linear-gradient(135deg, #34D399, #2DD4BF)', color: '#FFFFFF', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', borderRadius: 20 }}>{checkins.length} today</span>}
+                        </h2>
+                        <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: C.textMuted }}>Tourist safety check-ins from last 24h</p>
+                    </div>
+                    <div style={{ ...clayCard, overflow: 'hidden', padding: 0 }}>
+                        {checkins.length === 0 ? (
+                            <div style={{ padding: 28, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                                <CheckCircle2 size={24} color={C.textMuted} />
+                                <p style={{ fontSize: '0.78rem', fontWeight: 700, color: C.textMuted }}>No check-ins recorded in the last 24 hours.</p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 0 }}>
+                                {checkins.slice(0, 12).map((ci, idx) => (
+                                    <div
+                                        key={ci._id || idx}
+                                        onClick={() => ci.reporter?._id && navigate(`/authority/user/${ci.reporter._id}`)}
+                                        style={{
+                                            padding: '14px 18px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 12,
+                                            borderBottom: `1px solid ${C.border}`,
+                                            borderRight: `1px solid ${C.border}`,
+                                            cursor: ci.reporter?._id ? 'pointer' : 'default',
+                                            transition: 'background 0.15s',
+                                            background: 'transparent',
+                                        }}
+                                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(52,211,153,0.04)'; }}
+                                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                                    >
+                                        <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg, #34D399, #2DD4BF)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.85rem', color: '#FFFFFF', flexShrink: 0 }}>
+                                            {ci.reporter?.full_name?.charAt(0) || '?'}
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <p style={{ fontWeight: 700, color: C.text, margin: 0, fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {ci.reporter?.full_name || 'Unknown User'}
+                                            </p>
+                                            <p style={{ fontSize: '0.68rem', color: C.textMuted, margin: '2px 0 0', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {ci.description || ci.zone?.name || 'Location check-in'}
+                                            </p>
+                                        </div>
+                                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.68rem', color: C.textMuted, fontWeight: 600 }}>
+                                                <Clock size={11} />
+                                                {new Date(ci.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                            <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.safe }} />
+                                                <span style={{ fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase', color: C.safe }}>Checked In</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 

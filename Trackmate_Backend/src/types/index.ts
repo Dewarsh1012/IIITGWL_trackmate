@@ -40,6 +40,7 @@ export enum AlertSource {
     RESIDENT_REPORT = 'resident_report',
     AUTHORITY_MANUAL = 'authority_manual',
     IOT_BAND = 'iot_band',
+    USER_REPORT = 'user_report',
 }
 
 export enum ZoneRiskLevel {

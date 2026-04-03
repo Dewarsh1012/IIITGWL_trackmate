@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, AlertTriangle, Map, Fingerprint, BarChart3, Navigation, Bell, Building2, Home, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, AlertTriangle, Map, Fingerprint, BarChart3, Navigation, Bell, Building2, Home, LogOut, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function AuthoritySidebar() {
@@ -67,6 +67,10 @@ export default function AuthoritySidebar() {
           Tools
         </div>
 
+        <NavLink to="/authority/checkins" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+          <CheckCircle2 size={18} />
+          <span>Daily Check-Ins</span>
+        </NavLink>
         <NavLink to="/authority/zones" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
           <Map size={18} />
           <span>Zone Management</span>

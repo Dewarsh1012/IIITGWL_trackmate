@@ -26,6 +26,7 @@ import AuthorityRosters from './pages/authority/AuthorityRosters';
 import AuthorityZones from './pages/authority/ZoneManagement';
 import AlertComposer from './pages/authority/AlertComposer';
 import UserDetail from './pages/authority/UserDetail';
+import DailyCheckins from './pages/authority/DailyCheckins';
 
 export default function App() {
     return (
@@ -92,6 +93,7 @@ export default function App() {
                                         <Route path="residents" element={<AuthorityRosters />} />
                                         <Route path="businesses" element={<AuthorityRosters />} />
                                         <Route path="zones" element={<AuthorityZones />} />
+                                        <Route path="checkins" element={<DailyCheckins />} />
                                         <Route path="efir" element={<AuthorityEfir />} />
                                         <Route path="analytics" element={<AuthorityAnalytics />} />
                                         <Route path="alerts" element={<AlertComposer />} />

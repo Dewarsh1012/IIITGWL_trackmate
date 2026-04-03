@@ -114,4 +114,52 @@ router.get(
     }
 );
 
+// ─── GET — all recent daily check-ins (authority) ─────────────────────
+router.get(
+    '/checkins/all',
+    authenticate,
+    requireRole(UserRole.AUTHORITY, UserRole.ADMIN),
+    async (_req: AuthRequest, res: Response, next) => {
+        try {
+            const { Incident } = await import('../models');
+            const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // last 24h
+            const checkins = await Incident.find({
+                incident_type: 'checkin',
+                created_at: { $gte: cutoff },
+            })
+                .populate('reporter', 'full_name role blockchain_id avatar_url')
+                .populate('zone', 'name risk_level')
+                .sort({ created_at: -1 })
+                .limit(50)
+                .lean();
+            res.json({ success: true, data: checkins });
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+// ─── GET — user check-in history (authority) ──────────────────────────
+router.get(
+    '/checkins/user/:userId',
+    authenticate,
+    requireRole(UserRole.AUTHORITY, UserRole.ADMIN),
+    async (req: AuthRequest, res: Response, next) => {
+        try {
+            const { Incident } = await import('../models');
+            const checkins = await Incident.find({
+                reporter: req.params.userId,
+                incident_type: 'checkin',
+            })
+                .populate('zone', 'name risk_level')
+                .sort({ created_at: -1 })
+                .limit(30)
+                .lean();
+            res.json({ success: true, data: checkins });
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
 export default router;

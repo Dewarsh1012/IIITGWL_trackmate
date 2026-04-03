@@ -133,6 +133,29 @@ export function initSocket(httpServer: HTTPServer): SocketIOServer {
                     }
                 }
 
+                // Red zone proximity detection — alert tourist when near (within 500m)
+                // of a high/restricted zone but not inside one
+                const PROXIMITY_THRESHOLD_M = 500;
+                if (!matchingZone || (matchingZone.risk_level !== 'high' && matchingZone.risk_level !== 'restricted')) {
+                    const { distanceInMeters } = await import('../lib/geofence');
+                    const dangerousZones = zones.filter(
+                        (z: any) => z.is_active && (z.risk_level === 'high' || z.risk_level === 'restricted')
+                    );
+                    for (const dz of dangerousZones) {
+                        const dist = distanceInMeters(data.latitude, data.longitude, dz.center_lat, dz.center_lng);
+                        const edgeDist = Math.max(0, dist - (dz.radius_meters || 0));
+                        if (edgeDist > 0 && edgeDist <= PROXIMITY_THRESHOLD_M) {
+                            io!.to(`user_${data.userId}`).emit('red_zone_proximity', {
+                                zone: { id: String(dz._id), name: dz.name, risk_level: dz.risk_level },
+                                distance_meters: Math.round(edgeDist),
+                                message: `⚠️ You are ${Math.round(edgeDist)}m from ${dz.name} (${dz.risk_level} zone). Stay alert!`,
+                                timestamp: new Date().toISOString(),
+                            });
+                            break; // Only alert for the nearest dangerous zone
+                        }
+                    }
+                }
+
                 // Forward to authority room for live monitoring
                 io!.to('authority_room').emit('location:update', {
                     userId: data.userId,
