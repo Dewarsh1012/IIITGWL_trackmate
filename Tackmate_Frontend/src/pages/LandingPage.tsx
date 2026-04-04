@@ -1,66 +1,88 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Zap, Map, Users, Building2, Lock, ArrowRight, CheckCircle } from 'lucide-react';
+import {
+  Shield,
+  Zap,
+  Map,
+  Users,
+  Building2,
+  Lock,
+  ArrowRight,
+  CheckCircle2,
+  Sparkles,
+  Radar,
+} from 'lucide-react';
 
-const NB = {
-  black: '#0A0A0A',
-  yellow: '#FFE500',
-  red: '#FF3B3B',
-  blue: '#2B6FFF',
-  mint: '#00D084',
-  orange: '#FF7A00',
-  cream: '#FFFBF0',
-  white: '#FFFFFF',
+const C = {
+  bg: '#F0EDFA',
+  surface: '#FFFFFF',
+  surfaceAlt: '#F7F5FF',
+  dark: '#1B1D2A',
+  darkAlt: '#252840',
+  text: '#1B1D2A',
+  textSecondary: '#4A4D68',
+  textMuted: '#8B8FA8',
+  primary: '#6C63FF',
+  primaryLight: '#8B85FF',
+  accent: '#FF6B8A',
+  safe: '#34D399',
+  moderate: '#FBBF24',
+  high: '#F87171',
+  border: 'rgba(27,29,42,0.08)',
+};
+
+const clayCard: React.CSSProperties = {
+  background: C.surface,
+  borderRadius: 24,
+  border: `1px solid ${C.border}`,
+  boxShadow: '8px 8px 16px rgba(27,29,42,0.08), -4px -4px 12px rgba(255,255,255,0.9)',
 };
 
 const roles = [
   {
     label: 'Tourist',
     role: 'tourist',
-    icon: <Map size={28} color={NB.black} />,
-    bg: NB.yellow,
-    desc: 'Travel with confidence. Real-time safety alerts, verified guides & instant SOS.',
+    icon: <Map size={24} color="#FFFFFF" />,
+    color: C.primary,
+    desc: 'Travel confidently with real-time alerts, live route intelligence, and SOS support.',
   },
   {
     label: 'Resident',
     role: 'resident',
-    icon: <Users size={28} color={NB.white} />,
-    bg: NB.blue,
-    desc: 'Protect your neighbourhood. Report incidents & access local safety data.',
+    icon: <Users size={24} color="#FFFFFF" />,
+    color: C.safe,
+    desc: 'Protect your neighborhood with instant incident reporting and verified local updates.',
   },
   {
     label: 'Business',
     role: 'business',
-    icon: <Building2 size={28} color={NB.black} />,
-    bg: NB.mint,
-    desc: 'AI-driven threat detection & automated compliance for your premises.',
+    icon: <Building2 size={24} color="#FFFFFF" />,
+    color: C.moderate,
+    desc: 'Monitor risk around your property using predictive AI and smart compliance flows.',
   },
   {
     label: 'Authority',
     role: 'authority',
-    icon: <Shield size={28} color={NB.white} />,
-    bg: NB.black,
-    desc: 'Unified command & control. Real-time analytics and E-FIR management.',
+    icon: <Shield size={24} color="#FFFFFF" />,
+    color: C.accent,
+    desc: 'Coordinate city-wide safety operations with command analytics, check-ins, and E-FIR.',
   },
 ];
 
 const features = [
   {
-    icon: <Map size={32} />,
-    title: 'Live Safety Map',
-    desc: 'Real-time heatmaps, zone alerts and predictive routing across the entire city.',
-    accent: NB.yellow,
+    icon: <Radar size={26} color={C.primary} />,
+    title: 'Live Monitoring Grid',
+    desc: 'Track movement, zone risk, and emerging events through a unified operations layer.',
   },
   {
-    icon: <Zap size={32} />,
-    title: 'AI Threat Detection',
-    desc: 'Proprietary models flag anomalies before they escalate — 94% accuracy rate.',
-    accent: NB.red,
+    icon: <Zap size={26} color={C.accent} />,
+    title: 'Anomaly Detection',
+    desc: 'AI models flag unusual patterns early so teams can respond before escalation.',
   },
   {
-    icon: <Lock size={32} />,
-    title: 'Blockchain Identity',
-    desc: 'Decentralised ID management. You own your data, always.',
-    accent: NB.blue,
+    icon: <Lock size={26} color={C.safe} />,
+    title: 'Trusted Identity',
+    desc: 'Secure verification workflows ensure the right responders act on the right incidents.',
   },
 ];
 
@@ -68,355 +90,385 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   return (
-    <div style={{ background: NB.cream, minHeight: '100vh', fontFamily: "'Space Grotesk', sans-serif", color: NB.black }}>
-
-      {/* ── NAV ── */}
-      <header style={{
-        position: 'sticky', top: 0, zIndex: 50,
-        background: NB.black,
-        borderBottom: `4px solid ${NB.black}`,
-        padding: '0 5%',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        height: 64,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 36, height: 36, background: NB.yellow,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: `2px solid ${NB.yellow}`,
-          }}>
-            <Shield size={20} color={NB.black} />
-          </div>
-          <span style={{ color: NB.white, fontWeight: 800, fontSize: '1.1rem', letterSpacing: '0.04em' }}>
-            TRACK<span style={{ color: NB.yellow }}>MATE</span>
-          </span>
-        </div>
-
-        <nav style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button
-            onClick={() => navigate('/auth?mode=login')}
-            style={{
-              background: 'transparent', border: `2px solid rgba(255,255,255,0.3)`,
-              color: NB.white, padding: '8px 20px', fontFamily: 'inherit',
-              fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-              transition: 'all 0.1s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = NB.yellow)}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)')}
-          >
-            Login
-          </button>
-          <button
-            onClick={() => navigate('/auth')}
-            style={{
-              background: NB.yellow, border: `2px solid ${NB.yellow}`,
-              color: NB.black, padding: '8px 20px', fontFamily: 'inherit',
-              fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-              boxShadow: `3px 3px 0 ${NB.white}`,
-              transition: 'all 0.1s',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translate(-1px,-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = `4px 4px 0 ${NB.white}`; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = `3px 3px 0 ${NB.white}`; }}
-          >
-            Get Started
-          </button>
-        </nav>
-      </header>
-
-      {/* ── HERO ── */}
-      <section style={{
-        padding: '80px 5% 72px',
-        background: NB.black,
-        borderBottom: `4px solid ${NB.black}`,
-        position: 'relative', overflow: 'hidden',
-      }}>
-        {/* Yellow accent blob */}
-        <div style={{
-          position: 'absolute', top: -60, right: '8%',
-          width: 320, height: 320,
-          background: NB.yellow, opacity: 0.12,
-          borderRadius: 0,
-          transform: 'rotate(20deg)',
-        }} />
-
-        <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
-          {/* Tag */}
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: NB.yellow, border: `2px solid ${NB.yellow}`,
-            padding: '5px 16px', marginBottom: 28,
-            fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em',
-            color: NB.black,
-          }}>
-            <CheckCircle size={13} />
-            Unified Civic Safety OS — v3.0
+    <div
+      style={{
+        minHeight: '100vh',
+        background: C.bg,
+        color: C.text,
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+      }}
+    >
+      <header
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 20,
+          background: 'rgba(255,255,255,0.85)',
+          backdropFilter: 'blur(8px)',
+          borderBottom: `1px solid ${C.border}`,
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1160,
+            margin: '0 auto',
+            padding: '14px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #6C63FF, #8B85FF)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 6px 14px rgba(108,99,255,0.35)',
+              }}
+            >
+              <Shield size={18} color="#FFFFFF" />
+            </div>
+            <p style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.01em' }}>
+              TrackMate <span style={{ color: C.primary }}>Civic OS</span>
+            </p>
           </div>
 
-          <h1 style={{
-            color: NB.white,
-            fontSize: 'clamp(2.8rem, 7vw, 5.2rem)',
-            fontWeight: 800, lineHeight: 1.05,
-            letterSpacing: '-0.02em',
-            marginBottom: 24,
-          }}>
-            Safety Intelligence{' '}
-            <span style={{
-              display: 'inline-block',
-              background: NB.yellow,
-              color: NB.black,
-              padding: '2px 12px',
-            }}>
-              for Everyone
-            </span>{' '}
-            Who Lives Here.
-          </h1>
-
-          <p style={{
-            color: 'rgba(255,255,255,0.65)',
-            fontSize: '1.1rem',
-            maxWidth: 600, margin: '0 auto 40px',
-            lineHeight: 1.7, fontWeight: 400,
-          }}>
-            The next generation of urban security — connecting residents, tourists & authorities
-            through a secure, AI-powered decentralised infrastructure.
-          </p>
-
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => navigate('/auth?mode=login')}
+              style={{
+                border: `1px solid ${C.border}`,
+                background: C.surface,
+                borderRadius: 12,
+                padding: '10px 14px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                color: C.text,
+              }}
+            >
+              Login
+            </button>
             <button
               onClick={() => navigate('/auth')}
               style={{
-                background: NB.yellow, border: `3px solid ${NB.yellow}`,
-                color: NB.black, padding: '16px 40px',
-                fontFamily: 'inherit', fontWeight: 800, fontSize: '0.95rem',
-                cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em',
-                boxShadow: `5px 5px 0 rgba(255,229,0,0.4)`,
-                display: 'flex', alignItems: 'center', gap: 8,
-                transition: 'all 0.1s',
+                border: 'none',
+                background: 'linear-gradient(135deg, #6C63FF, #8B85FF)',
+                color: '#FFFFFF',
+                borderRadius: 12,
+                padding: '10px 14px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: '0 8px 16px rgba(108,99,255,0.3)',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translate(-2px,-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = `7px 7px 0 rgba(255,229,0,0.4)`; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = `5px 5px 0 rgba(255,229,0,0.4)`; }}
             >
-              Get Started <ArrowRight size={18} />
+              Get Started
             </button>
-            <button
-              onClick={() => navigate('/verify')}
+          </div>
+        </div>
+      </header>
+
+      <section style={{ padding: '56px 20px 38px' }}>
+        <div
+          style={{
+            maxWidth: 1160,
+            margin: '0 auto',
+            ...clayCard,
+            overflow: 'hidden',
+            position: 'relative',
+            background: 'linear-gradient(145deg, #1B1D2A, #252840)',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              right: -80,
+              top: -60,
+              width: 260,
+              height: 260,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(108,99,255,0.45), transparent 65%)',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              left: -50,
+              bottom: -80,
+              width: 220,
+              height: 220,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(255,107,138,0.35), transparent 70%)',
+            }}
+          />
+
+          <div style={{ position: 'relative', zIndex: 1, padding: '56px 32px' }}>
+            <div
               style={{
-                background: 'transparent', border: `3px solid rgba(255,255,255,0.5)`,
-                color: NB.white, padding: '16px 40px',
-                fontFamily: 'inherit', fontWeight: 700, fontSize: '0.95rem',
-                cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em',
-                transition: 'all 0.1s',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 12px',
+                borderRadius: 999,
+                background: 'rgba(255,255,255,0.12)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: '#FFFFFF',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                marginBottom: 22,
               }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = NB.white)}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)')}
             >
-              Verify an ID
-            </button>
+              <CheckCircle2 size={14} />
+              Unified Safety Platform v3
+            </div>
+
+            <h1
+              style={{
+                margin: 0,
+                color: '#FFFFFF',
+                fontSize: 'clamp(2rem, 5vw, 4rem)',
+                lineHeight: 1.06,
+                letterSpacing: '-0.03em',
+                maxWidth: 820,
+              }}
+            >
+              Real-time city safety intelligence for
+              <span style={{ color: '#8B85FF' }}> residents, visitors, and response teams</span>
+            </h1>
+
+            <p
+              style={{
+                marginTop: 18,
+                marginBottom: 32,
+                color: 'rgba(255,255,255,0.72)',
+                maxWidth: 720,
+                fontSize: '1rem',
+                lineHeight: 1.75,
+                fontWeight: 500,
+              }}
+            >
+              TrackMate connects live maps, AI anomaly detection, secure identity, and emergency workflows in one coordinated operating system.
+            </p>
+
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => navigate('/auth')}
+                style={{
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #6C63FF, #8B85FF)',
+                  color: '#FFFFFF',
+                  borderRadius: 14,
+                  padding: '14px 20px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: '0 10px 18px rgba(108,99,255,0.35)',
+                }}
+              >
+                Enter Platform <ArrowRight size={16} />
+              </button>
+              <button
+                onClick={() => navigate('/auth?mode=login')}
+                style={{
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  background: 'rgba(255,255,255,0.08)',
+                  color: '#FFFFFF',
+                  borderRadius: 14,
+                  padding: '14px 20px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Already have access
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── CHOOSE ROLE ── */}
-      <section style={{ padding: '72px 5%', background: NB.cream }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ marginBottom: 48 }}>
-            <div style={{
-              display: 'inline-block', background: NB.black, color: NB.yellow,
-              padding: '4px 14px', fontSize: '0.68rem', fontWeight: 800,
-              textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14,
-            }}>
-              Who Are You?
-            </div>
-            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: NB.black, lineHeight: 1.1 }}>
-              Choose Your Role
+      <section style={{ padding: '18px 20px 54px' }}>
+        <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+          <div style={{ marginBottom: 20 }}>
+            <p
+              style={{
+                margin: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 12px',
+                borderRadius: 999,
+                background: 'rgba(108,99,255,0.1)',
+                color: C.primary,
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}
+            >
+              <Sparkles size={13} />
+              Select Your Access Role
+            </p>
+            <h2 style={{ margin: '14px 0 4px', fontSize: 'clamp(1.7rem, 3.5vw, 2.6rem)', color: C.text }}>
+              One platform, role-specific workflows
             </h2>
-            <p style={{ marginTop: 10, color: '#3A3A3A', fontSize: '1.05rem', fontWeight: 500 }}>
-              Tailored experiences for every citizen and visitor.
+            <p style={{ margin: 0, color: C.textSecondary, fontWeight: 500 }}>
+              Use the role that matches your responsibilities to unlock the right tools.
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
-            {roles.map(r => (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+              gap: 16,
+            }}
+          >
+            {roles.map((role) => (
               <Link
-                key={r.role}
-                to={`/auth?role=${r.role}`}
+                key={role.role}
+                to={`/auth?role=${role.role}`}
                 style={{
-                  display: 'flex', flexDirection: 'column', gap: 16,
-                  background: NB.white, border: `3px solid ${NB.black}`,
-                  boxShadow: `5px 5px 0 ${NB.black}`,
-                  padding: '28px 24px',
-                  textDecoration: 'none', color: NB.black,
-                  transition: 'all 0.1s',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translate(-2px,-2px)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = `7px 7px 0 ${NB.black}`;
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = '';
-                  (e.currentTarget as HTMLElement).style.boxShadow = `5px 5px 0 ${NB.black}`;
+                  ...clayCard,
+                  textDecoration: 'none',
+                  color: C.text,
+                  padding: 20,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14,
+                  minHeight: 216,
                 }}
               >
-                <div style={{
-                  width: 56, height: 56,
-                  background: r.bg,
-                  border: `3px solid ${NB.black}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  {r.icon}
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 14,
+                    background: role.color,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 8px 16px rgba(27,29,42,0.15)',
+                  }}
+                >
+                  {role.icon}
                 </div>
-                <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: NB.black, marginBottom: 8 }}>
-                    {r.label}
-                  </h3>
-                  <p style={{ color: '#3A3A3A', fontSize: '0.88rem', lineHeight: 1.6, fontWeight: 500 }}>
-                    {r.desc}
-                  </p>
-                </div>
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  color: NB.black, fontSize: '0.78rem', fontWeight: 800,
-                  textTransform: 'uppercase', letterSpacing: '0.06em',
-                  marginTop: 'auto',
-                }}>
-                  Enter <ArrowRight size={14} />
-                </div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem' }}>{role.label}</h3>
+                <p style={{ margin: 0, color: C.textSecondary, lineHeight: 1.65, fontWeight: 500, fontSize: '0.9rem' }}>
+                  {role.desc}
+                </p>
+                <p
+                  style={{
+                    marginTop: 'auto',
+                    marginBottom: 0,
+                    color: C.primary,
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  Continue as {role.label}
+                </p>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── FEATURES ── */}
-      <section style={{ padding: '72px 5%', background: NB.white, borderTop: `3px solid ${NB.black}`, borderBottom: `3px solid ${NB.black}` }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ marginBottom: 52 }}>
-            <div style={{
-              display: 'inline-block', background: NB.red, color: NB.white,
-              padding: '4px 14px', fontSize: '0.68rem', fontWeight: 800,
-              textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14,
-              border: `2px solid ${NB.black}`,
-            }}>
-              Platform Features
+      <section style={{ padding: '0 20px 56px' }}>
+        <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+          <div
+            style={{
+              ...clayCard,
+              padding: '28px 22px',
+              background: C.surfaceAlt,
+            }}
+          >
+            <div style={{ marginBottom: 18 }}>
+              <h3 style={{ margin: '0 0 6px', fontSize: '1.35rem' }}>Core Capabilities</h3>
+              <p style={{ margin: 0, color: C.textSecondary, fontWeight: 500 }}>
+                Built for rapid coordination between public users and command teams.
+              </p>
             </div>
-            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: NB.black, lineHeight: 1.1 }}>
-              Advanced Safety Features
-            </h2>
-            <p style={{ marginTop: 10, color: '#3A3A3A', fontSize: '1rem', fontWeight: 500, maxWidth: 560 }}>
-              Powered by proprietary AI and tamper-proof Blockchain technology.
-            </p>
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
-            {features.map((f, i) => (
-              <div key={i} style={{
-                background: NB.cream,
-                border: `3px solid ${NB.black}`,
-                boxShadow: `4px 4px 0 ${NB.black}`,
-                padding: '32px 28px',
-                transition: 'all 0.1s',
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: 14,
               }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translate(-2px,-2px)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = `6px 6px 0 ${NB.black}`;
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.transform = '';
-                  (e.currentTarget as HTMLElement).style.boxShadow = `4px 4px 0 ${NB.black}`;
-                }}
-              >
-                <div style={{
-                  width: 56, height: 56,
-                  background: f.accent,
-                  border: `3px solid ${NB.black}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 20, color: NB.black,
-                }}>
-                  {f.icon}
+            >
+              {features.map((feature) => (
+                <div
+                  key={feature.title}
+                  style={{
+                    background: C.surface,
+                    borderRadius: 18,
+                    border: `1px solid ${C.border}`,
+                    padding: 18,
+                    boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.75), 4px 4px 10px rgba(27,29,42,0.06)',
+                  }}
+                >
+                  <div style={{ marginBottom: 10 }}>{feature.icon}</div>
+                  <h4 style={{ margin: '0 0 8px', fontSize: '1rem' }}>{feature.title}</h4>
+                  <p style={{ margin: 0, color: C.textSecondary, fontSize: '0.88rem', lineHeight: 1.65, fontWeight: 500 }}>
+                    {feature.desc}
+                  </p>
                 </div>
-                <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: NB.black, marginBottom: 10 }}>
-                  {f.title}
-                </h4>
-                <p style={{ color: '#3A3A3A', fontSize: '0.9rem', lineHeight: 1.65, fontWeight: 500 }}>
-                  {f.desc}
-                </p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer style={{
-        background: NB.black,
-        borderTop: `4px solid ${NB.black}`,
-        padding: '48px 5% 32px',
-      }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 40, marginBottom: 40 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <div style={{ width: 32, height: 32, background: NB.yellow, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Shield size={18} color={NB.black} />
-                </div>
-                <span style={{ color: NB.white, fontWeight: 800, fontSize: '1rem', letterSpacing: '0.04em' }}>
-                  TRACK<span style={{ color: NB.yellow }}>MATE</span>
-                </span>
-              </div>
-              <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem', lineHeight: 1.65, maxWidth: 280, fontWeight: 400 }}>
-                Building safe, resilient cities of tomorrow through technology.
-              </p>
+      <footer
+        style={{
+          background: C.dark,
+          color: '#FFFFFF',
+          borderTop: `1px solid ${C.darkAlt}`,
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1160,
+            margin: '0 auto',
+            padding: '30px 20px 34px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 16,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, #6C63FF, #8B85FF)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Shield size={14} color="#FFFFFF" />
             </div>
-            <div>
-              <h4 style={{ color: NB.white, fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Platform</h4>
-              {['Safety Map', 'Verify Identity', 'AI Detection'].map(item => (
-                <a key={item} href="#" style={{ display: 'block', color: 'rgba(255,255,255,0.45)', fontSize: '0.88rem', marginBottom: 8, fontWeight: 500, textDecoration: 'none' }}>
-                  {item}
-                </a>
-              ))}
-            </div>
-            <div>
-              <h4 style={{ color: NB.white, fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Company</h4>
-              {['About Us', 'Data Privacy', 'Contact Support'].map(item => (
-                <a key={item} href="#" style={{ display: 'block', color: 'rgba(255,255,255,0.45)', fontSize: '0.88rem', marginBottom: 8, fontWeight: 500, textDecoration: 'none' }}>
-                  {item}
-                </a>
-              ))}
-            </div>
+            <p style={{ margin: 0, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>
+              TrackMate Civic Security Platform
+            </p>
           </div>
 
-          <div style={{
-            borderTop: `2px solid rgba(255,255,255,0.1)`,
-            paddingTop: 24,
-            display: 'flex', flexWrap: 'wrap', gap: 16,
-            alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              © 2026 Trackmate Civic OS. All rights reserved.
-            </p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: 'rgba(0,208,132,0.12)', border: `2px solid rgba(0,208,132,0.4)`,
-                padding: '4px 12px', fontSize: '0.68rem', fontWeight: 800,
-                textTransform: 'uppercase', letterSpacing: '0.1em', color: '#00D084',
-              }}>
-                <div style={{ width: 6, height: 6, background: '#00D084', animation: 'pulse-green 2s infinite' }} />
-                System Online
-              </div>
-              <div style={{
-                padding: '4px 12px',
-                background: 'rgba(255,255,255,0.08)', border: `2px solid rgba(255,255,255,0.15)`,
-                fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.45)',
-                textTransform: 'uppercase', letterSpacing: '0.1em',
-              }}>
-                v3.0.42
-              </div>
-            </div>
-          </div>
+          <p style={{ margin: 0, color: 'rgba(255,255,255,0.55)', fontSize: '0.8rem', fontWeight: 600 }}>
+            © 2026 TrackMate. Coordinated safety for connected cities.
+          </p>
         </div>
       </footer>
     </div>
