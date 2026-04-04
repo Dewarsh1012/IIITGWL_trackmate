@@ -1,5 +1,5 @@
 import type { TranslationKeys } from './en';
-const pa: TranslationKeys = {
+const pa: Partial<TranslationKeys> = {
   appName:'TRACKMATE',logout:'ਲੌਗ ਆਊਟ',score:'ਸਕੋਰ',online:'ਔਨਲਾਈਨ',refresh:'ਰਿਫ੍ਰੈਸ਼',save:'ਸੰਭਾਲੋ',cancel:'ਰੱਦ ਕਰੋ',submit:'ਜਮ੍ਹਾ ਕਰੋ',close:'ਬੰਦ ਕਰੋ',loading:'ਲੋਡ ਹੋ ਰਿਹਾ...',safe:'ਸੁਰੱਖਿਅਤ',moderate:'ਮੱਧਮ',restricted:'ਪ੍ਰਤਿਬੰਧਿਤ',high:'ਉੱਚ',low:'ਘੱਟ',medium:'ਮੱਧਮ',critical:'ਗੰਭੀਰ',active:'ਸਰਗਰਮ',resolved:'ਹੱਲ ਹੋਇਆ',acknowledged:'ਸਵੀਕਾਰ ਕੀਤਾ',unknown:'ਅਣਜਾਣ',language:'ਭਾਸ਼ਾ',selectLanguage:'ਭਾਸ਼ਾ ਚੁਣੋ',
   safetyScore:'ਸੁਰੱਖਿਆ ਸਕੋਰ',authorityNode:'ਅਥਾਰਟੀ ਨੋਡ',navigation:'ਨੈਵੀਗੇਸ਼ਨ',dashboard:'ਡੈਸ਼ਬੋਰਡ',incidents:'ਘਟਨਾਵਾਂ',userManagement:'ਉਪਭੋਗਤਾ ਪ੍ਰਬੰਧਨ',tourists:'ਸੈਲਾਨੀ',residents:'ਨਿਵਾਸੀ',businesses:'ਕਾਰੋਬਾਰ',tools:'ਸੰਦ',dailyCheckins:'ਰੋਜ਼ਾਨਾ ਚੈੱਕ-ਇਨ',zoneManagement:'ਜ਼ੋਨ ਪ੍ਰਬੰਧਨ',efirSystem:'ਈ-ਐਫਆਈਆਰ ਸਿਸਟਮ',safetyAnalytics:'ਸੁਰੱਖਿਆ ਵਿਸ਼ਲੇਸ਼ਣ',sendAlert:'ਚੇਤਾਵਨੀ ਭੇਜੋ',officer:'ਅਧਿਕਾਰੀ',
   map:'ਨਕਸ਼ਾ',trip:'ਯਾਤਰਾ',profile:'ਪ੍ਰੋਫਾਈਲ',local:'ਸਥਾਨਕ',feed:'ਫੀਡ',report:'ਰਿਪੋਰਟ',intel:'ਜਾਣਕਾਰੀ',business:'ਕਾਰੋਬਾਰ',

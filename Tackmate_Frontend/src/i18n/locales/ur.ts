@@ -1,5 +1,5 @@
 import type { TranslationKeys } from './en';
-const ur: TranslationKeys = {
+const ur: Partial<TranslationKeys> = {
   appName:'TRACKMATE',logout:'لاگ آؤٹ',score:'اسکور',online:'آن لائن',refresh:'ریفریش',save:'محفوظ کریں',cancel:'منسوخ',submit:'جمع کریں',close:'بند کریں',loading:'لوڈ ہو رہا ہے...',safe:'محفوظ',moderate:'معتدل',restricted:'ممنوع',high:'زیادہ',low:'کم',medium:'درمیانہ',critical:'سنگین',active:'فعال',resolved:'حل ہو گیا',acknowledged:'تسلیم شدہ',unknown:'نامعلوم',language:'زبان',selectLanguage:'زبان منتخب کریں',
   safetyScore:'حفاظتی اسکور',authorityNode:'اتھارٹی نوڈ',navigation:'نیویگیشن',dashboard:'ڈیش بورڈ',incidents:'واقعات',userManagement:'صارف انتظام',tourists:'سیاح',residents:'مقامی باشندے',businesses:'کاروبار',tools:'ٹولز',dailyCheckins:'روزانہ چیک ان',zoneManagement:'زون انتظام',efirSystem:'ای ایف آئی آر نظام',safetyAnalytics:'حفاظتی تجزیات',sendAlert:'الرٹ بھیجیں',officer:'افسر',
   map:'نقشہ',trip:'سفر',profile:'پروفائل',local:'مقامی',feed:'فیڈ',report:'رپورٹ',intel:'معلومات',business:'کاروبار',

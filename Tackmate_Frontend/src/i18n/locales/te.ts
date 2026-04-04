@@ -1,5 +1,5 @@
 import type { TranslationKeys } from './en';
-const te: TranslationKeys = {
+const te: Partial<TranslationKeys> = {
   appName:'TRACKMATE',logout:'లాగ్ అవుట్',score:'స్కోర్',online:'ఆన్‌లైన్',refresh:'రిఫ్రెష్',save:'సేవ్',cancel:'రద్దు',submit:'సబ్మిట్',close:'మూసివేయి',loading:'లోడ్ అవుతోంది...',safe:'సురక్షితం',moderate:'మధ్యస్థం',restricted:'నిషేధిత',high:'ఎక్కువ',low:'తక్కువ',medium:'మధ్యస్థం',critical:'తీవ్రం',active:'సక్రియం',resolved:'పరిష్కరించబడింది',acknowledged:'అంగీకరించబడింది',unknown:'తెలియదు',language:'భాష',selectLanguage:'భాష ఎంచుకోండి',
   safetyScore:'భద్రతా స్కోర్',authorityNode:'అధికార నోడ్',navigation:'నావిగేషన్',dashboard:'డాష్‌బోర్డ్',incidents:'సంఘటనలు',userManagement:'వినియోగదారు నిర్వహణ',tourists:'పర్యాటకులు',residents:'నివాసితులు',businesses:'వ్యాపారాలు',tools:'సాధనాలు',dailyCheckins:'రోజువారీ చెక్-ఇన్',zoneManagement:'జోన్ నిర్వహణ',efirSystem:'ఈ-ఎఫ్ఐఆర్ వ్యవస్థ',safetyAnalytics:'భద్రతా విశ్లేషణ',sendAlert:'హెచ్చరిక పంపు',officer:'అధికారి',
   map:'మ్యాప్',trip:'ప్రయాణం',profile:'ప్రొఫైల్',local:'స్థానిక',feed:'ఫీడ్',report:'నివేదిక',intel:'సమాచారం',business:'వ్యాపారం',

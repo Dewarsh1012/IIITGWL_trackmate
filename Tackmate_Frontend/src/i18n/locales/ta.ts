@@ -1,5 +1,5 @@
 import type { TranslationKeys } from './en';
-const ta: TranslationKeys = {
+const ta: Partial<TranslationKeys> = {
   appName:'TRACKMATE',logout:'வெளியேறு',score:'மதிப்பெண்',online:'ஆன்லைன்',refresh:'புதுப்பி',save:'சேமி',cancel:'ரத்து',submit:'சமர்ப்பி',close:'மூடு',loading:'ஏற்றுகிறது...',safe:'பாதுகாப்பான',moderate:'மிதமான',restricted:'தடைசெய்யப்பட்ட',high:'அதிக',low:'குறைவு',medium:'நடுத்தர',critical:'தீவிர',active:'செயலில்',resolved:'தீர்க்கப்பட்டது',acknowledged:'ஏற்றுக்கொள்ளப்பட்டது',unknown:'அறியப்படாத',language:'மொழி',selectLanguage:'மொழி தேர்ந்தெடுக்கவும்',
   safetyScore:'பாதுகாப்பு மதிப்பெண்',authorityNode:'அதிகார நோட்',navigation:'வழிசெலுத்தல்',dashboard:'டாஷ்போர்டு',incidents:'சம்பவங்கள்',userManagement:'பயனர் மேலாண்மை',tourists:'சுற்றுலா பயணிகள்',residents:'குடியிருப்பாளர்கள்',businesses:'வணிகங்கள்',tools:'கருவிகள்',dailyCheckins:'தினசரி செக்-இன்',zoneManagement:'மண்டல மேலாண்மை',efirSystem:'இ-எஃப்ஐஆர் அமைப்பு',safetyAnalytics:'பாதுகாப்பு பகுப்பாய்வு',sendAlert:'எச்சரிக்கை அனுப்பு',officer:'அதிகாரி',
   map:'வரைபடம்',trip:'பயணம்',profile:'சுயவிவரம்',local:'உள்ளூர்',feed:'ஊட்டம்',report:'அறிக்கை',intel:'தகவல்',business:'வணிகம்',

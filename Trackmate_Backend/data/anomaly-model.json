@@ -1,6 +1,6 @@
 {
-  "model_version": "lr-1775313788246",
-  "trained_at": "2026-04-04T14:43:08.246Z",
+  "model_version": "lr-1775338540101",
+  "trained_at": "2026-04-04T21:35:40.101Z",
   "feature_order": [
     "inactivity_minutes_norm",
     "speed_kmh_norm",
@@ -10,18 +10,18 @@
     "user_anomalies_24h_norm"
   ],
   "weights": [
-    4.023059211996549,
-    -0.2675298084500254,
-    1.8920612189192605,
-    0.9813718109684975,
-    -0.6319131985782235,
-    -1.0015802443532267
+    3.3921519501270176,
+    -0.250642391241611,
+    0.6761315952868985,
+    0.9290837522439748,
+    -0.6703820258556185,
+    -0.7096475895539669
   ],
-  "bias": -0.2079226316578783,
-  "sample_count": 116,
-  "positive_count": 58,
-  "negative_count": 58,
-  "training_loss": 0.4354982059954709,
-  "training_accuracy": 0.8189655172413793,
+  "bias": -0.3404529550689465,
+  "sample_count": 166,
+  "positive_count": 83,
+  "negative_count": 83,
+  "training_loss": 0.4547929224918074,
+  "training_accuracy": 0.8373493975903614,
   "source": "trained"
 }

@@ -1,5 +1,5 @@
 import type { TranslationKeys } from './en';
-const gu: TranslationKeys = {
+const gu: Partial<TranslationKeys> = {
   appName:'TRACKMATE',logout:'લૉગ આઉટ',score:'સ્કોર',online:'ઓનલાઈન',refresh:'રિફ્રેશ',save:'સાચવો',cancel:'રદ કરો',submit:'સબમિટ કરો',close:'બંધ કરો',loading:'લોડ થઈ રહ્યું છે...',safe:'સુરક્ષિત',moderate:'મધ્યમ',restricted:'પ્રતિબંધિત',high:'ઊંચું',low:'ઓછું',medium:'મધ્યમ',critical:'ગંભીર',active:'સક્રિય',resolved:'ઉકેલાયું',acknowledged:'સ્વીકૃત',unknown:'અજ્ઞાત',language:'ભાષા',selectLanguage:'ભાષા પસંદ કરો',
   safetyScore:'સુરક્ષા સ્કોર',authorityNode:'ઓથોરિટી નોડ',navigation:'નેવિગેશન',dashboard:'ડેશબોર્ડ',incidents:'ઘટનાઓ',userManagement:'યુઝર મેનેજમેન્ટ',tourists:'પર્યટકો',residents:'રહેવાસીઓ',businesses:'વ્યવસાયો',tools:'સાધનો',dailyCheckins:'દૈનિક ચેક-ઇન',zoneManagement:'ઝોન મેનેજમેન્ટ',efirSystem:'ઈ-એફઆઈઆર સિસ્ટમ',safetyAnalytics:'સુરક્ષા વિશ્લેષણ',sendAlert:'ચેતવણી મોકલો',officer:'અધિકારી',
   map:'નકશો',trip:'પ્રવાસ',profile:'પ્રોફાઈલ',local:'સ્થાનિક',feed:'ફીડ',report:'રિપોર્ટ',intel:'માહિતી',business:'વ્યવસાય',

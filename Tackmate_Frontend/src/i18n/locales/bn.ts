@@ -1,6 +1,6 @@
 import type { TranslationKeys } from './en';
 
-const bn: TranslationKeys = {
+const bn: Partial<TranslationKeys> = {
   appName: 'TRACKMATE',
   logout: 'লগ আউট',
   score: 'স্কোর',

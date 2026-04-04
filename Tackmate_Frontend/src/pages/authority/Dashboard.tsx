@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
@@ -21,18 +21,28 @@ const getSeverityStyle = (sev: string): React.CSSProperties => {
 
 const clampProbability = (value: number): number => Math.max(0, Math.min(1, value));
 
+const safeNumber = (value: unknown, fallback = 0): number => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const formatCoord = (value: unknown): string => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed.toFixed(4) : 'N/A';
+};
+
 const parseSosRisk = (alert: any) => {
     const metadata = alert?.metadata || {};
-    const realDanger = clampProbability(Number(
+    const realDanger = clampProbability(safeNumber(
         metadata.sos_risk_real_danger_probability ??
         metadata.sos_risk_hybrid_score ??
         metadata.hybrid_score ??
         0.5
-    ));
-    const falseAlarm = clampProbability(Number(
+        , 0.5));
+    const falseAlarm = clampProbability(safeNumber(
         metadata.sos_risk_false_alarm_probability ??
         (1 - realDanger)
-    ));
+        , 1 - realDanger));
     const confidenceBand = String(metadata.sos_risk_confidence_band || 'medium').toLowerCase();
 
     return {
@@ -40,6 +50,17 @@ const parseSosRisk = (alert: any) => {
         falseAlarm,
         confidenceBand,
     };
+};
+
+const isSosAlert = (incident: any): boolean => {
+    const incidentType = String(incident?.incident_type || '').toLowerCase();
+    const source = String(incident?.source || '').toLowerCase();
+    return incidentType === 'sos_emergency' || source === 'sos_panic';
+};
+
+const isClosedSos = (incident: any): boolean => {
+    const status = String(incident?.status || '').toLowerCase();
+    return status === 'resolved' || status === 'false_alarm' || status === 'acknowledged';
 };
 
 export default function AuthorityDashboard() {
@@ -64,19 +85,75 @@ export default function AuthorityDashboard() {
     const [guardianSummaries, setGuardianSummaries] = useState<any[]>([]);
     const [misuseFlags, setMisuseFlags] = useState<any[]>([]);
 
+    const derivedEmergencyAlerts = useMemo(
+        () => incidents.filter((incident: any) => isSosAlert(incident) && !isClosedSos(incident)).slice(0, 6),
+        [incidents]
+    );
+    const visibleEmergencyAlerts = emergencyAlerts.length > 0 ? emergencyAlerts : derivedEmergencyAlerts;
+    const latestEmergencyAlert = useMemo(() => {
+        if (visibleEmergencyAlerts.length === 0) return null;
+
+        const sorted = [...visibleEmergencyAlerts].sort((a, b) => {
+            const aTs = new Date(a?.created_at || a?.updated_at || 0).getTime();
+            const bTs = new Date(b?.created_at || b?.updated_at || 0).getTime();
+            return bTs - aTs;
+        });
+
+        return sorted[0];
+    }, [visibleEmergencyAlerts]);
+
+    const upsertEmergencyAlert = (incident: any) => {
+        if (!isSosAlert(incident)) return;
+        if (isClosedSos(incident)) {
+            setEmergencyAlerts(prev => prev.filter(item => item._id !== incident._id));
+            return;
+        }
+
+        setEmergencyAlerts(prev => {
+            const deduped = prev.filter((item) => item._id !== incident._id);
+            return [incident, ...deduped].slice(0, 6);
+        });
+    };
+
     const fetchDashboardData = async () => {
         setLoading(true);
         try {
-            const [incidentsRes, summaryRes, zonesRes, locationsRes, checkinsRes, riskPulseRes] = await Promise.all([
+            const [incidentsRes, summaryRes, zonesRes, locationsRes, checkinsRes, riskPulseRes, sosByTypeRes, sosBySourceRes] = await Promise.all([
                 api.get('/incidents?limit=10'),
                 api.get('/analytics/summary'),
                 api.get('/zones'),
                 api.get('/locations/all'),
                 api.get('/locations/checkins/all').catch(() => ({ data: { success: false, data: [] } })),
                 api.get('/analytics/risk-pulse').catch(() => ({ data: { success: false, data: null } })),
+                api.get('/incidents?incident_type=sos_emergency&limit=12').catch(() => ({ data: { success: false, data: [] } })),
+                api.get('/incidents?source=sos_panic&limit=12').catch(() => ({ data: { success: false, data: [] } })),
             ]);
 
             if (incidentsRes.data.success) setIncidents(incidentsRes.data.data);
+            if (incidentsRes.data.success) {
+                const liveSos = (incidentsRes.data.data || [])
+                    .filter((incident: any) => isSosAlert(incident) && !isClosedSos(incident))
+                    .slice(0, 6);
+                setEmergencyAlerts(liveSos);
+            }
+
+            const sosCombined = [
+                ...(sosByTypeRes.data?.success ? (sosByTypeRes.data.data || []) : []),
+                ...(sosBySourceRes.data?.success ? (sosBySourceRes.data.data || []) : []),
+            ];
+
+            if (sosCombined.length > 0) {
+                const dedupedSos = new Map<string, any>();
+                sosCombined.forEach((incident: any) => {
+                    if (incident?._id) dedupedSos.set(String(incident._id), incident);
+                });
+
+                const liveSos = Array.from(dedupedSos.values())
+                    .filter((incident: any) => !isClosedSos(incident))
+                    .slice(0, 6);
+
+                setEmergencyAlerts(liveSos);
+            }
             if (summaryRes.data.success) {
                 const d = summaryRes.data.data;
                 setSummary({
@@ -120,15 +197,32 @@ export default function AuthorityDashboard() {
                 if (incident.incident_type === 'checkin') {
                     setCheckins(prev => [incident, ...prev.slice(0, 49)]);
                 }
+                upsertEmergencyAlert(incident);
                 fetchDashboardData();
             };
 
-            const onSosTriggered = (incident: any) => {
-                setEmergencyAlerts(prev => {
+            const onIncidentCreated = (incident: any) => {
+                setIncidents(prev => {
                     const deduped = prev.filter((item) => item._id !== incident._id);
-                    return [incident, ...deduped].slice(0, 6);
+                    return [incident, ...deduped].slice(0, 10);
                 });
+                upsertEmergencyAlert(incident);
+            };
+
+            const onSosTriggered = (incident: any) => {
+                upsertEmergencyAlert(incident);
                 setIncidents(prev => [incident, ...prev.slice(0, 9)]);
+            };
+
+            const onIncidentUpdated = (incident: any) => {
+                setIncidents(prev => {
+                    const exists = prev.some(item => item._id === incident._id);
+                    if (!exists) {
+                        return [incident, ...prev].slice(0, 10);
+                    }
+                    return prev.map(item => item._id === incident._id ? incident : item);
+                });
+                upsertEmergencyAlert(incident);
             };
 
             const onLocationUpdate = (data: any) => {
@@ -171,7 +265,10 @@ export default function AuthorityDashboard() {
             };
 
             socket.on('new-incident', onNewIncident);
+            socket.on('incident:new', onIncidentCreated);
             socket.on('sos:triggered', onSosTriggered);
+            socket.on('incident:updated', onIncidentUpdated);
+            socket.on('incident-updated', onIncidentUpdated);
             socket.on('location:update', onLocationUpdate);
             socket.on('risk:pulse', onRiskPulse);
             socket.on('crisis:timeline', onCrisisTimeline);
@@ -182,7 +279,10 @@ export default function AuthorityDashboard() {
             return () => {
                 clearInterval(interval);
                 socket.off('new-incident', onNewIncident);
+                socket.off('incident:new', onIncidentCreated);
                 socket.off('sos:triggered', onSosTriggered);
+                socket.off('incident:updated', onIncidentUpdated);
+                socket.off('incident-updated', onIncidentUpdated);
                 socket.off('location:update', onLocationUpdate);
                 socket.off('risk:pulse', onRiskPulse);
                 socket.off('crisis:timeline', onCrisisTimeline);
@@ -198,6 +298,11 @@ export default function AuthorityDashboard() {
     }, [socket]);
 
     const handleUpdateIncident = async (id: string, status: string) => {
+        if (status === 'acknowledged') {
+            setEmergencyAlerts(prev => prev.filter(item => item._id !== id));
+            setIncidents(prev => prev.map(item => item._id === id ? { ...item, status: 'acknowledged' } : item));
+        }
+
         try {
             setNotice(null);
             const res = await api.patch(`/incidents/${id}`, { status });
@@ -325,9 +430,9 @@ export default function AuthorityDashboard() {
 
 
                 {/* Emergency Alerts Navbar Banner */}
-                {emergencyAlerts.length > 0 && (
+                {latestEmergencyAlert && (
                     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                        {emergencyAlerts.map(alert => {
+                        {[latestEmergencyAlert].map(alert => {
                             const risk = parseSosRisk(alert);
                             const role = String(alert.reporter?.role || alert.metadata?.triggered_by_role || 'unknown').toUpperCase();
                             const confidenceColor = risk.confidenceBand === 'critical'
@@ -360,7 +465,7 @@ export default function AuthorityDashboard() {
                                                 Person in danger: {alert.reporter?.full_name || 'Unknown User'} ({role})
                                             </p>
                                             <p style={{ color: 'rgba(255,255,255,0.86)', margin: '2px 0 0', fontSize: '0.78rem', fontWeight: 600 }}>
-                                                Zone: {alert.zone?.name || 'Unknown'} | Loc: {alert.latitude?.toFixed(4)}, {alert.longitude?.toFixed(4)}
+                                                Zone: {alert.zone?.name || 'Unknown'} | Loc: {formatCoord(alert.latitude)}, {formatCoord(alert.longitude)}
                                             </p>
 
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10, maxWidth: 520 }}>

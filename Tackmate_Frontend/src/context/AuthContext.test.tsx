@@ -1,157 +1,124 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { AuthContext, AuthProvider } from '../context/AuthContext';
-import { useContext } from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { AuthProvider, useAuth } from './AuthContext';
+import api from '../lib/api';
 
-describe('AuthContext - Unit Tests', () => {
+vi.mock('../lib/api', () => ({
+    default: {
+        get: vi.fn(),
+        post: vi.fn(),
+    },
+}));
+
+const mockedApi = api as unknown as {
+    get: ReturnType<typeof vi.fn>;
+    post: ReturnType<typeof vi.fn>;
+};
+
+function AuthProbe() {
+    const { user, isLoading, login, logout } = useAuth();
+
+    return (
+        <div>
+            <div data-testid="loading-state">{isLoading ? 'loading' : 'ready'}</div>
+            <div data-testid="user-id">{user?.id || 'none'}</div>
+            <button onClick={() => void login('demo@trackmate.app', 'secret')}>login</button>
+            <button onClick={() => logout()}>logout</button>
+        </div>
+    );
+}
+
+describe('AuthContext', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
         localStorage.clear();
+        vi.clearAllMocks();
+        mockedApi.get.mockResolvedValue({ data: { data: null } });
     });
 
-    it('should provide auth context', () => {
-        let contextValue: any;
-        const TestComponent = () => {
-            contextValue = useContext(AuthContext);
-            return null;
-        };
+    it('starts with no user when there is no token', async () => {
+        render(
+            <AuthProvider>
+                <AuthProbe />
+            </AuthProvider>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByTestId('loading-state').textContent).toBe('ready');
+        });
+
+        expect(screen.getByTestId('user-id').textContent).toBe('none');
+    });
+
+    it('logs in and persists token', async () => {
+        mockedApi.post.mockResolvedValue({
+            data: {
+                data: {
+                    accessToken: 'token-123',
+                    user: {
+                        id: 'user-1',
+                        email: 'demo@trackmate.app',
+                        full_name: 'Demo User',
+                        role: 'business',
+                    },
+                },
+            },
+        });
 
         render(
             <AuthProvider>
-                <TestComponent />
+                <AuthProbe />
             </AuthProvider>
         );
 
-        expect(contextValue).toBeDefined();
+        fireEvent.click(screen.getByRole('button', { name: 'login' }));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('user-id').textContent).toBe('user-1');
+        });
+
+        expect(localStorage.getItem('token')).toBe('token-123');
     });
 
-    it('should initialize with default auth state', () => {
-        let contextValue: any;
-        const TestComponent = () => {
-            contextValue = useContext(AuthContext);
-            return <div>{contextValue.user ? 'Authenticated' : 'Not Authenticated'}</div>;
-        };
+    it('restores session from existing token and supports logout', async () => {
+        localStorage.setItem('token', 'existing-token');
 
-        const { container } = render(
-            <AuthProvider>
-                <TestComponent />
-            </AuthProvider>
-        );
-
-        expect(contextValue).toBeDefined();
-        expect(contextValue.user).toBeDefined();
-    });
-
-    it('should handle login action', async () => {
-        let contextValue: any;
-        const TestComponent = () => {
-            contextValue = useContext(AuthContext);
-            return (
-                <div>
-                    <button onClick={() => contextValue.login({ email: 'test@test.com', password: 'test' })}>
-                        Login
-                    </button>
-                    <div>{contextValue.isLoading ? 'Loading' : 'Ready'}</div>
-                </div>
-            );
-        };
+        mockedApi.get.mockResolvedValue({
+            data: {
+                data: {
+                    id: 'restored-user',
+                    email: 'restored@trackmate.app',
+                    full_name: 'Restored User',
+                    role: 'business',
+                },
+            },
+        });
 
         render(
             <AuthProvider>
-                <TestComponent />
+                <AuthProbe />
             </AuthProvider>
         );
 
-        const loginButton = screen.getByText('Login');
-        expect(loginButton).toBeTruthy();
+        await waitFor(() => {
+            expect(screen.getByTestId('user-id').textContent).toBe('restored-user');
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: 'logout' }));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('user-id').textContent).toBe('none');
+        });
+
+        expect(localStorage.getItem('token')).toBeNull();
+        expect(localStorage.getItem('user')).toBeNull();
     });
 
-    it('should handle logout action', async () => {
-        let contextValue: any;
-        const TestComponent = () => {
-            contextValue = useContext(AuthContext);
-            return (
-                <div>
-                    <button onClick={() => contextValue.logout()}>Logout</button>
-                </div>
-            );
-        };
+    it('throws outside provider', () => {
+        function UnsafeConsumer() {
+            useAuth();
+            return <div>unsafe</div>;
+        }
 
-        render(
-            <AuthProvider>
-                <TestComponent />
-            </AuthProvider>
-        );
-
-        const logoutButton = screen.getByText('Logout');
-        expect(logoutButton).toBeTruthy();
-    });
-
-    it('should persist auth token to localStorage', () => {
-        render(
-            <AuthProvider>
-                <div>Test</div>
-            </AuthProvider>
-        );
-
-        const token = localStorage.getItem('auth_token');
-        // Token may be null initially, but localStorage should be accessible
-        expect(localStorage.getItem).toBeDefined();
-    });
-
-    it('should handle auth errors gracefully', async () => {
-        let contextValue: any;
-        const TestComponent = () => {
-            contextValue = useContext(AuthContext);
-            return <div>{contextValue.error || 'No error'}</div>;
-        };
-
-        render(
-            <AuthProvider>
-                <TestComponent />
-            </AuthProvider>
-        );
-
-        expect(contextValue).toBeDefined();
-    });
-});
-
-describe('AuthContext - Integration Tests', () => {
-    it('should maintain auth state across re-renders', () => {
-        const { rerender } = render(
-            <AuthProvider>
-                <div>Test</div>
-            </AuthProvider>
-        );
-
-        expect(() => {
-            rerender(
-                <AuthProvider>
-                    <div>Test Updated</div>
-                </AuthProvider>
-            );
-        }).not.toThrow();
-    });
-
-    it('should handle multiple consumer components', () => {
-        const Consumer1 = () => {
-            const auth = useContext(AuthContext);
-            return <div>{auth ? 'Auth Available' : 'No Auth'}</div>;
-        };
-
-        const Consumer2 = () => {
-            const auth = useContext(AuthContext);
-            return <div>{auth ? 'Auth Available' : 'No Auth'}</div>;
-        };
-
-        render(
-            <AuthProvider>
-                <Consumer1 />
-                <Consumer2 />
-            </AuthProvider>
-        );
-
-        expect(screen.getAllByText('Auth Available').length).toBeGreaterThanOrEqual(0);
+        expect(() => render(<UnsafeConsumer />)).toThrow('useAuth must be used within AuthProvider');
     });
 });

@@ -14,6 +14,7 @@ import {
 import { uploadEvidence, toPublicUploadPath } from '../middleware/upload';
 import { calculateSpeed, distanceInMeters, findZoneForPoint } from '../lib/geofence';
 import { combineRuleAndModelScore, scoreAnomalyRisk } from '../lib/anomalyModel';
+import { sendSosSmsNotifications } from '../lib/sosSmsNotifier';
 
 const router: Router = express.Router();
 
@@ -26,7 +27,7 @@ const createIncidentSchema = z.object({
     zone: z.string().optional(),
     ward: z.string().optional(),
     severity: z.nativeEnum(AlertSeverity),
-    source: z.nativeEnum(AlertSource),
+    source: z.nativeEnum(AlertSource).optional(),
     is_public: z.boolean().optional(),
     metadata: z.record(z.string(), z.any()).optional(),
 });
@@ -129,7 +130,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
                 .populate('zone', 'name risk_level')
                 .populate('ward', 'name district')
                 .populate('assigned_to', 'full_name designation role')
-                .sort({ severity: -1, created_at: -1 })
+                .sort({ created_at: -1, severity: -1 })
                 .skip(skip)
                 .limit(parseInt(String(limit), 10))
                 .lean(),
@@ -253,24 +254,39 @@ router.post(
 router.post('/', authenticate, async (req: AuthRequest, res: Response, next) => {
     try {
         const body = createIncidentSchema.parse(req.body);
+        const rawLocation = (req.body as Record<string, any>)?.location;
+        const geoLongitude = Array.isArray(rawLocation?.coordinates)
+            ? toFiniteOrUndefined(rawLocation.coordinates[0])
+            : undefined;
+        const geoLatitude = Array.isArray(rawLocation?.coordinates)
+            ? toFiniteOrUndefined(rawLocation.coordinates[1])
+            : undefined;
 
-        const reporterId = body.source === AlertSource.SOS_PANIC || req.user!.role !== UserRole.AUTHORITY
+        const incidentType = String(body.incident_type || '').toLowerCase() === 'sos_panic'
+            ? 'sos_emergency'
+            : body.incident_type;
+        const isSosIncident = body.source === AlertSource.SOS_PANIC || incidentType === 'sos_emergency';
+        const incidentSource = body.source || (isSosIncident ? AlertSource.SOS_PANIC : AlertSource.USER_REPORT);
+
+        const reporterId = isSosIncident || req.user!.role !== UserRole.AUTHORITY
             ? req.user!.userId
             : undefined;
 
-        const incidentLatitude = toFiniteOrUndefined(body.latitude);
-        const incidentLongitude = toFiniteOrUndefined(body.longitude);
+        const incidentLatitude = toFiniteOrUndefined(body.latitude) ?? geoLatitude;
+        const incidentLongitude = toFiniteOrUndefined(body.longitude) ?? geoLongitude;
+        let resolvedIncidentLatitude = incidentLatitude;
+        let resolvedIncidentLongitude = incidentLongitude;
 
         const timelineEvents: CrisisTimelineEvent[] = [
             createTimelineEvent({
-                type: body.source === AlertSource.SOS_PANIC ? 'sos_received' : 'incident_created',
-                label: body.source === AlertSource.SOS_PANIC ? 'Emergency SOS received' : 'Incident created',
+                type: isSosIncident ? 'sos_received' : 'incident_created',
+                label: isSosIncident ? 'Emergency SOS received' : 'Incident created',
                 actorRole: req.user!.role,
                 actorId: req.user!.userId,
                 details: {
-                    incident_type: body.incident_type,
+                    incident_type: incidentType,
                     severity: body.severity,
-                    source: body.source,
+                    source: incidentSource,
                 },
             }),
         ];
@@ -280,7 +296,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next) => 
         let responderCandidates: ResponderCandidate[] = [];
         let misuseShieldMetadata: MisuseShieldMetadata | null = null;
 
-        if (body.source === AlertSource.SOS_PANIC && reporterId) {
+        if (isSosIncident && reporterId) {
             const [sosRiskMetadata, misuseMetadata] = await Promise.all([
                 buildSosRiskMetadata({
                     reporterId,
@@ -292,9 +308,18 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next) => 
 
             misuseShieldMetadata = misuseMetadata;
 
+            const fallbackLatitude = toFiniteOrUndefined(sosRiskMetadata.sos_risk_metrics?.latitude);
+            const fallbackLongitude = toFiniteOrUndefined(sosRiskMetadata.sos_risk_metrics?.longitude);
+            if (resolvedIncidentLatitude == null && fallbackLatitude != null) {
+                resolvedIncidentLatitude = fallbackLatitude;
+            }
+            if (resolvedIncidentLongitude == null && fallbackLongitude != null) {
+                resolvedIncidentLongitude = fallbackLongitude;
+            }
+
             const responderPlan = await selectAutoResponders({
-                latitude: incidentLatitude,
-                longitude: incidentLongitude,
+                latitude: resolvedIncidentLatitude,
+                longitude: resolvedIncidentLongitude,
                 wardId: body.ward,
                 excludeUserId: reporterId,
             });
@@ -360,6 +385,10 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next) => 
 
         const incident = await Incident.create({
             ...body,
+            incident_type: incidentType,
+            source: incidentSource,
+            latitude: resolvedIncidentLatitude,
+            longitude: resolvedIncidentLongitude,
             metadata: {
                 ...metadata,
                 crisis_timeline: timelineEvents,
@@ -373,14 +402,14 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next) => 
         let guardianDispatchTimelineEvent: CrisisTimelineEvent | null = null;
         let guardianDispatchSummary: Record<string, any> | null = null;
 
-        if (body.source === AlertSource.SOS_PANIC && reporterId && io) {
+        if (isSosIncident && reporterId && io) {
             const guardianDispatch = await dispatchGuardianNetwork({
                 io,
                 incidentId: String(incident._id),
                 incidentTitle: body.title,
                 reporterId,
-                latitude: incidentLatitude,
-                longitude: incidentLongitude,
+                latitude: resolvedIncidentLatitude,
+                longitude: resolvedIncidentLongitude,
             });
 
             if (guardianDispatch) {
@@ -395,7 +424,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next) => 
         }
 
         const finalIncident = await Incident.findById(incident._id)
-            .populate('reporter', 'full_name role blockchain_id')
+            .populate('reporter', 'full_name role blockchain_id phone')
             .populate('zone', 'name risk_level')
             .populate('ward', 'name district')
             .populate('assigned_to', 'full_name designation role')
@@ -406,12 +435,68 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next) => 
             return;
         }
 
+        let sosSmsDispatchSummary: Record<string, any> | null = null;
+        if (isSosIncident) {
+            const reporter = (finalIncident as any).reporter;
+            const reporterName = String(
+                reporter?.full_name ||
+                (finalIncident as any).metadata?.triggered_by_name ||
+                'Unknown User'
+            );
+            const reporterRole = String(reporter?.role || req.user!.role || 'user');
+            const reporterPhone = reporter?.phone ? String(reporter.phone) : undefined;
+
+            const authorityRecipients = await Profile.find({
+                role: { $in: [UserRole.AUTHORITY, UserRole.ADMIN] },
+                is_active: true,
+                phone: { $exists: true, $ne: '' },
+            })
+                .select('_id full_name phone')
+                .lean();
+
+            const fallbackLatitude = toFiniteOrUndefined((finalIncident as any).metadata?.sos_risk_metrics?.latitude);
+            const fallbackLongitude = toFiniteOrUndefined((finalIncident as any).metadata?.sos_risk_metrics?.longitude);
+
+            const smsTrialOnlyVerified = process.env.SOS_SMS_TRIAL_ONLY_VERIFIED === 'true';
+            const smsRecipients = smsTrialOnlyVerified
+                ? []
+                : authorityRecipients.map((authority: any) => ({
+                    user_id: String(authority._id),
+                    full_name: String(authority.full_name || 'Authority Officer'),
+                    phone: String(authority.phone || ''),
+                }));
+
+            const smsSummary = await sendSosSmsNotifications(
+                {
+                    incidentId: String(finalIncident._id),
+                    reporterName,
+                    reporterRole,
+                    reporterPhone,
+                    latitude: toFiniteOrUndefined((finalIncident as any).latitude) ?? fallbackLatitude,
+                    longitude: toFiniteOrUndefined((finalIncident as any).longitude) ?? fallbackLongitude,
+                    triggeredAt: new Date((finalIncident as any).created_at || Date.now()),
+                },
+                smsRecipients
+            );
+
+            sosSmsDispatchSummary = smsSummary;
+
+            await Incident.findByIdAndUpdate(finalIncident._id, {
+                $set: { 'metadata.sos_sms_dispatch': smsSummary },
+            });
+
+            (finalIncident as any).metadata = {
+                ...((finalIncident as any).metadata || {}),
+                sos_sms_dispatch: smsSummary,
+            };
+        }
+
         if (io) {
             io.to('authority_room').emit('incident:new', finalIncident);
             io.to('authority_room').emit('new-incident', finalIncident);
             io.to('role_tourist').to('role_resident').to('role_business').emit('new-incident', finalIncident);
 
-            if (body.source === AlertSource.SOS_PANIC) {
+            if (isSosIncident) {
                 const incidentId = String(finalIncident._id);
                 io.to('authority_room').to(`incident_${incidentId}`).emit('sos:triggered', finalIncident);
 
@@ -455,6 +540,13 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next) => 
                         reporter_id: reporterId,
                         misuse_risk_score: misuseShieldMetadata.sos_misuse_risk_score,
                         misuse_risk_band: misuseShieldMetadata.sos_misuse_risk_band,
+                    });
+                }
+
+                if (sosSmsDispatchSummary) {
+                    io.to('authority_room').emit('sos:sms-dispatch', {
+                        incident_id: incidentId,
+                        dispatch: sosSmsDispatchSummary,
                     });
                 }
             }

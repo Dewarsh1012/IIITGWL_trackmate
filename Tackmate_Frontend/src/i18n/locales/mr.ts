@@ -1,5 +1,5 @@
 import type { TranslationKeys } from './en';
-const mr: TranslationKeys = {
+const mr: Partial<TranslationKeys> = {
   appName:'TRACKMATE',logout:'लॉग आउट',score:'गुण',online:'ऑनलाइन',refresh:'रिफ्रेश',save:'जतन करा',cancel:'रद्द करा',submit:'सबमिट करा',close:'बंद करा',loading:'लोड होत आहे...',safe:'सुरक्षित',moderate:'मध्यम',restricted:'प्रतिबंधित',high:'उच्च',low:'कमी',medium:'मध्यम',critical:'गंभीर',active:'सक्रिय',resolved:'निराकरण केले',acknowledged:'मान्य केले',unknown:'अज्ञात',language:'भाषा',selectLanguage:'भाषा निवडा',
   safetyScore:'सुरक्षा गुण',authorityNode:'प्राधिकरण नोड',navigation:'नेव्हिगेशन',dashboard:'डॅशबोर्ड',incidents:'घटना',userManagement:'वापरकर्ता व्यवस्थापन',tourists:'पर्यटक',residents:'रहिवासी',businesses:'व्यवसाय',tools:'साधने',dailyCheckins:'दैनिक चेक-इन',zoneManagement:'झोन व्यवस्थापन',efirSystem:'ई-एफआयआर प्रणाली',safetyAnalytics:'सुरक्षा विश्लेषण',sendAlert:'सतर्कता पाठवा',officer:'अधिकारी',
   map:'नकाशा',trip:'सहल',profile:'प्रोफाइल',local:'स्थानिक',feed:'फीड',report:'अहवाल',intel:'माहिती',business:'व्यवसाय',
