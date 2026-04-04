@@ -15,7 +15,21 @@ const efirSchema = new Schema<IEFIR>(
         incident_time: { type: Date },
         status: { type: String, enum: Object.values(EFIRStatus), default: EFIRStatus.DRAFT },
         evidence_urls: [{ type: String }],
+        evidence_hashes: [
+            {
+                url: { type: String, required: true },
+                hash_algo: { type: String, enum: ['sha256'], default: 'sha256' },
+                hash: { type: String, required: true },
+            },
+        ],
+        evidence_manifest_hash: { type: String },
         blockchain_hash: { type: String },
+        ledger_fir_number: { type: String, index: true },
+        ledger_tx_hash: { type: String },
+        ledger_chain_id: { type: String },
+        ledger_anchor_status: { type: String, enum: ['not_configured', 'pending', 'anchored', 'failed'] },
+        ledger_anchor_error: { type: String },
+        ledger_anchored_at: { type: Date },
         witness_statements: [
             {
                 name: { type: String },
