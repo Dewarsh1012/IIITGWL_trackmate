@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, AlertTriangle, Map, Fingerprint, BarChart3, Navigation, Bell, Building2, Home, LogOut, CheckCircle2, Globe } from 'lucide-react';
+import { LayoutDashboard, Users, AlertTriangle, Map, Fingerprint, BarChart3, Bell, Building2, Home, LogOut, CheckCircle2, Globe } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage, LANGUAGES } from '../../i18n';
 import { useState } from 'react';
@@ -13,16 +13,18 @@ export default function AuthoritySidebar() {
     <aside className="sidebar">
       {/* Logo */}
       <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{
-          width: 40, height: 40,
-          background: 'linear-gradient(135deg, #6C63FF, #8B85FF)',
-          borderRadius: 14,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-          boxShadow: '0 4px 12px rgba(108,99,255,0.3)',
-        }}>
-          <Navigation size={20} color="#FFFFFF" />
-        </div>
+        <img
+          src="/trackmate-logo.png"
+          alt="TrackMate Logo"
+          style={{
+            width: 40, height: 40,
+            borderRadius: 14,
+            objectFit: 'cover',
+            flexShrink: 0,
+            boxShadow: '0 4px 12px rgba(108,99,255,0.3)',
+          }}
+        />
+
         <div>
           <h2 style={{ fontSize: '1.1rem', margin: 0, color: '#FFFFFF', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, letterSpacing: '0.02em' }}>
             TRACK<span style={{ color: '#8B85FF' }}>MATE</span>

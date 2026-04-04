@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Shield, LogOut, Zap, Globe, ChevronDown } from 'lucide-react';
+import { Shield, LogOut, Globe, ChevronDown } from 'lucide-react';
 import { useLanguage, LANGUAGES } from '../../i18n';
 
 export default function Header() {
@@ -40,16 +40,16 @@ export default function Header() {
         <header className="top-header">
             {/* Brand */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                    width: 36, height: 36,
-                    background: 'linear-gradient(135deg, #6C63FF, #8B85FF)',
-                    border: `1px solid ${C.border}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '4px 4px 10px rgba(108,99,255,0.25)',
-                    borderRadius: 12,
-                }}>
-                    <Zap size={18} color="#FFFFFF" fill="#FFFFFF" />
-                </div>
+                <img
+                    src="/trackmate-logo.png"
+                    alt="TrackMate Logo"
+                    style={{
+                        width: 36, height: 36,
+                        borderRadius: 12,
+                        objectFit: 'cover',
+                        boxShadow: '4px 4px 10px rgba(108,99,255,0.25)',
+                    }}
+                />
                 <h2 style={{ fontSize: '1.15rem', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, letterSpacing: '0.04em', color: C.text }}>
                     TRACK<span style={{ color: C.primary }}>MATE</span>
                 </h2>

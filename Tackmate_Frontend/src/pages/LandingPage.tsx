@@ -138,22 +138,19 @@ export default function LandingPage() {
                     }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div
+                        <img
+                            src="/trackmate-logo.png"
+                            alt="TrackMate Logo"
                             style={{
                                 width: 36,
                                 height: 36,
                                 borderRadius: 12,
-                                background: 'linear-gradient(135deg, #6C63FF, #8B85FF)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
+                                objectFit: 'cover',
                                 boxShadow: '0 6px 14px rgba(108,99,255,0.35)',
                             }}
-                        >
-                            <Shield size={18} color="#FFFFFF" />
-                        </div>
+                        />
                         <p style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.01em' }}>
-                            TrackMate <span style={{ color: C.primary }}>Civic OS</span>
+                            TRACK<span style={{ color: C.primary }}>MATE</span>
                         </p>
                     </div>
 
@@ -538,19 +535,16 @@ export default function LandingPage() {
                     }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div
+                        <img
+                            src="/trackmate-logo.png"
+                            alt="TrackMate Logo"
                             style={{
                                 width: 30,
                                 height: 30,
                                 borderRadius: 10,
-                                background: 'linear-gradient(135deg, #6C63FF, #8B85FF)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
+                                objectFit: 'cover',
                             }}
-                        >
-                            <Shield size={14} color="#FFFFFF" />
-                        </div>
+                        />
                         <p style={{ margin: 0, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>
                             {t('footerBrand')}
                         </p>

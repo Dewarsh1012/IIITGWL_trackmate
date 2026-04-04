@@ -146,9 +146,7 @@ export default function AuthPage() {
             {/* Nav */}
             <header style={{ background: 'linear-gradient(135deg, #1B1D2A, #252840)', padding: '0 5%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
                 <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-                    <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(108,99,255,0.3)' }}>
-                        <Shield size={18} color="#FFFFFF" />
-                    </div>
+                    <img src="/trackmate-logo.png" alt="TrackMate Logo" style={{ width: 32, height: 32, borderRadius: 10, objectFit: 'cover', boxShadow: '0 4px 10px rgba(108,99,255,0.3)' }} />
                     <span style={{ color: '#FFFFFF', fontWeight: 800, fontSize: '1rem', letterSpacing: '0.04em' }}>
                         TRACK<span style={{ color: '#8B85FF' }}>MATE</span>
                     </span>
