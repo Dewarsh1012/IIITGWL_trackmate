@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
-import { Profile, Alert, Zone, Incident } from '../models';
+import { Profile, Alert, Zone, Incident } from '../../models';
+import { AlertStatus } from '../../types';
 
 describe('Backend Models - Unit Tests', () => {
     beforeAll(async () => {
@@ -23,9 +24,9 @@ describe('Backend Models - Unit Tests', () => {
 
         it('should create a valid profile', async () => {
             const profile = new Profile({
-                userId: new mongoose.Types.ObjectId(),
-                name: 'Test User',
                 email: 'test@example.com',
+                password: 'Password123!',
+                full_name: 'Test User',
                 role: 'tourist',
             });
 
@@ -46,28 +47,24 @@ describe('Backend Models - Unit Tests', () => {
         });
 
         it('should enforce unique email', async () => {
-            const userId = new mongoose.Types.ObjectId();
-
             const profile1 = new Profile({
-                userId,
-                name: 'User 1',
                 email: 'duplicate@example.com',
+                password: 'Password123!',
+                full_name: 'User 1',
                 role: 'tourist',
             });
 
             await profile1.save();
 
             const profile2 = new Profile({
-                userId: new mongoose.Types.ObjectId(),
-                name: 'User 2',
                 email: 'duplicate@example.com',
+                password: 'Password123!',
+                full_name: 'User 2',
                 role: 'resident',
             });
 
             // Unique constraint should trigger on save
-            expect(async () => {
-                await profile2.save();
-            }).toBeDefined();
+            await expect(profile2.save()).rejects.toBeDefined();
         });
     });
 
@@ -78,54 +75,45 @@ describe('Backend Models - Unit Tests', () => {
 
         it('should create a valid alert', async () => {
             const alert = new Alert({
+                created_by: new mongoose.Types.ObjectId(),
                 title: 'Test Alert',
                 message: 'This is a test alert',
-                type: 'safety',
-                severity: 'high',
-                authorityId: new mongoose.Types.ObjectId(),
-                location: {
-                    type: 'Point',
-                    coordinates: [0, 0],
-                },
+                alert_type: 'safety_warning',
+                priority: 'high',
+                target_group: 'all',
             });
 
             const saved = await alert.save();
             expect(saved._id).toBeDefined();
-            expect(saved.type).toBe('safety');
+            expect(saved.alert_type).toBe('safety_warning');
         });
 
-        it('should set default status to active', async () => {
+        it('should set creation timestamp', async () => {
             const alert = new Alert({
+                created_by: new mongoose.Types.ObjectId(),
                 title: 'Test Alert',
                 message: 'Message',
-                type: 'safety',
-                severity: 'high',
-                authorityId: new mongoose.Types.ObjectId(),
-                location: {
-                    type: 'Point',
-                    coordinates: [0, 0],
-                },
+                alert_type: 'general',
+                priority: 'medium',
+                target_group: 'all',
             });
 
             const saved = await alert.save();
-            expect(saved.status).toBe('active');
+            expect(saved.created_at).toBeDefined();
         });
 
-        it('should validate geolocation coordinates', async () => {
+        it('should accept target user metadata for direct alerts', async () => {
             const alert = new Alert({
+                created_by: new mongoose.Types.ObjectId(),
                 title: 'Test Alert',
                 message: 'Message',
-                type: 'safety',
-                severity: 'high',
-                authorityId: new mongoose.Types.ObjectId(),
-                location: {
-                    type: 'Point',
-                    coordinates: [180.5, 90.5], // Invalid coordinates
-                },
+                alert_type: 'emergency',
+                priority: 'critical',
+                target_group: 'user',
+                target_user_id: new mongoose.Types.ObjectId(),
             });
 
-            // Should either validate or be caught by schema
-            expect(alert.location).toBeDefined();
+            expect(alert.target_user_id).toBeDefined();
         });
     });
 
@@ -137,34 +125,36 @@ describe('Backend Models - Unit Tests', () => {
         it('should create a valid zone', async () => {
             const zone = new Zone({
                 name: 'Test Zone',
-                riskLevel: 'high',
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]],
-                },
-                wardId: new mongoose.Types.ObjectId(),
+                risk_level: 'high',
+                center_lat: 27.55,
+                center_lng: 91.86,
+                radius_meters: 600,
+                managed_by: new mongoose.Types.ObjectId(),
             });
 
             const saved = await zone.save();
             expect(saved._id).toBeDefined();
-            expect(saved.riskLevel).toBe('high');
+            expect(saved.risk_level).toBe('high');
         });
 
         it('should store zone boundaries correctly', async () => {
             const coordinates = [[[0, 0], [5, 0], [5, 5], [0, 5], [0, 0]]];
+            const geojson = {
+                type: 'Polygon',
+                coordinates,
+            };
 
             const zone = new Zone({
                 name: 'Large Zone',
-                riskLevel: 'moderate',
-                geometry: {
-                    type: 'Polygon',
-                    coordinates,
-                },
-                wardId: new mongoose.Types.ObjectId(),
+                risk_level: 'moderate',
+                center_lat: 27.60,
+                center_lng: 91.88,
+                radius_meters: 1200,
+                geojson,
             });
 
             const saved = await zone.save();
-            expect(saved.geometry.coordinates).toEqual(coordinates);
+            expect(saved.geojson).toEqual(geojson);
         });
     });
 
@@ -177,38 +167,36 @@ describe('Backend Models - Unit Tests', () => {
             const incident = new Incident({
                 title: 'Test Incident',
                 description: 'Incident description',
-                type: 'accident',
+                incident_type: 'accident',
                 severity: 'medium',
-                reporterId: new mongoose.Types.ObjectId(),
-                location: {
-                    type: 'Point',
-                    coordinates: [0, 0],
-                },
+                source: 'user_report',
+                reporter: new mongoose.Types.ObjectId(),
+                latitude: 0,
+                longitude: 0,
             });
 
             const saved = await incident.save();
             expect(saved._id).toBeDefined();
-            expect(saved.type).toBe('accident');
+            expect(saved.incident_type).toBe('accident');
         });
 
         it('should track incident status changes', async () => {
             const incident = new Incident({
                 title: 'Status Test',
                 description: 'Testing status',
-                type: 'crime',
+                incident_type: 'crime',
                 severity: 'high',
-                reporterId: new mongoose.Types.ObjectId(),
-                location: {
-                    type: 'Point',
-                    coordinates: [0, 0],
-                },
+                source: 'user_report',
+                reporter: new mongoose.Types.ObjectId(),
+                latitude: 0,
+                longitude: 0,
             });
 
             const saved = await incident.save();
-            expect(saved.status).toBe('open');
+            expect(saved.status).toBe('active');
 
             // Update status
-            saved.status = 'resolved';
+            saved.status = AlertStatus.RESOLVED;
             const updated = await saved.save();
             expect(updated.status).toBe('resolved');
         });
@@ -217,18 +205,16 @@ describe('Backend Models - Unit Tests', () => {
             const incident = new Incident({
                 title: 'Timestamp Test',
                 description: 'Test timestamps',
-                type: 'emergency',
+                incident_type: 'medical_emergency',
                 severity: 'critical',
-                reporterId: new mongoose.Types.ObjectId(),
-                location: {
-                    type: 'Point',
-                    coordinates: [0, 0],
-                },
+                source: 'user_report',
+                reporter: new mongoose.Types.ObjectId(),
+                latitude: 0,
+                longitude: 0,
             });
 
             const saved = await incident.save();
-            expect(saved.createdAt).toBeDefined();
-            expect(saved.updatedAt).toBeDefined();
+            expect(saved.created_at).toBeDefined();
         });
     });
 });
