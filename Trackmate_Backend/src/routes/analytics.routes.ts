@@ -2,6 +2,12 @@ import express, { Router, Response } from 'express';
 import { authenticate, requireRole } from '../middleware/auth';
 import { Incident, Profile, LocationLog, Zone } from '../models';
 import { AuthRequest, UserRole } from '../types';
+import {
+    combineRuleAndModelScore,
+    getAnomalyModelStatus,
+    scoreAnomalyRisk,
+    trainAndPersistAnomalyModel,
+} from '../lib/anomalyModel';
 
 const router: Router = express.Router();
 
@@ -176,6 +182,100 @@ router.get(
                     openIncidents,
                     sosLastHour,
                     activeUsersToday: activeTodayUsers.length,
+                },
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+// ─── Anomaly model status (authority/admin) ─────────────────────────
+
+router.get(
+    '/anomaly-model',
+    authenticate,
+    requireRole(UserRole.AUTHORITY, UserRole.ADMIN),
+    async (_req: AuthRequest, res: Response, next) => {
+        try {
+            const status = await getAnomalyModelStatus();
+            res.json({ success: true, data: status });
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+// ─── Trigger anomaly model training (authority/admin) ───────────────
+
+router.post(
+    '/anomaly-model/train',
+    authenticate,
+    requireRole(UserRole.AUTHORITY, UserRole.ADMIN),
+    async (req: AuthRequest, res: Response, next) => {
+        try {
+            const maxSamplesInput = Number((req.body as Record<string, unknown>)?.maxSamples);
+            const iterationsInput = Number((req.body as Record<string, unknown>)?.iterations);
+            const learningRateInput = Number((req.body as Record<string, unknown>)?.learningRate);
+
+            const result = await trainAndPersistAnomalyModel({
+                maxSamples: Number.isFinite(maxSamplesInput) ? maxSamplesInput : undefined,
+                iterations: Number.isFinite(iterationsInput) ? iterationsInput : undefined,
+                learningRate: Number.isFinite(learningRateInput) ? learningRateInput : undefined,
+            });
+
+            res.json({ success: true, data: result });
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+// ─── Score anomaly features with active model ────────────────────────
+
+router.post(
+    '/anomaly-model/score',
+    authenticate,
+    requireRole(UserRole.AUTHORITY, UserRole.ADMIN),
+    async (req: AuthRequest, res: Response, next) => {
+        try {
+            const body = (req.body || {}) as Record<string, unknown>;
+            const metrics = {
+                inactivityMinutes: Number(body.inactivityMinutes),
+                speedKmh: Number(body.speedKmh),
+                isOutsideZone: Boolean(body.isOutsideZone),
+                nearbyIncidents15m: Number(body.nearbyIncidents15m),
+                nearbyCriticalIncidents15m: Number(body.nearbyCriticalIncidents15m),
+                userAnomalies24h: Number(body.userAnomalies24h),
+            };
+
+            if (
+                !Number.isFinite(metrics.inactivityMinutes) ||
+                !Number.isFinite(metrics.speedKmh) ||
+                !Number.isFinite(metrics.nearbyIncidents15m) ||
+                !Number.isFinite(metrics.nearbyCriticalIncidents15m) ||
+                !Number.isFinite(metrics.userAnomalies24h)
+            ) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Invalid input. Provide numeric feature values and isOutsideZone boolean.',
+                });
+                return;
+            }
+
+            const ruleScoreInput = Number(body.ruleScore);
+            const ruleScore = Number.isFinite(ruleScoreInput) ? ruleScoreInput : 0.8;
+
+            const scored = await scoreAnomalyRisk(metrics);
+            const hybridScore = combineRuleAndModelScore(ruleScore, scored.modelScore);
+
+            res.json({
+                success: true,
+                data: {
+                    modelVersion: scored.modelVersion,
+                    modelScore: scored.modelScore,
+                    hybridScore,
+                    normalizedFeatures: scored.normalizedFeatures,
                 },
             });
         } catch (err) {

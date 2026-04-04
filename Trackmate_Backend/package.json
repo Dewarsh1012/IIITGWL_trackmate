@@ -8,6 +8,7 @@
         "start": "node dist/server.js",
         "build": "tsc",
         "seed": "ts-node src/scripts/seed.ts",
+        "train:anomaly": "ts-node src/scripts/train-anomaly-model.ts",
         "register": "ts-node src/scripts/register-user.ts",
         "test": "jest --watch",
         "test:run": "jest",

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Download, RefreshCw, Loader2, AlertCircle, Activity, Users } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 import api from '../../lib/api';
 import AuthoritySidebar from '../../components/layout/AuthoritySidebar';
 
@@ -29,13 +28,33 @@ const clayCard: React.CSSProperties = {
 };
 
 export default function AuthorityAnalytics() {
-    const { } = useAuth();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [incidentStats, setIncidentStats] = useState<any>(null);
     const [touristStats, setTouristStats] = useState<any>(null);
     const [zoneStats, setZoneStats] = useState<any>(null);
     const [summary, setSummary] = useState<any>(null);
+    const [anomalyModelStatus, setAnomalyModelStatus] = useState<any>(null);
+    const [modelActionLoading, setModelActionLoading] = useState(false);
+    const [modelActionMessage, setModelActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    const [trainConfig, setTrainConfig] = useState({
+        maxSamples: 500,
+        iterations: 700,
+        learningRate: 0.1,
+    });
+
+    const [scoreInput, setScoreInput] = useState({
+        inactivityMinutes: 42,
+        speedKmh: 24,
+        isOutsideZone: false,
+        nearbyIncidents15m: 1,
+        nearbyCriticalIncidents15m: 0,
+        userAnomalies24h: 0,
+        ruleScore: 0.8,
+    });
+    const [scoreLoading, setScoreLoading] = useState(false);
+    const [scoreResult, setScoreResult] = useState<any>(null);
 
     const [reportLoading, setReportLoading] = useState(false);
     const [reportStartDate, setReportStartDate] = useState('');
@@ -43,6 +62,17 @@ export default function AuthorityAnalytics() {
     const [reportSections, setReportSections] = useState({ incidents: true, zones: true });
 
     useEffect(() => { fetchAnalytics(); }, []);
+
+    const fetchAnomalyModelStatus = async () => {
+        try {
+            const modelRes = await api.get('/analytics/anomaly-model');
+            if (modelRes.data.success) {
+                setAnomalyModelStatus(modelRes.data.data);
+            }
+        } catch {
+            // Keep page usable even if model endpoints are temporarily unavailable.
+        }
+    };
 
     const fetchAnalytics = async () => {
         try {
@@ -52,7 +82,49 @@ export default function AuthorityAnalytics() {
             if (tourRes.data.success) setTouristStats(tourRes.data.data);
             if (zoneRes.data.success) setZoneStats(zoneRes.data.data);
             if (sumRes.data.success) setSummary(sumRes.data.data);
+            await fetchAnomalyModelStatus();
         } catch { setError('Connection error. Data may be stale.'); } finally { setLoading(false); }
+    };
+
+    const trainAnomalyModel = async () => {
+        try {
+            setModelActionLoading(true);
+            setModelActionMessage(null);
+            const res = await api.post('/analytics/anomaly-model/train', {
+                maxSamples: trainConfig.maxSamples,
+                iterations: trainConfig.iterations,
+                learningRate: trainConfig.learningRate,
+            });
+
+            if (res.data.success) {
+                const data = res.data.data;
+                setModelActionMessage({
+                    type: 'success',
+                    text: `Model ${data.modelVersion} trained: ${(Number(data.accuracy || 0) * 100).toFixed(2)}% accuracy`,
+                });
+                await fetchAnomalyModelStatus();
+            }
+        } catch {
+            setModelActionMessage({ type: 'error', text: 'Model training failed. Check backend logs.' });
+        } finally {
+            setModelActionLoading(false);
+        }
+    };
+
+    const scoreAnomalyPayload = async () => {
+        try {
+            setScoreLoading(true);
+            setScoreResult(null);
+
+            const res = await api.post('/analytics/anomaly-model/score', scoreInput);
+            if (res.data.success) {
+                setScoreResult(res.data.data);
+            }
+        } catch {
+            setModelActionMessage({ type: 'error', text: 'Payload scoring failed. Verify model endpoint.' });
+        } finally {
+            setScoreLoading(false);
+        }
     };
 
     if (loading && !summary) return (
@@ -251,6 +323,136 @@ export default function AuthorityAnalytics() {
                             {reportLoading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                             {reportLoading ? 'Generating...' : 'Download Audit PDF'}
                         </button>
+                    </div>
+                </div>
+
+                {/* AI anomaly controls */}
+                <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 20 }}>
+                    <div style={{ ...clayCard, padding: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                            <h3 style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.text, margin: 0 }}>Anomaly Model Control</h3>
+                            <button
+                                onClick={fetchAnomalyModelStatus}
+                                style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, padding: '6px 10px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', color: C.text }}
+                            >
+                                Refresh Status
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                            <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px' }}>
+                                <p style={{ margin: 0, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, fontWeight: 700 }}>Active Model</p>
+                                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', fontWeight: 800, color: C.text }}>{anomalyModelStatus?.activeModelVersion || 'Unavailable'}</p>
+                            </div>
+                            <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px' }}>
+                                <p style={{ margin: 0, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, fontWeight: 700 }}>Training Accuracy</p>
+                                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', fontWeight: 800, color: C.text }}>
+                                    {anomalyModelStatus?.accuracy != null ? `${(Number(anomalyModelStatus.accuracy) * 100).toFixed(2)}%` : 'N/A'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 14 }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.66rem', color: C.textMuted, marginBottom: 4, fontWeight: 700 }}>Max Samples</label>
+                                <input
+                                    type="number"
+                                    min={100}
+                                    max={5000}
+                                    value={trainConfig.maxSamples}
+                                    onChange={(e) => setTrainConfig((p) => ({ ...p, maxSamples: Number(e.target.value) || 0 }))}
+                                    style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceAlt, color: C.text, fontFamily: 'inherit' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.66rem', color: C.textMuted, marginBottom: 4, fontWeight: 700 }}>Iterations</label>
+                                <input
+                                    type="number"
+                                    min={100}
+                                    max={5000}
+                                    value={trainConfig.iterations}
+                                    onChange={(e) => setTrainConfig((p) => ({ ...p, iterations: Number(e.target.value) || 0 }))}
+                                    style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceAlt, color: C.text, fontFamily: 'inherit' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.66rem', color: C.textMuted, marginBottom: 4, fontWeight: 700 }}>Learning Rate</label>
+                                <input
+                                    type="number"
+                                    min={0.0001}
+                                    max={1}
+                                    step="0.01"
+                                    value={trainConfig.learningRate}
+                                    onChange={(e) => setTrainConfig((p) => ({ ...p, learningRate: Number(e.target.value) || 0 }))}
+                                    style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceAlt, color: C.text, fontFamily: 'inherit' }}
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={trainAnomalyModel}
+                            disabled={modelActionLoading}
+                            style={{ background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', color: '#FFFFFF', border: 'none', borderRadius: 12, padding: '10px 16px', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 16px rgba(108,99,255,0.25)', opacity: modelActionLoading ? 0.7 : 1 }}
+                        >
+                            {modelActionLoading ? 'Training...' : 'Train Model'}
+                        </button>
+
+                        {modelActionMessage && (
+                            <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, border: `1px solid ${modelActionMessage.type === 'success' ? C.safe : C.high}`, background: modelActionMessage.type === 'success' ? `${C.safe}1A` : `${C.high}1A`, color: modelActionMessage.type === 'success' ? C.safe : C.high, fontSize: '0.78rem', fontWeight: 700 }}>
+                                {modelActionMessage.text}
+                            </div>
+                        )}
+                    </div>
+
+                    <div style={{ ...clayCard, padding: '24px' }}>
+                        <h3 style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.text, margin: '0 0 14px' }}>Anomaly Score Sandbox</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.66rem', color: C.textMuted, marginBottom: 4, fontWeight: 700 }}>Inactivity (min)</label>
+                                <input type="number" value={scoreInput.inactivityMinutes} onChange={(e) => setScoreInput((p) => ({ ...p, inactivityMinutes: Number(e.target.value) || 0 }))} style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceAlt, color: C.text, fontFamily: 'inherit' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.66rem', color: C.textMuted, marginBottom: 4, fontWeight: 700 }}>Speed (km/h)</label>
+                                <input type="number" value={scoreInput.speedKmh} onChange={(e) => setScoreInput((p) => ({ ...p, speedKmh: Number(e.target.value) || 0 }))} style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceAlt, color: C.text, fontFamily: 'inherit' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.66rem', color: C.textMuted, marginBottom: 4, fontWeight: 700 }}>Nearby Incidents (15m)</label>
+                                <input type="number" value={scoreInput.nearbyIncidents15m} onChange={(e) => setScoreInput((p) => ({ ...p, nearbyIncidents15m: Number(e.target.value) || 0 }))} style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceAlt, color: C.text, fontFamily: 'inherit' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.66rem', color: C.textMuted, marginBottom: 4, fontWeight: 700 }}>Nearby Critical</label>
+                                <input type="number" value={scoreInput.nearbyCriticalIncidents15m} onChange={(e) => setScoreInput((p) => ({ ...p, nearbyCriticalIncidents15m: Number(e.target.value) || 0 }))} style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceAlt, color: C.text, fontFamily: 'inherit' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.66rem', color: C.textMuted, marginBottom: 4, fontWeight: 700 }}>User Anomalies (24h)</label>
+                                <input type="number" value={scoreInput.userAnomalies24h} onChange={(e) => setScoreInput((p) => ({ ...p, userAnomalies24h: Number(e.target.value) || 0 }))} style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceAlt, color: C.text, fontFamily: 'inherit' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.66rem', color: C.textMuted, marginBottom: 4, fontWeight: 700 }}>Rule Score</label>
+                                <input type="number" min={0} max={1} step="0.01" value={scoreInput.ruleScore} onChange={(e) => setScoreInput((p) => ({ ...p, ruleScore: Number(e.target.value) || 0 }))} style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceAlt, color: C.text, fontFamily: 'inherit' }} />
+                            </div>
+                        </div>
+
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: '0.8rem', color: C.text, fontWeight: 600 }}>
+                            <input type="checkbox" checked={scoreInput.isOutsideZone} onChange={(e) => setScoreInput((p) => ({ ...p, isOutsideZone: e.target.checked }))} />
+                            Outside Zone
+                        </label>
+
+                        <button
+                            onClick={scoreAnomalyPayload}
+                            disabled={scoreLoading}
+                            style={{ marginTop: 12, background: C.surfaceAlt, color: C.text, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
+                        >
+                            {scoreLoading ? 'Scoring...' : 'Score Payload'}
+                        </button>
+
+                        {scoreResult && (
+                            <div style={{ marginTop: 12, padding: '12px', borderRadius: 10, background: C.surfaceAlt, border: `1px solid ${C.border}`, fontSize: '0.78rem', color: C.text }}>
+                                <p style={{ margin: 0, fontWeight: 700 }}>Model: {scoreResult.modelVersion || 'n/a'}</p>
+                                <p style={{ margin: '6px 0 0', fontWeight: 700 }}>Model Score: {(Number(scoreResult.modelScore || 0) * 100).toFixed(2)}%</p>
+                                <p style={{ margin: '4px 0 0', fontWeight: 700 }}>Hybrid Score: {(Number(scoreResult.hybridScore || 0) * 100).toFixed(2)}%</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </main>
