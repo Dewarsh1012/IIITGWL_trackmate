@@ -3,7 +3,18 @@ import { z } from 'zod';
 import { authenticate, requireRole } from '../middleware/auth';
 import { EFIR } from '../models';
 import { AuthRequest, UserRole, EFIRStatus } from '../types';
-import { generateEFIRHash, verifyEFIRHash } from '../lib/blockchain';
+import { generateEFIRHash } from '../lib/blockchain';
+import { uploadEvidence, toPublicUploadPath } from '../middleware/upload';
+import {
+    buildEFIRIntegrityPayload,
+    buildEvidenceManifestHash,
+    hashFileContentsSha256,
+    mergeEvidenceEntries,
+    normalizeEvidenceIntegrityInput,
+    verifyEvidenceIntegrity,
+    EvidenceHashEntry,
+} from '../lib/efirIntegrity';
+import { anchorEFIRToLedger, isLedgerReadConfigured, readEFIRFromLedger, updateEFIRStatusOnLedger } from '../lib/efirLedger';
 
 const router: Router = express.Router();
 
@@ -18,12 +29,51 @@ const efirSchema = z.object({
     incident_lng: z.number().optional(),
     incident_time: z.string().optional(),
     evidence_urls: z.array(z.string()).optional(),
+    evidence_hashes: z.array(
+        z.object({
+            url: z.string().min(1),
+            hash_algo: z.literal('sha256').optional(),
+            hash: z.string().regex(/^[a-f0-9]{64}$/i),
+        })
+    ).optional(),
     witness_statements: z.array(z.object({
         name: z.string(),
         contact: z.string(),
         statement: z.string().min(10),
     })).optional(),
 });
+
+const evidenceMutationSchema = z
+    .object({
+        urls: z.array(z.string().min(1)).optional(),
+        hashes: z
+            .array(
+                z.object({
+                    url: z.string().min(1),
+                    hash_algo: z.literal('sha256').optional(),
+                    hash: z.string().regex(/^[a-f0-9]{64}$/i),
+                })
+            )
+            .optional(),
+    })
+    .refine((value) => (value.urls?.length || 0) + (value.hashes?.length || 0) > 0, {
+        message: 'Provide at least one evidence URL or hash entry',
+    });
+
+const IMMUTABLE_AFTER_SUBMISSION_FIELDS = new Set([
+    'incident',
+    'user',
+    'title',
+    'description',
+    'incident_type',
+    'incident_location',
+    'incident_lat',
+    'incident_lng',
+    'incident_time',
+    'evidence_urls',
+    'evidence_hashes',
+    'witness_statements',
+]);
 
 const voiceDraftSchema = z.object({
     transcript: z.string().min(25).max(12000),
@@ -142,16 +192,140 @@ router.post(
     async (req: AuthRequest, res: Response, next) => {
         try {
             const body = efirSchema.parse(req.body);
+            const evidenceIntegrity = normalizeEvidenceIntegrityInput({
+                evidence_urls: body.evidence_urls ?? body.evidence_hashes?.map((item) => item.url),
+                evidence_hashes: body.evidence_hashes,
+            });
+
             const efir = await EFIR.create({
                 ...body,
                 filed_by: req.user!.userId,
                 incident_time: body.incident_time ? new Date(body.incident_time) : undefined,
                 status: EFIRStatus.DRAFT,
+                evidence_urls: evidenceIntegrity.evidenceUrls,
+                evidence_hashes: evidenceIntegrity.evidenceHashes,
+                evidence_manifest_hash: evidenceIntegrity.evidenceManifestHash,
+                ledger_anchor_status: 'not_configured',
             });
             res.status(201).json({ success: true, data: efir });
         } catch (err) {
             next(err);
         }
+    }
+);
+
+// ─── POST add evidence references + hashes (draft only) ──────────────
+
+router.post(
+    '/:id/evidence',
+    authenticate,
+    requireRole(UserRole.AUTHORITY, UserRole.ADMIN),
+    async (req: AuthRequest, res: Response, next) => {
+        try {
+            const body = evidenceMutationSchema.parse(req.body);
+            const efir = await EFIR.findOne({ _id: req.params.id, filed_by: req.user!.userId });
+
+            if (!efir) {
+                res.status(404).json({ success: false, message: 'eFIR not found' });
+                return;
+            }
+
+            if (efir.status !== EFIRStatus.DRAFT) {
+                res.status(409).json({ success: false, message: 'Evidence can only be modified while eFIR is in draft status' });
+                return;
+            }
+
+            const existingIntegrity = normalizeEvidenceIntegrityInput({
+                evidence_urls: efir.evidence_urls,
+                evidence_hashes: efir.evidence_hashes,
+            });
+
+            const incomingIntegrity = normalizeEvidenceIntegrityInput({
+                evidence_urls: body.urls ?? body.hashes?.map((item) => item.url),
+                evidence_hashes: body.hashes,
+            });
+
+            const mergedEvidenceHashes = mergeEvidenceEntries(existingIntegrity.evidenceHashes, incomingIntegrity.evidenceHashes);
+            const evidenceUrls = mergedEvidenceHashes.map((item) => item.url);
+            const evidenceManifestHash = buildEvidenceManifestHash(mergedEvidenceHashes);
+
+            efir.set({
+                evidence_urls: evidenceUrls,
+                evidence_hashes: mergedEvidenceHashes,
+                evidence_manifest_hash: evidenceManifestHash,
+            });
+            await efir.save();
+
+            res.json({ success: true, data: efir });
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+// ─── POST upload evidence files + content hashes (draft only) ───────
+
+router.post(
+    '/:id/evidence/upload',
+    authenticate,
+    requireRole(UserRole.AUTHORITY, UserRole.ADMIN),
+    async (req: AuthRequest, res: Response, next) => {
+        uploadEvidence(req as any, res as any, async (uploadErr: any) => {
+            if (uploadErr) {
+                res.status(400).json({ success: false, message: uploadErr.message || 'Upload failed' });
+                return;
+            }
+
+            try {
+                const efir = await EFIR.findOne({ _id: req.params.id, filed_by: req.user!.userId });
+                if (!efir) {
+                    res.status(404).json({ success: false, message: 'eFIR not found' });
+                    return;
+                }
+
+                if (efir.status !== EFIRStatus.DRAFT) {
+                    res.status(409).json({ success: false, message: 'Evidence can only be modified while eFIR is in draft status' });
+                    return;
+                }
+
+                const files = ((req as any).files || []) as Express.Multer.File[];
+                if (!files.length) {
+                    res.status(400).json({ success: false, message: 'No evidence files uploaded' });
+                    return;
+                }
+
+                const uploadedHashes: EvidenceHashEntry[] = [];
+                for (const file of files) {
+                    const url = toPublicUploadPath(file.path);
+                    const hash = await hashFileContentsSha256(file.path);
+                    uploadedHashes.push({ url, hash_algo: 'sha256', hash });
+                }
+
+                const existingIntegrity = normalizeEvidenceIntegrityInput({
+                    evidence_urls: efir.evidence_urls,
+                    evidence_hashes: efir.evidence_hashes,
+                });
+
+                const mergedEvidenceHashes = mergeEvidenceEntries(existingIntegrity.evidenceHashes, uploadedHashes);
+                const evidenceUrls = mergedEvidenceHashes.map((item) => item.url);
+                const evidenceManifestHash = buildEvidenceManifestHash(mergedEvidenceHashes);
+
+                efir.set({
+                    evidence_urls: evidenceUrls,
+                    evidence_hashes: mergedEvidenceHashes,
+                    evidence_manifest_hash: evidenceManifestHash,
+                });
+                await efir.save();
+
+                res.status(201).json({
+                    success: true,
+                    data: efir,
+                    uploaded: uploadedHashes,
+                });
+            } catch (err) {
+                next(err);
+            }
+        });
     }
 );
 
@@ -163,26 +337,103 @@ router.patch(
     requireRole(UserRole.AUTHORITY, UserRole.ADMIN),
     async (req: AuthRequest, res: Response, next) => {
         try {
-            const updates = efirSchema.partial().parse(req.body);
-            const extra: Record<string, any> = {};
+            const updates = efirSchema.partial().parse(req.body) as Record<string, unknown>;
+            const existing = await EFIR.findOne({ _id: req.params.id, filed_by: req.user!.userId }).lean();
+            if (!existing) {
+                res.status(404).json({ success: false, message: 'eFIR not found' });
+                return;
+            }
 
-            // If submitting — generate blockchain hash
-            if (req.body.status === EFIRStatus.SUBMITTED) {
-                const existing = await EFIR.findById(req.params.id).lean();
-                if (existing) {
-                    const payload: Record<string, any> = {
+            if (existing.status !== EFIRStatus.DRAFT && hasImmutableContentUpdates(updates)) {
+                res.status(409).json({
+                    success: false,
+                    message: 'Submitted eFIR content is immutable. Only status transitions are allowed.',
+                });
+                return;
+            }
+
+            const requestedStatus = typeof req.body?.status === 'string' ? req.body.status : undefined;
+            const existingIntegrity = normalizeEvidenceIntegrityInput({
+                evidence_urls: existing.evidence_urls,
+                evidence_hashes: existing.evidence_hashes,
+            });
+
+            const includesEvidenceFields =
+                Object.prototype.hasOwnProperty.call(updates, 'evidence_urls') ||
+                Object.prototype.hasOwnProperty.call(updates, 'evidence_hashes');
+
+            const incomingIntegrity = normalizeEvidenceIntegrityInput({
+                evidence_urls: updates.evidence_urls ?? (Array.isArray(updates.evidence_hashes)
+                    ? updates.evidence_hashes
+                        .map((item) => (item && typeof item === 'object' ? (item as Record<string, unknown>).url : undefined))
+                        .filter((item): item is string => typeof item === 'string')
+                    : undefined),
+                evidence_hashes: updates.evidence_hashes,
+            });
+
+            const mergedEvidenceHashes = includesEvidenceFields
+                ? mergeEvidenceEntries(existingIntegrity.evidenceHashes, incomingIntegrity.evidenceHashes)
+                : existingIntegrity.evidenceHashes;
+
+            const extra: Record<string, unknown> = {
+                evidence_urls: mergedEvidenceHashes.map((item) => item.url),
+                evidence_hashes: mergedEvidenceHashes,
+                evidence_manifest_hash: buildEvidenceManifestHash(mergedEvidenceHashes),
+            };
+
+            if (requestedStatus && requestedStatus !== existing.status) {
+                if (requestedStatus === EFIRStatus.SUBMITTED) {
+                    const integrityPayload = buildEFIRIntegrityPayload({
                         ...existing,
                         ...updates,
+                        ...extra,
                         status: EFIRStatus.SUBMITTED,
-                    };
-                    // Remove non-deterministic fields
-                    delete payload._id;
-                    delete payload.__v;
-                    delete payload.created_at;
-                    delete payload.updated_at;
-                    delete payload.blockchain_hash;
-                    extra.blockchain_hash = generateEFIRHash(payload);
+                    });
+
+                    const localHash = generateEFIRHash(integrityPayload);
+                    const firNumber = asOptionalString(existing.ledger_fir_number) || `EFIR-${String(existing._id)}`;
+
                     extra.status = EFIRStatus.SUBMITTED;
+                    extra.blockchain_hash = localHash;
+                    extra.ledger_fir_number = firNumber;
+                    extra.ledger_anchor_status = 'pending';
+                    extra.ledger_anchor_error = undefined;
+
+                    const anchorResult = await anchorEFIRToLedger({
+                        firNumber,
+                        dataHash: localHash,
+                    });
+
+                    if (anchorResult.status === 'anchored') {
+                        extra.ledger_anchor_status = 'anchored';
+                        extra.ledger_tx_hash = anchorResult.txHash;
+                        extra.ledger_chain_id = anchorResult.chainId;
+                        extra.ledger_anchored_at = new Date();
+                    } else if (anchorResult.status === 'failed') {
+                        extra.ledger_anchor_status = 'failed';
+                        extra.ledger_anchor_error = anchorResult.error || 'Unable to anchor eFIR hash on ledger';
+                    } else {
+                        extra.ledger_anchor_status = 'not_configured';
+                        extra.ledger_anchor_error = 'Ledger write configuration is missing; local hash verification remains available';
+                    }
+                } else {
+                    extra.status = requestedStatus;
+
+                    const firNumber = asOptionalString(existing.ledger_fir_number);
+                    if (firNumber && existing.status !== EFIRStatus.DRAFT) {
+                        const statusResult = await updateEFIRStatusOnLedger({
+                            firNumber,
+                            status: requestedStatus,
+                        });
+
+                        if (statusResult.status === 'failed') {
+                            extra.ledger_anchor_error = statusResult.error || 'Failed to sync eFIR status on ledger';
+                        } else if (statusResult.status === 'updated') {
+                            extra.ledger_tx_hash = statusResult.txHash;
+                            extra.ledger_anchor_status = 'anchored';
+                            extra.ledger_anchor_error = undefined;
+                        }
+                    }
                 }
             }
 
@@ -216,22 +467,52 @@ router.post('/:id/verify-hash', authenticate, async (_req: AuthRequest, res: Res
             return;
         }
 
-        const payload: Record<string, any> = { ...efir };
-        delete payload._id;
-        delete payload.__v;
-        delete payload.created_at;
-        delete payload.updated_at;
-        delete payload.blockchain_hash;
+        const integrityPayload = buildEFIRIntegrityPayload({ ...efir, status: efir.status || EFIRStatus.SUBMITTED });
+        const localComputedHash = generateEFIRHash(integrityPayload);
+        const localPayloadVerified = localComputedHash.toLowerCase() === efir.blockchain_hash.toLowerCase();
 
-        const verified = verifyEFIRHash(payload, efir.blockchain_hash);
+        const evidenceHashes = normalizeEvidenceIntegrityInput({
+            evidence_urls: efir.evidence_urls,
+            evidence_hashes: efir.evidence_hashes,
+        }).evidenceHashes;
+
+        const evidenceResult = await verifyEvidenceIntegrity(evidenceHashes);
+
+        const ledgerFirNumber = asOptionalString(efir.ledger_fir_number);
+        let ledgerData: Awaited<ReturnType<typeof readEFIRFromLedger>> = null;
+        let ledgerHashVerified: boolean | null = null;
+
+        if (ledgerFirNumber && isLedgerReadConfigured()) {
+            ledgerData = await readEFIRFromLedger(ledgerFirNumber);
+            if (ledgerData) {
+                ledgerHashVerified = ledgerData.dataHash.toLowerCase() === efir.blockchain_hash.toLowerCase();
+            }
+        }
+
+        const verified = localPayloadVerified && evidenceResult.verified && (ledgerHashVerified ?? true);
         res.json({
             success: true,
             data: {
                 verified,
                 storedHash: efir.blockchain_hash,
+                localComputedHash,
+                localPayloadVerified,
+                evidenceManifestHash: efir.evidence_manifest_hash,
+                evidenceVerified: evidenceResult.verified,
+                evidenceDetails: evidenceResult.details,
+                ledger: {
+                    configured: isLedgerReadConfigured(),
+                    firNumber: ledgerFirNumber,
+                    found: Boolean(ledgerData),
+                    hashVerified: ledgerHashVerified,
+                    dataHash: ledgerData?.dataHash,
+                    status: ledgerData?.status,
+                    timestamp: ledgerData?.timestamp,
+                    complainant: ledgerData?.complainant,
+                },
                 message: verified
-                    ? '✓ Document integrity verified — this eFIR has not been tampered with'
-                    : '✗ Hash mismatch — this eFIR may have been altered',
+                    ? '✓ eFIR payload, evidence manifest, and ledger hash checks passed'
+                    : '✗ Integrity verification failed — inspect payload/evidence/ledger details',
             },
         });
     } catch (err) {
@@ -407,6 +688,23 @@ function parsePositiveInt(raw: string | undefined, fallback: number): number {
     const value = Number(raw);
     if (!Number.isFinite(value) || value <= 0) return fallback;
     return Math.floor(value);
+}
+
+function asOptionalString(value: unknown): string | undefined {
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        return trimmed.length ? trimmed : undefined;
+    }
+
+    if (value == null) return undefined;
+    const cast = (value as { toString?: () => string }).toString?.();
+    if (!cast || cast === '[object Object]') return undefined;
+    const trimmed = cast.trim();
+    return trimmed.length ? trimmed : undefined;
+}
+
+function hasImmutableContentUpdates(updates: Record<string, unknown>): boolean {
+    return Object.keys(updates).some((key) => IMMUTABLE_AFTER_SUBMISSION_FIELDS.has(key));
 }
 
 export default router;

@@ -3,8 +3,25 @@ import crypto from 'crypto';
 /**
  * Canonical JSON serialisation — sorts keys alphabetically for determinism.
  */
+function toCanonicalValue(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map((item) => toCanonicalValue(item));
+    }
+
+    if (value && typeof value === 'object') {
+        const obj = value as Record<string, unknown>;
+        const out: Record<string, unknown> = {};
+        for (const key of Object.keys(obj).sort()) {
+            out[key] = toCanonicalValue(obj[key]);
+        }
+        return out;
+    }
+
+    return value;
+}
+
 function canonicalJSON(obj: Record<string, unknown>): string {
-    return JSON.stringify(obj, Object.keys(obj).sort());
+    return JSON.stringify(toCanonicalValue(obj));
 }
 
 const ROLE_PREFIX: Record<string, string> = {

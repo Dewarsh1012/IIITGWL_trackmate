@@ -256,7 +256,19 @@ export interface IEFIR extends Document {
     incident_time?: Date;
     status: EFIRStatus;
     evidence_urls: string[];
+    evidence_hashes?: Array<{
+        url: string;
+        hash_algo: 'sha256';
+        hash: string;
+    }>;
+    evidence_manifest_hash?: string;
     blockchain_hash?: string;
+    ledger_fir_number?: string;
+    ledger_tx_hash?: string;
+    ledger_chain_id?: string;
+    ledger_anchor_status?: 'not_configured' | 'pending' | 'anchored' | 'failed';
+    ledger_anchor_error?: string;
+    ledger_anchored_at?: Date;
     witness_statements: Array<{
         name: string;
         contact: string;
