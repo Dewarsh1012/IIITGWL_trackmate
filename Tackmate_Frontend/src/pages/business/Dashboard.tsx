@@ -6,15 +6,7 @@ import { useLanguage } from '../../i18n';
 import { Loader2, Shield, TrendingUp, MapPin, Users, Bell, AlertTriangle, Search, Check, Fingerprint, PlusCircle, Info, Globe, ShieldAlert } from 'lucide-react';
 import AlertPanel from '../../components/alerts/AlertPanel';
 import { enqueueOfflineSos, flushOfflineSosQueue, getOfflineSosQueueCount } from '../../lib/offlineSos';
-
-const C = {
-    bg: '#F0EDFA', surface: '#FFFFFF', surfaceAlt: '#F7F5FF', dark: '#1B1D2A', text: '#1B1D2A',
-    textSecondary: '#4A4D68', textMuted: '#8B8FA8', primary: '#6C63FF', primaryLight: '#8B85FF',
-    safe: '#34D399', moderate: '#FBBF24', high: '#F87171', critical: '#EF4444', orange: '#FF7A00',
-    border: 'rgba(27,29,42,0.08)',
-};
-
-const clayCard: React.CSSProperties = { background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: '6px 6px 14px rgba(27,29,42,0.10), -3px -3px 10px rgba(255,255,255,0.9)' };
+import { CLAY_COLORS as C, CLAY_CARD_STYLE as clayCard } from '../../theme/clayTheme';
 
 export default function BusinessDashboard() {
     const { user } = useAuth();

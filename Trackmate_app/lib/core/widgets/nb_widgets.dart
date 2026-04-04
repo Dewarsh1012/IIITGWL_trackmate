@@ -64,6 +64,7 @@ class NBButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: isLoading ? null : onTap,
       child: Container(
         width: fullWidth ? double.infinity : null,

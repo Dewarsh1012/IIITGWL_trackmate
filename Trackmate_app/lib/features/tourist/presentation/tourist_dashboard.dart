@@ -458,7 +458,9 @@ class _TouristDashboardState extends ConsumerState<TouristDashboard> with Single
                           icon: Icons.my_location,
                           color: NB.yellow,
                           onTap: () {
-                             // Will center map (map controller needed for true centering)
+                             if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Locating...')));
+                             }
                           },
                         ),
                       ),
@@ -649,6 +651,7 @@ class _TouristDashboardState extends ConsumerState<TouristDashboard> with Single
 
   Widget _buildSosButton(LocationState locState) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onLongPress: () {
         _sosPressCount = 0;
         _triggerSos(locState);

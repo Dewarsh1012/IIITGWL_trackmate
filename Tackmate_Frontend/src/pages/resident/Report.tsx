@@ -4,32 +4,7 @@ import api from '../../lib/api';
 import { useLocation } from '../../hooks/use-location';
 import { Loader2, Shield, AlertTriangle, Crosshair, MapPin, Search, ServerCrash, Flame, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const C = {
-  bg: '#F0EDFA',
-  surface: '#FFFFFF',
-  surfaceAlt: '#F7F5FF',
-  dark: '#1B1D2A',
-  text: '#1B1D2A',
-  textSecondary: '#4A4D68',
-  textMuted: '#8B8FA8',
-  primary: '#6C63FF',
-  primaryLight: '#8B85FF',
-  accent: '#FF6B8A',
-  safe: '#34D399',
-  moderate: '#FBBF24',
-  high: '#F87171',
-  restricted: '#A78BFA',
-  critical: '#EF4444',
-  border: 'rgba(27,29,42,0.08)',
-};
-
-const clayCard: React.CSSProperties = {
-  background: C.surface,
-  borderRadius: 24,
-  border: `1px solid ${C.border}`,
-  boxShadow: '8px 8px 16px rgba(27,29,42,0.08), -4px -4px 12px rgba(255,255,255,0.9)',
-};
+import { CLAY_COLORS as C, CLAY_CARD_STYLE as clayCard } from '../../theme/clayTheme';
 
 const clayInputStyle: React.CSSProperties = { width: '100%', padding: '14px 16px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '0.9rem', fontWeight: 600, outline: 'none', color: C.text, boxShadow: 'inset 3px 3px 6px rgba(27,29,42,0.05), inset -2px -2px 4px rgba(255,255,255,0.8)' };
 const clayLabelStyle = { display: 'block', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 8, color: C.textMuted };

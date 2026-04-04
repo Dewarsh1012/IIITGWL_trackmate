@@ -14,40 +14,11 @@ import {
 } from 'lucide-react';
 import AlertPanel from '../../components/alerts/AlertPanel';
 import { enqueueOfflineSos, flushOfflineSosQueue, getOfflineSosQueueCount } from '../../lib/offlineSos';
-
-/* ── Clay color palette (correct) ── */
-const C = {
-    bg: '#F0EDFA',
-    surface: '#FFFFFF',
-    surfaceAlt: '#F7F5FF',
-    dark: '#1B1D2A',
-    text: '#1B1D2A',
-    textSecondary: '#4A4D68',
-    textMuted: '#8B8FA8',
-    primary: '#6C63FF',
-    primaryLight: '#8B85FF',
-    accent: '#FF6B8A',
-    safe: '#34D399',
-    moderate: '#FBBF24',
-    high: '#F87171',
-    restricted: '#A78BFA',
-    critical: '#EF4444',
-    border: 'rgba(27,29,42,0.08)',
-};
-
-const clayCard: React.CSSProperties = {
-    background: C.surface,
-    borderRadius: 20,
-    border: `1px solid ${C.border}`,
-    boxShadow: '6px 6px 14px rgba(27,29,42,0.10), -3px -3px 10px rgba(255,255,255,0.9)',
-};
-
-const clayCardInner: React.CSSProperties = {
-    background: C.surfaceAlt,
-    borderRadius: 14,
-    border: `1px solid ${C.border}`,
-    boxShadow: 'inset 3px 3px 6px rgba(27,29,42,0.06), inset -2px -2px 4px rgba(255,255,255,0.8)',
-};
+import {
+    CLAY_COLORS as C,
+    CLAY_CARD_STYLE as clayCard,
+    CLAY_CARD_INNER_STYLE as clayCardInner,
+} from '../../theme/clayTheme';
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371000; const toRad = (d: number) => (d * Math.PI) / 180;

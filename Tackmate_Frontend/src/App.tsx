@@ -32,85 +32,85 @@ import DailyCheckins from './pages/authority/DailyCheckins';
 export default function App() {
     return (
         <LanguageProvider>
-        <BrowserRouter>
-            <AuthProvider>
-                <SocketProvider>
-                    <Routes>
-                        {/* Public Routes */}
-                        <Route path="/" element={<LandingPage />} />
-                        <Route path="/auth" element={<AuthPage />} />
-                        <Route path="/verify/:blockchainId" element={<VerifyPage />} />
+            <BrowserRouter>
+                <AuthProvider>
+                    <SocketProvider>
+                        <Routes>
+                            {/* Public Routes */}
+                            <Route path="/" element={<LandingPage />} />
+                            <Route path="/auth" element={<AuthPage />} />
+                            <Route path="/verify/:blockchainId" element={<VerifyPage />} />
 
-                        {/* Tourist Routes */}
-                        <Route path="/tourist/*" element={
-                            <AuthGuard role="tourist">
-                                <div className="min-h-screen bg-[#f8f7f5] dark:bg-[#1f1d17] pb-[80px] md:pb-0">
-                                    <Routes>
-                                        <Route path="dashboard" element={<TouristDashboard />} />
-                                        <Route path="itinerary" element={<TouristItinerary />} />
-                                        <Route path="plan" element={<TouristItinerary />} />
-                                        <Route path="profile" element={<TouristProfile />} />
-                                        <Route path="*" element={<Navigate to="dashboard" replace />} />
-                                    </Routes>
-                                </div>
-                            </AuthGuard>
-                        } />
+                            {/* Tourist Routes */}
+                            <Route path="/tourist/*" element={
+                                <AuthGuard role="tourist">
+                                    <div className="min-h-screen pb-[80px] md:pb-0" style={{ background: 'var(--clay-bg)' }}>
+                                        <Routes>
+                                            <Route path="dashboard" element={<TouristDashboard />} />
+                                            <Route path="itinerary" element={<TouristItinerary />} />
+                                            <Route path="plan" element={<TouristItinerary />} />
+                                            <Route path="profile" element={<TouristProfile />} />
+                                            <Route path="*" element={<Navigate to="dashboard" replace />} />
+                                        </Routes>
+                                    </div>
+                                </AuthGuard>
+                            } />
 
-                        {/* Resident Routes */}
-                        <Route path="/resident/*" element={
-                            <AuthGuard role="resident">
-                                <div className="min-h-screen bg-[#f8f7f5] dark:bg-[#1a1c1a] pb-[80px] md:pb-0">
-                                    <Routes>
-                                        <Route path="dashboard" element={<ResidentDashboard />} />
-                                        <Route path="feed" element={<ResidentFeed />} />
-                                        <Route path="incidents" element={<ResidentFeed />} />
-                                        <Route path="report" element={<ResidentReport />} />
-                                        <Route path="*" element={<Navigate to="dashboard" replace />} />
-                                    </Routes>
-                                </div>
-                            </AuthGuard>
-                        } />
+                            {/* Resident Routes */}
+                            <Route path="/resident/*" element={
+                                <AuthGuard role="resident">
+                                    <div className="min-h-screen pb-[80px] md:pb-0" style={{ background: 'var(--clay-bg)' }}>
+                                        <Routes>
+                                            <Route path="dashboard" element={<ResidentDashboard />} />
+                                            <Route path="feed" element={<ResidentFeed />} />
+                                            <Route path="incidents" element={<ResidentFeed />} />
+                                            <Route path="report" element={<ResidentReport />} />
+                                            <Route path="*" element={<Navigate to="dashboard" replace />} />
+                                        </Routes>
+                                    </div>
+                                </AuthGuard>
+                            } />
 
-                        {/* Business Routes */}
-                        <Route path="/business/*" element={
-                            <AuthGuard role="business">
-                                <div className="min-h-screen bg-[#f8f7f5] dark:bg-[#221c10] pb-[80px] md:pb-0">
-                                    <Routes>
-                                        <Route path="dashboard" element={<BusinessDashboard />} />
-                                        <Route path="profile" element={<BusinessProfile />} />
-                                        <Route path="*" element={<Navigate to="dashboard" replace />} />
-                                    </Routes>
-                                </div>
-                            </AuthGuard>
-                        } />
+                            {/* Business Routes */}
+                            <Route path="/business/*" element={
+                                <AuthGuard role="business">
+                                    <div className="min-h-screen pb-[80px] md:pb-0" style={{ background: 'var(--clay-bg)' }}>
+                                        <Routes>
+                                            <Route path="dashboard" element={<BusinessDashboard />} />
+                                            <Route path="profile" element={<BusinessProfile />} />
+                                            <Route path="*" element={<Navigate to="dashboard" replace />} />
+                                        </Routes>
+                                    </div>
+                                </AuthGuard>
+                            } />
 
-                        {/* Authority Routes */}
-                        <Route path="/authority/*" element={
-                            <AuthGuard role="authority">
-                                <div className="min-h-screen">
-                                    <Routes>
-                                        <Route path="dashboard" element={<AuthorityDashboard />} />
-                                        <Route path="incidents" element={<AuthorityIncidents />} />
-                                        <Route path="tourists" element={<AuthorityRosters />} />
-                                        <Route path="residents" element={<AuthorityRosters />} />
-                                        <Route path="businesses" element={<AuthorityRosters />} />
-                                        <Route path="zones" element={<AuthorityZones />} />
-                                        <Route path="checkins" element={<DailyCheckins />} />
-                                        <Route path="efir" element={<AuthorityEfir />} />
-                                        <Route path="analytics" element={<AuthorityAnalytics />} />
-                                        <Route path="alerts" element={<AlertComposer />} />
-                                        <Route path="user/:userId" element={<UserDetail />} />
-                                        <Route path="*" element={<Navigate to="dashboard" replace />} />
-                                    </Routes>
-                                </div>
-                            </AuthGuard>
-                        } />
+                            {/* Authority Routes */}
+                            <Route path="/authority/*" element={
+                                <AuthGuard role="authority">
+                                    <div className="min-h-screen" style={{ background: 'var(--clay-bg)' }}>
+                                        <Routes>
+                                            <Route path="dashboard" element={<AuthorityDashboard />} />
+                                            <Route path="incidents" element={<AuthorityIncidents />} />
+                                            <Route path="tourists" element={<AuthorityRosters />} />
+                                            <Route path="residents" element={<AuthorityRosters />} />
+                                            <Route path="businesses" element={<AuthorityRosters />} />
+                                            <Route path="zones" element={<AuthorityZones />} />
+                                            <Route path="checkins" element={<DailyCheckins />} />
+                                            <Route path="efir" element={<AuthorityEfir />} />
+                                            <Route path="analytics" element={<AuthorityAnalytics />} />
+                                            <Route path="alerts" element={<AlertComposer />} />
+                                            <Route path="user/:userId" element={<UserDetail />} />
+                                            <Route path="*" element={<Navigate to="dashboard" replace />} />
+                                        </Routes>
+                                    </div>
+                                </AuthGuard>
+                            } />
 
-                        <Route path="*" element={<NotFound />} />
-                    </Routes>
-                </SocketProvider>
-            </AuthProvider>
-        </BrowserRouter>
+                            <Route path="*" element={<NotFound />} />
+                        </Routes>
+                    </SocketProvider>
+                </AuthProvider>
+            </BrowserRouter>
         </LanguageProvider>
     );
 }

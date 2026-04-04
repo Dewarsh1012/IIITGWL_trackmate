@@ -2,30 +2,7 @@ import { useState, useEffect } from 'react';
 import { Calendar, Download, RefreshCw, Loader2, AlertCircle, Activity, Users } from 'lucide-react';
 import api from '../../lib/api';
 import AuthoritySidebar from '../../components/layout/AuthoritySidebar';
-
-const C = {
-    bg: '#F0EDFA',
-    surface: '#FFFFFF',
-    surfaceAlt: '#F7F5FF',
-    text: '#1B1D2A',
-    textSecondary: '#4A4D68',
-    textMuted: '#8B8FA8',
-    primary: '#6C63FF',
-    primaryLight: '#8B85FF',
-    safe: '#34D399',
-    moderate: '#FBBF24',
-    high: '#F87171',
-    restricted: '#A78BFA',
-    critical: '#EF4444',
-    border: 'rgba(27,29,42,0.08)',
-};
-
-const clayCard: React.CSSProperties = {
-    background: C.surface,
-    borderRadius: 20,
-    border: `1px solid ${C.border}`,
-    boxShadow: '6px 6px 14px rgba(27,29,42,0.10), -3px -3px 10px rgba(255,255,255,0.9)',
-};
+import { CLAY_COLORS as C, CLAY_CARD_STYLE as clayCard } from '../../theme/clayTheme';
 
 export default function AuthorityAnalytics() {
     const [loading, setLoading] = useState(true);

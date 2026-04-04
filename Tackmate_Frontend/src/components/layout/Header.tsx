@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Shield, LogOut, Globe, ChevronDown } from 'lucide-react';
 import { useLanguage, LANGUAGES } from '../../i18n';
+import { CLAY_COLORS as C } from '../../theme/clayTheme';
 
 export default function Header() {
     const { user, logout } = useAuth();
@@ -10,15 +11,6 @@ export default function Header() {
     const { t, language, setLanguage, currentLang } = useLanguage();
     const [langOpen, setLangOpen] = useState(false);
     const langRef = useRef<HTMLDivElement>(null);
-
-    const C = {
-        surface: '#FFFFFF',
-        surfaceAlt: '#F7F5FF',
-        text: '#1B1D2A',
-        textMuted: '#8B8FA8',
-        primary: '#6C63FF',
-        border: 'rgba(27,29,42,0.08)',
-    };
 
     const handleLogout = () => {
         logout();

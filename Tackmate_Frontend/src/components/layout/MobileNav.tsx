@@ -2,20 +2,12 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../i18n';
 import { Map, AlertTriangle, User, Navigation, Bell, BarChart3 } from 'lucide-react';
+import { CLAY_COLORS as C } from '../../theme/clayTheme';
 
 export default function MobileNav() {
     const { user } = useAuth();
     const { t } = useLanguage();
     if (!user || user.role === 'authority' || user.role === 'admin') return null;
-
-    const C = {
-        surface: '#FFFFFF',
-        surfaceAlt: '#F7F5FF',
-        text: '#1B1D2A',
-        textMuted: '#8B8FA8',
-        primary: '#6C63FF',
-        border: 'rgba(27,29,42,0.08)',
-    };
 
     const links = {
         tourist: [

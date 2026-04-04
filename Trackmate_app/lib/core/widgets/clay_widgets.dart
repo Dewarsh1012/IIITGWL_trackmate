@@ -153,6 +153,7 @@ class ClayButton extends StatelessWidget {
     }
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: isDisabled ? null : onTap,
       child: Container(
         width: fullWidth ? double.infinity : null,

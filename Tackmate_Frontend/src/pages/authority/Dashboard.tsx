@@ -8,34 +8,7 @@ import { AlertTriangle, RefreshCw, Loader2, TrendingUp, Search, Users, Zap, Shie
 import AuthorityMap from '../../components/maps/AuthorityMap';
 import AuthoritySidebar from '../../components/layout/AuthoritySidebar';
 import type { ZoneData } from '../../components/maps/TouristMap';
-
-/* ── Clay color palette ── */
-const C = {
-    bg: '#F0EDFA',
-    surface: '#FFFFFF',
-    surfaceAlt: '#F7F5FF',
-    dark: '#1B1D2A',
-    darkAlt: '#252840',
-    text: '#1B1D2A',
-    textSecondary: '#4A4D68',
-    textMuted: '#8B8FA8',
-    primary: '#6C63FF',
-    primaryLight: '#8B85FF',
-    accent: '#FF6B8A',
-    safe: '#34D399',
-    moderate: '#FBBF24',
-    high: '#F87171',
-    restricted: '#A78BFA',
-    critical: '#EF4444',
-    border: 'rgba(27,29,42,0.08)',
-};
-
-const clayCard: React.CSSProperties = {
-    background: C.surface,
-    borderRadius: 20,
-    border: `1px solid ${C.border}`,
-    boxShadow: '6px 6px 14px rgba(27,29,42,0.10), -3px -3px 10px rgba(255,255,255,0.9)',
-};
+import { CLAY_COLORS as C, CLAY_CARD_STYLE as clayCard } from '../../theme/clayTheme';
 
 const getSeverityStyle = (sev: string): React.CSSProperties => {
     switch (sev?.toLowerCase()) {
@@ -82,7 +55,7 @@ export default function AuthorityDashboard() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredUser, setFilteredUser] = useState<string | null>(null);
     const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-    const [drawColor, setDrawColor] = useState(C.high);
+    const [drawColor, setDrawColor] = useState<string>(C.high);
     const [emergencyAlerts, setEmergencyAlerts] = useState<any[]>([]);
     const [checkins, setCheckins] = useState<any[]>([]);
     const [riskPulse, setRiskPulse] = useState<any>(null);
@@ -350,6 +323,7 @@ export default function AuthorityDashboard() {
                     </div>
                 </div>
 
+
                 {/* Emergency Alerts Navbar Banner */}
                 {emergencyAlerts.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -440,6 +414,7 @@ export default function AuthorityDashboard() {
                     </div>
                 )}
 
+
                 {/* Stat Cards */}
                 <div className="grid-4 responsive-grid" style={{ gap: 16, padding: '20px 28px 0' }}>
                     {statCards.map((s, i) => (
@@ -460,6 +435,118 @@ export default function AuthorityDashboard() {
                             {!s.pulse && <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, color: C.safe, fontSize: '0.65rem', fontWeight: 700 }}><TrendingUp size={11} /> Live tracking active</div>}
                         </div>
                     ))}
+                </div>
+                {/* Live Monitoring Panel */}
+                <div className="responsive-container" style={{ padding: '16px 28px 0' }}>
+                    <div style={{ ...clayCard, padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                        <div>
+                            <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.textMuted }}>Live Monitoring</p>
+                            <h3 style={{ margin: '4px 0 0', fontWeight: 800, color: C.text, fontSize: '1rem' }}>Authority Command Live Map</h3>
+                            <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: C.textMuted }}>Tracking {Object.keys(userLocations).length} live devices across zones.</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button
+                                onClick={() => {
+                                    setFilteredUser(null);
+                                    setFocusLocation(null);
+                                }}
+                                style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '8px 14px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', color: C.text }}
+                            >
+                                Reset View
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const first = Object.values(userLocations)[0];
+                                    if (first) setFocusLocation({ lat: first.lat, lng: first.lng });
+                                }}
+                                style={{ background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', border: 'none', borderRadius: 12, padding: '8px 14px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', color: '#FFFFFF', boxShadow: '0 6px 12px rgba(108,99,255,0.25)' }}
+                            >
+                                Focus Live
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Map */}
+                <div className="responsive-container" style={{ padding: '20px 28px 0', flex: 1, position: 'relative', minHeight: 420 }}>
+                    <div style={{ ...clayCard, overflow: 'hidden', height: 420, position: 'relative', padding: 0 }}>
+                        <AuthorityMap
+                            zones={zones}
+                            incidents={incidents}
+                            userLocations={filteredLocations}
+                            focusLocation={focusLocation}
+                            onZoneCreated={handleZoneCreated}
+                            onZoneDeleted={handleZoneDeleted}
+                            drawColor={drawColor}
+                        />
+                        {/* Search overlay & controls */}
+                        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 400, width: 240, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <div style={{ position: 'relative' }}>
+                                <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.textMuted }} />
+                                <input
+                                    value={searchQuery}
+                                    onChange={e => {
+                                        setSearchQuery(e.target.value);
+                                        const q = e.target.value.toLowerCase();
+                                        const zone = zones.find(z => z.name.toLowerCase().includes(q));
+                                        if (zone) setFocusLocation({ lat: zone.center_lat, lng: zone.center_lng });
+                                    }}
+                                    placeholder="Search zones..."
+                                    style={{ width: '100%', padding: '10px 14px 10px 34px', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: '0 4px 12px rgba(27,29,42,0.08)', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600, outline: 'none', color: C.text }}
+                                />
+                            </div>
+
+                            {/* Color Picker for Geofencing */}
+                            <div style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: '0 4px 12px rgba(27,29,42,0.08)', padding: '10px 14px' }}>
+                                <p style={{ margin: '0 0 8px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: C.textMuted }}>Draw Zone</p>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    {[
+                                        { color: C.safe, label: 'Safe' },
+                                        { color: C.moderate, label: 'Moderate' },
+                                        { color: C.high, label: 'High' },
+                                        { color: C.restricted, label: 'Restricted' }
+                                    ].map(c => (
+                                        <button
+                                            key={c.color}
+                                            onClick={() => setDrawColor(c.color)}
+                                            title={c.label}
+                                            style={{
+                                                width: 28, height: 28, borderRadius: '50%', background: c.color, cursor: 'pointer',
+                                                border: drawColor === c.color ? '3px solid #FFFFFF' : '2px solid transparent',
+                                                boxShadow: drawColor === c.color ? `0 0 0 2px ${c.color}, 0 4px 8px rgba(0,0,0,0.15)` : '0 2px 6px rgba(0,0,0,0.1)',
+                                                transition: 'all 0.15s'
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {filteredUser && (
+                                <button onClick={() => { setFilteredUser(null); setFocusLocation(null); }} style={{ background: 'linear-gradient(135deg, #F87171, #EF4444)', color: '#FFFFFF', border: 'none', borderRadius: 12, padding: '8px 14px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer', boxShadow: '0 4px 12px rgba(248,113,113,0.3)' }}>
+                                    Clear User Filter ✕
+                                </button>
+                            )}
+                        </div>
+                        {/* Legend */}
+                        <div style={{ position: 'absolute', bottom: 12, left: 12, zIndex: 400, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: '0 4px 12px rgba(27,29,42,0.08)', padding: '10px 16px' }}>
+                            <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, color: C.textMuted }}>Map Legend</div>
+                            {[{ color: C.safe, label: 'Safe Zone' }, { color: C.moderate, label: 'Moderate Zone' }, { color: C.high, label: 'High Risk' }, { color: C.restricted, label: 'Restricted Zone' }].map((l, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', fontWeight: 600, marginBottom: 4, color: C.text }}>
+                                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: l.color, boxShadow: `0 0 4px ${l.color}60` }} />
+                                    {l.label}
+                                </div>
+                            ))}
+                            {/* User pin legend */}
+                            <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 6, paddingTop: 6 }}>
+                                {[{ color: C.primary, label: 'Tourist' }, { color: C.safe, label: 'Resident' }, { color: C.moderate, label: 'Business' }].map((l, i) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.72rem', fontWeight: 600, marginBottom: 3, color: C.text }}>
+                                        <MapPin size={10} color={l.color} />
+                                        {l.label}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, padding: '16px 28px 0' }}>
@@ -596,118 +683,8 @@ export default function AuthorityDashboard() {
                     </div>
                 </div>
 
-                {/* Live Monitoring Panel */}
-                <div className="responsive-container" style={{ padding: '16px 28px 0' }}>
-                    <div style={{ ...clayCard, padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-                        <div>
-                            <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.textMuted }}>Live Monitoring</p>
-                            <h3 style={{ margin: '4px 0 0', fontWeight: 800, color: C.text, fontSize: '1rem' }}>Authority Command Live Map</h3>
-                            <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: C.textMuted }}>Tracking {Object.keys(userLocations).length} live devices across zones.</p>
-                        </div>
-                        <div style={{ display: 'flex', gap: 10 }}>
-                            <button
-                                onClick={() => {
-                                    setFilteredUser(null);
-                                    setFocusLocation(null);
-                                }}
-                                style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '8px 14px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', color: C.text }}
-                            >
-                                Reset View
-                            </button>
-                            <button
-                                onClick={() => {
-                                    const first = Object.values(userLocations)[0];
-                                    if (first) setFocusLocation({ lat: first.lat, lng: first.lng });
-                                }}
-                                style={{ background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', border: 'none', borderRadius: 12, padding: '8px 14px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', color: '#FFFFFF', boxShadow: '0 6px 12px rgba(108,99,255,0.25)' }}
-                            >
-                                Focus Live
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Map */}
-                <div className="responsive-container" style={{ padding: '20px 28px 0', flex: 1, position: 'relative', minHeight: 420 }}>
-                    <div style={{ ...clayCard, overflow: 'hidden', height: 420, position: 'relative', padding: 0 }}>
-                        <AuthorityMap
-                            zones={zones}
-                            incidents={incidents}
-                            userLocations={filteredLocations}
-                            focusLocation={focusLocation}
-                            onZoneCreated={handleZoneCreated}
-                            onZoneDeleted={handleZoneDeleted}
-                            drawColor={drawColor}
-                        />
-                        {/* Search overlay & controls */}
-                        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 400, width: 240, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <div style={{ position: 'relative' }}>
-                                <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.textMuted }} />
-                                <input
-                                    value={searchQuery}
-                                    onChange={e => {
-                                        setSearchQuery(e.target.value);
-                                        const q = e.target.value.toLowerCase();
-                                        const zone = zones.find(z => z.name.toLowerCase().includes(q));
-                                        if (zone) setFocusLocation({ lat: zone.center_lat, lng: zone.center_lng });
-                                    }}
-                                    placeholder="Search zones..."
-                                    style={{ width: '100%', padding: '10px 14px 10px 34px', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: '0 4px 12px rgba(27,29,42,0.08)', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600, outline: 'none', color: C.text }}
-                                />
-                            </div>
 
-                            {/* Color Picker for Geofencing */}
-                            <div style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: '0 4px 12px rgba(27,29,42,0.08)', padding: '10px 14px' }}>
-                                <p style={{ margin: '0 0 8px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: C.textMuted }}>Draw Zone</p>
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                    {[
-                                        { color: C.safe, label: 'Safe' },
-                                        { color: C.moderate, label: 'Moderate' },
-                                        { color: C.high, label: 'High' },
-                                        { color: C.restricted, label: 'Restricted' }
-                                    ].map(c => (
-                                        <button
-                                            key={c.color}
-                                            onClick={() => setDrawColor(c.color)}
-                                            title={c.label}
-                                            style={{
-                                                width: 28, height: 28, borderRadius: '50%', background: c.color, cursor: 'pointer',
-                                                border: drawColor === c.color ? '3px solid #FFFFFF' : '2px solid transparent',
-                                                boxShadow: drawColor === c.color ? `0 0 0 2px ${c.color}, 0 4px 8px rgba(0,0,0,0.15)` : '0 2px 6px rgba(0,0,0,0.1)',
-                                                transition: 'all 0.15s'
-                                            }}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-
-                            {filteredUser && (
-                                <button onClick={() => { setFilteredUser(null); setFocusLocation(null); }} style={{ background: 'linear-gradient(135deg, #F87171, #EF4444)', color: '#FFFFFF', border: 'none', borderRadius: 12, padding: '8px 14px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer', boxShadow: '0 4px 12px rgba(248,113,113,0.3)' }}>
-                                    Clear User Filter ✕
-                                </button>
-                            )}
-                        </div>
-                        {/* Legend */}
-                        <div style={{ position: 'absolute', bottom: 12, left: 12, zIndex: 400, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: '0 4px 12px rgba(27,29,42,0.08)', padding: '10px 16px' }}>
-                            <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, color: C.textMuted }}>Map Legend</div>
-                            {[{ color: C.safe, label: 'Safe Zone' }, { color: C.moderate, label: 'Moderate Zone' }, { color: C.high, label: 'High Risk' }, { color: C.restricted, label: 'Restricted Zone' }].map((l, i) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', fontWeight: 600, marginBottom: 4, color: C.text }}>
-                                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: l.color, boxShadow: `0 0 4px ${l.color}60` }} />
-                                    {l.label}
-                                </div>
-                            ))}
-                            {/* User pin legend */}
-                            <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 6, paddingTop: 6 }}>
-                                {[{ color: C.primary, label: 'Tourist' }, { color: C.safe, label: 'Resident' }, { color: C.moderate, label: 'Business' }].map((l, i) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.72rem', fontWeight: 600, marginBottom: 3, color: C.text }}>
-                                        <MapPin size={10} color={l.color} />
-                                        {l.label}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 {/* Daily Check-Ins Section */}
                 <div style={{ padding: '20px 28px 0' }}>
