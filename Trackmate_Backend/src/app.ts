@@ -50,8 +50,8 @@ allowedOrigins.push('http://10.0.2.2:5000'); // Android emulator → host
 app.use(
     cors({
         origin: (origin, callback) => {
-            // Allow requests with no origin (mobile apps, curl, Postman)
-            if (!origin || allowedOrigins.includes(origin)) {
+            // Allow requests with no origin (mobile apps, curl, Postman), or any localhost origin
+            if (!origin || origin.startsWith('http://localhost:') || allowedOrigins.includes(origin)) {
                 callback(null, true);
             } else {
                 callback(new Error(`CORS policy: origin ${origin} is not allowed`));
