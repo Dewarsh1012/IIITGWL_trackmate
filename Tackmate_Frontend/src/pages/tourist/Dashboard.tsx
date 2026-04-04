@@ -174,7 +174,7 @@ export default function TouristDashboard() {
             const res = await api.post('/locations', { latitude: userLat, longitude: userLng, source: 'gps' });
             setCheckinDone(true);
             const zone = res.data.data?.zone;
-            await api.post('/incidents', { title: 'Tourist Checked In', description: `User checked in at ${userLat.toFixed(4)}, ${userLng.toFixed(4)}` + (zone ? ` (${zone.name})` : ''), incident_type: 'checkin', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(() => {});
+            await api.post('/incidents', { title: 'Tourist Checked In', description: `User checked in at ${userLat.toFixed(4)}, ${userLng.toFixed(4)}` + (zone ? ` (${zone.name})` : ''), incident_type: 'checkin', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(() => { });
             setToast({ message: zone ? `Checked in at ${zone.name}` : 'Daily check-in recorded ✓', type: 'success' });
             setTimeout(() => setCheckinDone(false), 5000);
         } catch { setToast({ message: 'Check-in failed. Try again.', type: 'error' }); } finally { setCheckinLoading(false); }
@@ -186,15 +186,15 @@ export default function TouristDashboard() {
         try {
             const res = await api.post('/locations', { latitude: userLat, longitude: userLng, source: 'gps' });
             const zone = res.data.data?.zone;
-            if (zone) { 
-                setVerifyResult(`✓ You are in "${zone.name}" — ${zone.risk_level} zone`); 
-                setHighlightZoneId(zone._id); 
-                setTimeout(() => setHighlightZoneId(null), 8000); 
-                api.post('/incidents', { title: 'Stay Verified', description: `User verified stay in ${zone.name}`, incident_type: 'checkin', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(()=>{});
+            if (zone) {
+                setVerifyResult(`✓ You are in "${zone.name}" — ${zone.risk_level} zone`);
+                setHighlightZoneId(zone._id);
+                setTimeout(() => setHighlightZoneId(null), 8000);
+                api.post('/incidents', { title: 'Stay Verified', description: `User verified stay in ${zone.name}`, incident_type: 'checkin', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(() => { });
             }
-            else { 
-                setVerifyResult('ℹ You are not inside any registered zone'); 
-                api.post('/incidents', { title: 'Stay Verification Failed', description: `User not in any registered zone`, incident_type: 'checkin', severity: 'medium', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(()=>{});
+            else {
+                setVerifyResult('ℹ You are not inside any registered zone');
+                api.post('/incidents', { title: 'Stay Verification Failed', description: `User not in any registered zone`, incident_type: 'checkin', severity: 'medium', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(() => { });
             }
             setTimeout(() => setVerifyResult(null), 6000);
         } catch { setToast({ message: 'Verification failed', type: 'error' }); } finally { setVerifyLoading(false); }
@@ -207,7 +207,7 @@ export default function TouristDashboard() {
         let nearest = safeZones[0]; let minDist = haversine(userLat, userLng, nearest.center_lat, nearest.center_lng);
         for (const z of safeZones) { const d = haversine(userLat, userLng, z.center_lat, z.center_lng); if (d < minDist) { nearest = z; minDist = d; } }
         setHighlightZoneId(nearest._id);
-        api.post('/incidents', { title: 'Safe House Requested', description: `User navigating to ${nearest.name}`, incident_type: 'safe_house_request', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(()=>{});
+        api.post('/incidents', { title: 'Safe House Requested', description: `User navigating to ${nearest.name}`, incident_type: 'safe_house_request', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(() => { });
         setToast({ message: `Nearest safe zone: ${nearest.name} (${Math.round(minDist)}m)`, type: 'success' });
         setTimeout(() => setHighlightZoneId(null), 10000);
     };
@@ -235,7 +235,19 @@ export default function TouristDashboard() {
         setSosLoading(true);
         try {
             const pos = await new Promise<GeolocationPosition>((res, rej) => navigator.geolocation.getCurrentPosition(res, rej)).catch(() => null);
-            await api.post('/incidents', { title: 'EMERGENCY SOS TRIGGERED', incident_type: 'sos_emergency', severity: 'critical', source: 'sos_panic', latitude: pos?.coords.latitude || userLat || 27.5855, longitude: pos?.coords.longitude || userLng || 91.8594, is_public: true });
+            await api.post('/incidents', {
+                title: 'EMERGENCY SOS TRIGGERED',
+                incident_type: 'sos_emergency',
+                severity: 'critical',
+                source: 'sos_panic',
+                latitude: pos?.coords.latitude || userLat || 27.5855,
+                longitude: pos?.coords.longitude || userLng || 91.8594,
+                is_public: true,
+                metadata: {
+                    triggered_by_role: 'tourist',
+                    triggered_by_name: user?.full_name || 'Tourist User',
+                },
+            });
             setSosSuccess(true); setTimeout(() => setSosSuccess(false), 5000);
         } catch { setToast({ message: 'SOS transmission failed!', type: 'error' }); } finally { setSosLoading(false); }
     };

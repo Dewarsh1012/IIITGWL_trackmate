@@ -56,10 +56,11 @@ interface AuthorityMapProps {
     userLocations: Record<string, { lat: number; lng: number; role?: string; name?: string; timestamp?: number }>;
     focusLocation?: { lat: number; lng: number } | null;
     onZoneCreated?: (layer: any, color?: string) => void;
+    onZoneDeleted?: (zoneId: string) => void;
     drawColor?: string;
 }
 
-export default function AuthorityMap({ zones, incidents, userLocations, focusLocation, onZoneCreated, drawColor = '#FF0033' }: AuthorityMapProps) {
+export default function AuthorityMap({ zones, incidents, userLocations, focusLocation, onZoneCreated, onZoneDeleted, drawColor = '#FF0033' }: AuthorityMapProps) {
     const safeZones = zones || [];
     const safeIncidents = incidents || [];
     const safeUserLocations = userLocations || {};
@@ -88,6 +89,7 @@ export default function AuthorityMap({ zones, incidents, userLocations, focusLoc
                 {/* Zone overlays */}
                 {safeZones.filter(z => typeof z.center_lat === 'number' && typeof z.center_lng === 'number').map((zone) => {
                     const color = RISK_COLORS[zone.risk_level] || '#6b7280';
+                    const zoneId = zone._id ? String(zone._id) : '';
                     if (zone.geojson) {
                         return (
                             <GeoJSON
@@ -100,16 +102,28 @@ export default function AuthorityMap({ zones, incidents, userLocations, focusLoc
                                     weight: 1.5,
                                     dashArray: '4 4',
                                 }}
-                                onEachFeature={(_, layer) => {
-                                    const labelColor = (zone.risk_level === 'safe' || zone.risk_level === 'moderate') ? '#000' : '#fff';
-                                    layer.bindPopup(
-                                        `<div style="min-width:140px;">
-                      <div style="font-weight:700;font-size:13px;margin-bottom:4px;">${zone.name}</div>
-                      <div style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:${labelColor};background:${color};">${zone.risk_level}</div>
-                    </div>`
-                                    );
-                                }}
-                            />
+                            >
+                                <Popup>
+                                    <div style={{ minWidth: 160 }}>
+                                        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{zone.name}</div>
+                                        <div style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: (zone.risk_level === 'safe' || zone.risk_level === 'moderate') ? '#000' : '#fff', background: color }}>
+                                            {zone.risk_level}
+                                        </div>
+                                        {zoneId && (
+                                            <button
+                                                type="button"
+                                                style={{ marginTop: 10, width: '100%', border: 'none', borderRadius: 8, background: '#ef4444', color: '#fff', padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (onZoneDeleted) onZoneDeleted(zoneId);
+                                                }}
+                                            >
+                                                Delete Zone
+                                            </button>
+                                        )}
+                                    </div>
+                                </Popup>
+                            </GeoJSON>
                         );
                     }
                     return (
@@ -131,6 +145,18 @@ export default function AuthorityMap({ zones, incidents, userLocations, focusLoc
                                     <div style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: (zone.risk_level === 'safe' || zone.risk_level === 'moderate') ? '#000' : '#fff', background: color }}>
                                         {zone.risk_level}
                                     </div>
+                                    {zoneId && (
+                                        <button
+                                            type="button"
+                                            style={{ marginTop: 10, width: '100%', border: 'none', borderRadius: 8, background: '#ef4444', color: '#fff', padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (onZoneDeleted) onZoneDeleted(zoneId);
+                                            }}
+                                        >
+                                            Delete Zone
+                                        </button>
+                                    )}
                                 </div>
                             </Popup>
                         </Circle>

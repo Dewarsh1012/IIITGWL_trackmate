@@ -45,6 +45,29 @@ const getSeverityStyle = (sev: string): React.CSSProperties => {
     }
 };
 
+const clampProbability = (value: number): number => Math.max(0, Math.min(1, value));
+
+const parseSosRisk = (alert: any) => {
+    const metadata = alert?.metadata || {};
+    const realDanger = clampProbability(Number(
+        metadata.sos_risk_real_danger_probability ??
+        metadata.sos_risk_hybrid_score ??
+        metadata.hybrid_score ??
+        0.5
+    ));
+    const falseAlarm = clampProbability(Number(
+        metadata.sos_risk_false_alarm_probability ??
+        (1 - realDanger)
+    ));
+    const confidenceBand = String(metadata.sos_risk_confidence_band || 'medium').toLowerCase();
+
+    return {
+        realDanger,
+        falseAlarm,
+        confidenceBand,
+    };
+};
+
 export default function AuthorityDashboard() {
     const { user } = useAuth();
     const { socket } = useSocket();
@@ -119,9 +142,11 @@ export default function AuthorityDashboard() {
                 fetchDashboardData();
             });
             socket.on('sos:triggered', (incident: any) => {
-                setEmergencyAlerts(prev => [incident, ...prev]);
+                setEmergencyAlerts(prev => {
+                    const deduped = prev.filter((item) => item._id !== incident._id);
+                    return [incident, ...deduped].slice(0, 6);
+                });
                 setIncidents(prev => [incident, ...prev.slice(0, 9)]);
-                fetchDashboardData();
             });
             socket.on('location:update', (data: any) => {
                 const lat = data.latitude || (data.location?.coordinates && data.location.coordinates[1]);
@@ -178,12 +203,28 @@ export default function AuthorityDashboard() {
                 if (geojson) payload.geojson = geojson;
                 const res = await api.post('/zones', payload);
                 if (res.data.success) {
-                    setZones([...zones, res.data.data]);
+                    setZones(prev => [...prev, res.data.data]);
                     setNotice({ type: 'success', message: 'Zone added successfully.' });
                 }
             }
         } catch (err: any) {
             setNotice({ type: 'error', message: `Failed to save zone: ${err.message}` });
+        }
+    };
+
+    const handleZoneDeleted = async (zoneId: string) => {
+        const confirmed = window.confirm('Delete this zone permanently?');
+        if (!confirmed) return;
+
+        try {
+            setNotice(null);
+            const res = await api.delete(`/zones/${zoneId}`);
+            if (res.data.success) {
+                setZones(prev => prev.filter(zone => String(zone._id) !== zoneId));
+                setNotice({ type: 'success', message: 'Zone deleted successfully.' });
+            }
+        } catch {
+            setNotice({ type: 'error', message: 'Failed to delete zone.' });
         }
     };
 
@@ -241,41 +282,84 @@ export default function AuthorityDashboard() {
                 {/* Emergency Alerts Navbar Banner */}
                 {emergencyAlerts.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                        {emergencyAlerts.map(alert => (
-                            <div key={`sos-${alert._id}`} className="responsive-container" style={{
-                                width: '100%',
-                                background: 'linear-gradient(135deg, #EF4444, #DC2626)',
-                                padding: '14px 28px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                animation: 'nb-pulse 1.5s infinite',
-                                borderBottom: '2px solid #B91C1C',
-                                boxShadow: '0 4px 12px rgba(239,68,68,0.3)',
-                                zIndex: 900
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                                    <AlertTriangle size={24} color="#FFFFFF" strokeWidth={2.5} />
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        <h2 style={{ color: '#FFFFFF', fontWeight: 900, margin: 0, fontSize: '1rem', letterSpacing: '0.04em' }}>EMERGENCY: {alert.title}</h2>
-                                        <span style={{ color: '#FFFFFF', fontWeight: 600, fontSize: '0.85rem', paddingLeft: 12, borderLeft: '1px solid rgba(255,255,255,0.3)' }}>
-                                            Reporter: {alert.reporter?.full_name || 'Unknown'} | Zone: {alert.zone?.name || 'Unknown'} | Loc: {alert.latitude?.toFixed(4)}, {alert.longitude?.toFixed(4)}
+                        {emergencyAlerts.map(alert => {
+                            const risk = parseSosRisk(alert);
+                            const role = String(alert.reporter?.role || alert.metadata?.triggered_by_role || 'unknown').toUpperCase();
+                            const confidenceColor = risk.confidenceBand === 'critical'
+                                ? '#FEE2E2'
+                                : risk.confidenceBand === 'high'
+                                    ? '#FECACA'
+                                    : '#FDE68A';
+
+                            return (
+                                <div key={`sos-${alert._id}`} className="responsive-container" style={{
+                                    width: '100%',
+                                    background: 'linear-gradient(135deg, #EF4444, #B91C1C)',
+                                    padding: '16px 28px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: 18,
+                                    animation: 'nb-pulse 1.2s infinite',
+                                    borderBottom: '2px solid #991B1B',
+                                    boxShadow: '0 4px 14px rgba(185,28,28,0.35)',
+                                    zIndex: 900,
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, minWidth: 0, flex: 1 }}>
+                                        <AlertTriangle size={24} color="#FFFFFF" strokeWidth={2.5} style={{ marginTop: 4, flexShrink: 0 }} />
+                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                            <h2 style={{ color: '#FFFFFF', fontWeight: 900, margin: 0, fontSize: '1rem', letterSpacing: '0.04em' }}>
+                                                RED ALERT: {alert.title}
+                                            </h2>
+                                            <p style={{ color: '#FFFFFF', fontWeight: 700, margin: '4px 0 0', fontSize: '0.85rem' }}>
+                                                Person in danger: {alert.reporter?.full_name || 'Unknown User'} ({role})
+                                            </p>
+                                            <p style={{ color: 'rgba(255,255,255,0.86)', margin: '2px 0 0', fontSize: '0.78rem', fontWeight: 600 }}>
+                                                Zone: {alert.zone?.name || 'Unknown'} | Loc: {alert.latitude?.toFixed(4)}, {alert.longitude?.toFixed(4)}
+                                            </p>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10, maxWidth: 520 }}>
+                                                <div style={{ background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 10, padding: '8px 10px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#FFFFFF' }}>Real Danger</span>
+                                                        <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#FFFFFF' }}>{Math.round(risk.realDanger * 100)}%</span>
+                                                    </div>
+                                                    <div style={{ width: '100%', height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.25)', overflow: 'hidden' }}>
+                                                        <div style={{ width: `${Math.round(risk.realDanger * 100)}%`, height: '100%', background: '#FFFFFF' }} />
+                                                    </div>
+                                                </div>
+                                                <div style={{ background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 10, padding: '8px 10px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#FFFFFF' }}>False Alarm</span>
+                                                        <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#FFFFFF' }}>{Math.round(risk.falseAlarm * 100)}%</span>
+                                                    </div>
+                                                    <div style={{ width: '100%', height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.25)', overflow: 'hidden' }}>
+                                                        <div style={{ width: `${Math.round(risk.falseAlarm * 100)}%`, height: '100%', background: '#FCA5A5' }} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
+                                        <span style={{ background: confidenceColor, color: '#7F1D1D', borderRadius: 999, padding: '3px 10px', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                            {risk.confidenceBand} confidence
                                         </span>
+                                        <div style={{ display: 'flex', gap: 12 }}>
+                                            <button onClick={() => setFocusLocation({ lat: alert.latitude, lng: alert.longitude })} style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 10, padding: '8px 16px', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer', color: '#FFFFFF', fontSize: '0.8rem', transition: 'all 0.2s' }}>
+                                                Track Location
+                                            </button>
+                                            <button onClick={() => {
+                                                setEmergencyAlerts(prev => prev.filter(a => a._id !== alert._id));
+                                                handleUpdateIncident(alert._id, 'acknowledged');
+                                            }} style={{ background: '#FFFFFF', border: 'none', borderRadius: 10, padding: '8px 16px', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer', color: C.critical, fontSize: '0.8rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', transition: 'all 0.2s' }}>
+                                                Acknowledge
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: 12 }}>
-                                    <button onClick={() => setFocusLocation({ lat: alert.latitude, lng: alert.longitude })} style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 10, padding: '8px 16px', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer', color: '#FFFFFF', fontSize: '0.8rem', transition: 'all 0.2s' }}>
-                                        Track Location
-                                    </button>
-                                    <button onClick={() => {
-                                        setEmergencyAlerts(prev => prev.filter(a => a._id !== alert._id));
-                                        handleUpdateIncident(alert._id, 'acknowledged');
-                                    }} style={{ background: '#FFFFFF', border: 'none', borderRadius: 10, padding: '8px 16px', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer', color: C.critical, fontSize: '0.8rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', transition: 'all 0.2s' }}>
-                                        Acknowledge
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 
@@ -347,6 +431,7 @@ export default function AuthorityDashboard() {
                             userLocations={filteredLocations}
                             focusLocation={focusLocation}
                             onZoneCreated={handleZoneCreated}
+                            onZoneDeleted={handleZoneDeleted}
                             drawColor={drawColor}
                         />
                         {/* Search overlay & controls */}

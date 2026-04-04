@@ -1,9 +1,11 @@
 import express, { Router, Response } from 'express';
 import { z } from 'zod';
 import { authenticate, requireRole } from '../middleware/auth';
-import { Incident, Zone, Ward } from '../models';
+import { Incident, Zone, Ward, LocationLog } from '../models';
 import { AuthRequest, UserRole, AlertSeverity, AlertSource, AlertStatus } from '../types';
 import { uploadEvidence, toPublicUploadPath } from '../middleware/upload';
+import { calculateSpeed, distanceInMeters, findZoneForPoint } from '../lib/geofence';
+import { combineRuleAndModelScore, scoreAnomalyRisk } from '../lib/anomalyModel';
 
 const router: Router = express.Router();
 
@@ -28,6 +30,14 @@ const updateIncidentSchema = z.object({
     is_public: z.boolean().optional(),
     description: z.string().optional(),
 }).strict();
+
+const SOS_RULE_SCORE = parseClampedNumber(process.env.SOS_RULE_SCORE, 0.96, 0, 1);
+const SOS_MODEL_WEIGHT = parseClampedNumber(
+    process.env.SOS_MODEL_WEIGHT || process.env.ANOMALY_MODEL_WEIGHT,
+    0.35,
+    0,
+    1
+);
 
 // ─── GET incidents ────────────────────────────────────────────────────
 
@@ -103,12 +113,28 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next) =
 router.post('/', authenticate, async (req: AuthRequest, res: Response, next) => {
     try {
         const body = createIncidentSchema.parse(req.body);
+        const reporterId = body.source === AlertSource.SOS_PANIC || req.user!.role !== UserRole.AUTHORITY
+            ? req.user!.userId
+            : undefined;
+
+        let metadata = body.metadata ? { ...body.metadata } : {};
+        if (body.source === AlertSource.SOS_PANIC && reporterId) {
+            const sosRiskMetadata = await buildSosRiskMetadata({
+                reporterId,
+                latitude: body.latitude,
+                longitude: body.longitude,
+            });
+            metadata = {
+                ...metadata,
+                ...sosRiskMetadata,
+                triggered_by_role: req.user!.role,
+            };
+        }
 
         const incident = await Incident.create({
             ...body,
-            reporter: body.source === AlertSource.SOS_PANIC || req.user!.role !== UserRole.AUTHORITY
-                ? req.user!.userId
-                : undefined,
+            metadata,
+            reporter: reporterId,
         });
 
         const populated = await incident.populate([
@@ -132,6 +158,149 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next) => 
         next(err);
     }
 });
+
+async function buildSosRiskMetadata(params: {
+    reporterId: string;
+    latitude?: number;
+    longitude?: number;
+}): Promise<Record<string, any>> {
+    const { reporterId } = params;
+    const now = Date.now();
+
+    const [latestLogs, zones, recentIncidents, recentUserAnomalies] = await Promise.all([
+        LocationLog.find({ user: reporterId })
+            .sort({ recorded_at: -1 })
+            .limit(2)
+            .lean(),
+        Zone.find({ is_active: true }).lean(),
+        Incident.find({
+            created_at: { $gte: new Date(now - 15 * 60 * 1000) },
+            latitude: { $exists: true },
+            longitude: { $exists: true },
+        })
+            .select('latitude longitude severity created_at')
+            .lean(),
+        Incident.countDocuments({
+            reporter: reporterId,
+            source: AlertSource.AI_ANOMALY,
+            created_at: { $gte: new Date(now - 24 * 60 * 60 * 1000) },
+            status: { $in: ['active', 'acknowledged', 'assigned', 'escalated'] },
+        }),
+    ]);
+
+    const latest = latestLogs[0];
+    const previous = latestLogs[1];
+
+    const latitude = toFiniteOrUndefined(params.latitude) ?? toFiniteOrUndefined(latest?.latitude);
+    const longitude = toFiniteOrUndefined(params.longitude) ?? toFiniteOrUndefined(latest?.longitude);
+
+    const inactivityMinutes = latest
+        ? Math.max(0, (now - new Date(latest.recorded_at).getTime()) / 60000)
+        : 60;
+
+    let speedKmh = 0;
+    if (latest && previous) {
+        speedKmh = calculateSpeed(
+            Number(latest.latitude),
+            Number(latest.longitude),
+            new Date(latest.recorded_at),
+            Number(previous.latitude),
+            Number(previous.longitude),
+            new Date(previous.recorded_at)
+        );
+    }
+
+    let isOutsideZone = false;
+    let nearbyIncidents15m = 0;
+    let nearbyCriticalIncidents15m = 0;
+
+    if (latitude != null && longitude != null) {
+        isOutsideZone = !findZoneForPoint(latitude, longitude, zones as any);
+        const nearbyCounts = countNearbyIncidentStats(latitude, longitude, recentIncidents as any[]);
+        nearbyIncidents15m = nearbyCounts.total;
+        nearbyCriticalIncidents15m = nearbyCounts.critical;
+    }
+
+    const metrics = {
+        inactivityMinutes,
+        speedKmh,
+        isOutsideZone,
+        nearbyIncidents15m,
+        nearbyCriticalIncidents15m,
+        userAnomalies24h: recentUserAnomalies,
+    };
+
+    const model = await scoreAnomalyRisk(metrics);
+    const hybridScore = combineRuleAndModelScore(SOS_RULE_SCORE, model.modelScore, SOS_MODEL_WEIGHT);
+    const falseAlarmProbability = 1 - hybridScore;
+
+    return {
+        sos_risk_rule_score: roundTo(SOS_RULE_SCORE, 4),
+        sos_risk_model_score: roundTo(model.modelScore, 4),
+        sos_risk_hybrid_score: roundTo(hybridScore, 4),
+        sos_risk_real_danger_probability: roundTo(hybridScore, 4),
+        sos_risk_false_alarm_probability: roundTo(falseAlarmProbability, 4),
+        sos_risk_confidence_band: getRiskBand(hybridScore),
+        sos_risk_model_version: model.modelVersion,
+        sos_risk_normalized_features: model.normalizedFeatures.map((value) => roundTo(value, 4)),
+        sos_risk_metrics: {
+            inactivityMinutes: roundTo(inactivityMinutes, 2),
+            speedKmh: roundTo(speedKmh, 2),
+            isOutsideZone,
+            nearbyIncidents15m,
+            nearbyCriticalIncidents15m,
+            userAnomalies24h: recentUserAnomalies,
+        },
+    };
+}
+
+function countNearbyIncidentStats(
+    latitude: number,
+    longitude: number,
+    incidents: Array<{ latitude?: number; longitude?: number; severity?: string }>
+): { total: number; critical: number } {
+    let total = 0;
+    let critical = 0;
+
+    for (const incident of incidents) {
+        const lat = toFiniteOrUndefined(incident.latitude);
+        const lng = toFiniteOrUndefined(incident.longitude);
+        if (lat == null || lng == null) continue;
+
+        const distance = distanceInMeters(latitude, longitude, lat, lng);
+        if (distance > 600) continue;
+
+        total += 1;
+        if (incident.severity === 'critical' || incident.severity === 'high') {
+            critical += 1;
+        }
+    }
+
+    return { total, critical };
+}
+
+function parseClampedNumber(raw: string | undefined, fallback: number, min: number, max: number): number {
+    const value = Number(raw);
+    if (!Number.isFinite(value)) return fallback;
+    return Math.max(min, Math.min(max, value));
+}
+
+function toFiniteOrUndefined(value: unknown): number | undefined {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : undefined;
+}
+
+function roundTo(value: number, digits: number): number {
+    const power = 10 ** digits;
+    return Math.round(value * power) / power;
+}
+
+function getRiskBand(score: number): 'critical' | 'high' | 'medium' | 'low' {
+    if (score >= 0.85) return 'critical';
+    if (score >= 0.7) return 'high';
+    if (score >= 0.5) return 'medium';
+    return 'low';
+}
 
 // ─── PATCH update incident (authority) ───────────────────────────────
 

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../lib/api';
-import { Loader2, Shield, TrendingUp, MapPin, Users, Bell, AlertTriangle, Search, Check, Fingerprint, PlusCircle, Info, Globe } from 'lucide-react';
+import { Loader2, Shield, TrendingUp, MapPin, Users, Bell, AlertTriangle, Search, Check, Fingerprint, PlusCircle, Info, Globe, ShieldAlert } from 'lucide-react';
 import AlertPanel from '../../components/alerts/AlertPanel';
 
 const C = {
@@ -22,12 +22,33 @@ export default function BusinessDashboard() {
     const [analytics, setAnalytics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [advisories, setAdvisories] = useState<any[]>([]);
+    const [sosLoading, setSosLoading] = useState(false);
+    const [sosSuccess, setSosSuccess] = useState(false);
+    const [countdown, setCountdown] = useState(0);
+    const sosIntervalRef = useRef<number | null>(null);
 
     useEffect(() => {
         fetchBusinessData();
         const interval = setInterval(fetchBusinessData, 60000);
         return () => clearInterval(interval);
     }, [user]);
+
+    useEffect(() => {
+        if (countdown === 0 && sosIntervalRef.current) {
+            clearInterval(sosIntervalRef.current);
+            sosIntervalRef.current = null;
+            triggerSOS();
+        }
+    }, [countdown]);
+
+    useEffect(() => {
+        return () => {
+            if (sosIntervalRef.current) {
+                clearInterval(sosIntervalRef.current);
+                sosIntervalRef.current = null;
+            }
+        };
+    }, []);
 
     const fetchBusinessData = async () => {
         try {
@@ -57,6 +78,49 @@ export default function BusinessDashboard() {
         } finally { setIsVerifying(false); }
     };
 
+    const handleSOSStart = () => {
+        if (sosIntervalRef.current) clearInterval(sosIntervalRef.current);
+        setCountdown(3);
+        sosIntervalRef.current = window.setInterval(() => {
+            setCountdown((prev) => prev - 1);
+        }, 1000);
+    };
+
+    const handleSOSEnd = () => {
+        if (sosIntervalRef.current) {
+            clearInterval(sosIntervalRef.current);
+            sosIntervalRef.current = null;
+        }
+        setCountdown(0);
+    };
+
+    const triggerSOS = async () => {
+        setSosLoading(true);
+        try {
+            const pos = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject)).catch(() => null);
+            await api.post('/incidents', {
+                title: 'BUSINESS EMERGENCY SOS TRIGGERED',
+                incident_type: 'sos_emergency',
+                severity: 'critical',
+                source: 'sos_panic',
+                latitude: pos?.coords.latitude,
+                longitude: pos?.coords.longitude,
+                is_public: true,
+                metadata: {
+                    triggered_by_role: 'business',
+                    triggered_by_name: user?.full_name || 'Business User',
+                    business_name: (user as any)?.business_name || null,
+                },
+            });
+            setSosSuccess(true);
+            setTimeout(() => setSosSuccess(false), 5000);
+        } catch {
+            alert('SOS transmission failed!');
+        } finally {
+            setSosLoading(false);
+        }
+    };
+
     if (loading && !analytics) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: C.bg, flexDirection: 'column', gap: 12 }}>
             <Loader2 size={32} style={{ animation: 'spin-slow 1s linear infinite', color: C.primary }} />
@@ -70,6 +134,36 @@ export default function BusinessDashboard() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
                 <AlertPanel />
             </div>
+
+            {/* SOS Trigger */}
+            <section style={{ marginBottom: 24 }}>
+                {countdown > 0 ? (
+                    <div style={{ background: 'linear-gradient(135deg, #EF4444, #B91C1C)', padding: '22px', borderRadius: 20, color: '#FFFFFF', textAlign: 'center', boxShadow: '0 10px 30px rgba(185,28,28,0.35)', animation: 'nb-pulse 1s infinite' }}>
+                        <h2 style={{ fontSize: '3rem', margin: 0, fontWeight: 900 }}>{countdown}</h2>
+                        <p style={{ margin: '6px 0 0', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Release to cancel SOS</p>
+                    </div>
+                ) : sosSuccess ? (
+                    <div style={{ background: 'linear-gradient(135deg, #1B1D2A, #252840)', padding: '20px', borderRadius: 20, color: C.safe, textAlign: 'center', boxShadow: '6px 6px 14px rgba(27,29,42,0.10), -3px -3px 10px rgba(255,255,255,0.9)' }}>
+                        <Check size={30} style={{ margin: '0 auto 10px' }} />
+                        <h3 style={{ fontSize: '1.15rem', margin: '0 0 4px', fontWeight: 800 }}>SOS DISPATCHED TO AUTHORITIES</h3>
+                        <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Authority panel received this emergency trigger in real time.</p>
+                    </div>
+                ) : (
+                    <button
+                        onMouseDown={handleSOSStart}
+                        onMouseUp={handleSOSEnd}
+                        onMouseLeave={handleSOSEnd}
+                        onTouchStart={handleSOSStart}
+                        onTouchEnd={handleSOSEnd}
+                        disabled={sosLoading}
+                        style={{ width: '100%', padding: '20px', background: 'linear-gradient(135deg, #F87171, #EF4444)', border: 'none', borderRadius: 20, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, opacity: sosLoading ? 0.7 : 1, boxShadow: '0 8px 24px rgba(239,68,68,0.3)', transition: 'all 0.15s' }}
+                    >
+                        <ShieldAlert size={28} color="#FFFFFF" />
+                        <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Hold for Business Emergency SOS</span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.72)', letterSpacing: '0.05em' }}>Hold for 3 seconds to trigger authority red alarm</span>
+                    </button>
+                )}
+            </section>
 
             {/* Safety + Traffic cards */}
             <section className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
