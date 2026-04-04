@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../lib/api';
 import { useSocket } from '../../context/SocketContext';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../i18n';
 import TouristMap from '../../components/maps/TouristMap';
 import type { ZoneData } from '../../components/maps/TouristMap';
 import { Link } from 'react-router-dom';
@@ -86,6 +87,7 @@ function ClayModal({ open, onClose, title, children }: { open: boolean; onClose:
 export default function TouristDashboard() {
     const { user } = useAuth();
     const { socket } = useSocket();
+    const { t } = useLanguage();
     const [activeTrip, setActiveTrip] = useState<any>(null);
     const [alerts, setAlerts] = useState<any[]>([]);
     const [zones, setZones] = useState<ZoneData[]>([]);
@@ -190,47 +192,47 @@ export default function TouristDashboard() {
     }, []);
 
     const handleCheckin = async () => {
-        if (!userLat || !userLng) { setToast({ message: 'Unable to get your location', type: 'error' }); return; }
+        if (!userLat || !userLng) { setToast({ message: t('unableGetLocation'), type: 'error' }); return; }
         setCheckinLoading(true);
         try {
             const res = await api.post('/locations', { latitude: userLat, longitude: userLng, source: 'gps' });
             setCheckinDone(true);
             const zone = res.data.data?.zone;
             await api.post('/incidents', { title: 'Tourist Checked In', description: `User checked in at ${userLat.toFixed(4)}, ${userLng.toFixed(4)}` + (zone ? ` (${zone.name})` : ''), incident_type: 'checkin', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(() => { });
-            setToast({ message: zone ? `Checked in at ${zone.name}` : 'Daily check-in recorded ✓', type: 'success' });
+            setToast({ message: zone ? `${t('checkedInAt')} ${zone.name}` : t('dailyCheckinRecorded'), type: 'success' });
             setTimeout(() => setCheckinDone(false), 5000);
-        } catch { setToast({ message: 'Check-in failed. Try again.', type: 'error' }); } finally { setCheckinLoading(false); }
+        } catch { setToast({ message: t('checkinFailed'), type: 'error' }); } finally { setCheckinLoading(false); }
     };
 
     const handleVerifyStay = async () => {
-        if (!userLat || !userLng) { setToast({ message: 'Unable to get location', type: 'error' }); return; }
+        if (!userLat || !userLng) { setToast({ message: t('unableGetLocation'), type: 'error' }); return; }
         setVerifyLoading(true);
         try {
             const res = await api.post('/locations', { latitude: userLat, longitude: userLng, source: 'gps' });
             const zone = res.data.data?.zone;
             if (zone) {
-                setVerifyResult(`✓ You are in "${zone.name}" — ${zone.risk_level} zone`);
+                setVerifyResult(`${t('youAreIn')} "${zone.name}" — ${zone.risk_level} ${t('zone')}`);
                 setHighlightZoneId(zone._id);
                 setTimeout(() => setHighlightZoneId(null), 8000);
                 api.post('/incidents', { title: 'Stay Verified', description: `User verified stay in ${zone.name}`, incident_type: 'checkin', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(() => { });
             }
             else {
-                setVerifyResult('ℹ You are not inside any registered zone');
+                setVerifyResult(t('notInAnyZone'));
                 api.post('/incidents', { title: 'Stay Verification Failed', description: `User not in any registered zone`, incident_type: 'checkin', severity: 'medium', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(() => { });
             }
             setTimeout(() => setVerifyResult(null), 6000);
-        } catch { setToast({ message: 'Verification failed', type: 'error' }); } finally { setVerifyLoading(false); }
+        } catch { setToast({ message: t('verificationFailed'), type: 'error' }); } finally { setVerifyLoading(false); }
     };
 
     const handleSafeHouse = () => {
-        if (!userLat || !userLng) { setToast({ message: 'Unable to get location', type: 'error' }); return; }
+        if (!userLat || !userLng) { setToast({ message: t('unableGetLocation'), type: 'error' }); return; }
         const safeZones = zones.filter(z => z.risk_level === 'safe');
-        if (safeZones.length === 0) { setToast({ message: 'No safe zones in area', type: 'info' }); return; }
+        if (safeZones.length === 0) { setToast({ message: t('noSafeZones'), type: 'info' }); return; }
         let nearest = safeZones[0]; let minDist = haversine(userLat, userLng, nearest.center_lat, nearest.center_lng);
         for (const z of safeZones) { const d = haversine(userLat, userLng, z.center_lat, z.center_lng); if (d < minDist) { nearest = z; minDist = d; } }
         setHighlightZoneId(nearest._id);
         api.post('/incidents', { title: 'Safe House Requested', description: `User navigating to ${nearest.name}`, incident_type: 'safe_house_request', severity: 'low', source: 'user_report', latitude: userLat, longitude: userLng, is_public: false }).catch(() => { });
-        setToast({ message: `Nearest safe zone: ${nearest.name} (${Math.round(minDist)}m)`, type: 'success' });
+        setToast({ message: `${t('nearestSafeZone')}: ${nearest.name} (${Math.round(minDist)}m)`, type: 'success' });
         setTimeout(() => setHighlightZoneId(null), 10000);
     };
 
@@ -307,13 +309,13 @@ export default function TouristDashboard() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                     <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg, #34D399, #2DD4BF)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(52,211,153,0.3)' }}><Shield size={20} color="#FFFFFF" /></div>
                     <div>
-                        <h2 style={{ color: '#FFFFFF', fontWeight: 800, fontSize: '0.95rem', margin: 0 }}>System Protected — Monitoring Active</h2>
-                        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', margin: 0, fontWeight: 500 }}>Your location is being monitored by {activeTrip?.destination_region || 'local authorities'}.</p>
+                        <h2 style={{ color: '#FFFFFF', fontWeight: 800, fontSize: '0.95rem', margin: 0 }}>{t('systemProtected')}</h2>
+                        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', margin: 0, fontWeight: 500 }}>{t('locationMonitored')} {activeTrip?.destination_region || t('localAuthorities')}.</p>
                     </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <AlertPanel />
-                    <div style={{ background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', borderRadius: 12, padding: '8px 16px', fontWeight: 700, fontSize: '0.78rem', color: '#FFFFFF', boxShadow: '0 4px 12px rgba(108,99,255,0.3)' }}>Safety Score: {safetyScore}%</div>
+                    <div style={{ background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', borderRadius: 12, padding: '8px 16px', fontWeight: 700, fontSize: '0.78rem', color: '#FFFFFF', boxShadow: '0 4px 12px rgba(108,99,255,0.3)' }}>{t('safetyScore')}: {safetyScore}%</div>
                 </div>
             </div>
 
@@ -321,22 +323,22 @@ export default function TouristDashboard() {
                 {/* Map column */}
                 <div style={{ ...clayCard, overflow: 'hidden', minHeight: 600, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, background: C.surfaceAlt, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '20px 20px 0 0' }}>
-                        <h3 style={{ fontWeight: 800, color: C.text, margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}><MapIcon size={16} color={C.primary} /> Live Safety GIS</h3>
+                        <h3 style={{ fontWeight: 800, color: C.text, margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}><MapIcon size={16} color={C.primary} /> {t('liveSafetyGIS')}</h3>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <button
                                 onClick={() => {
-                                    setToast({ message: 'Fetching location...', type: 'info' });
+                                    setToast({ message: t('fetchingLocation'), type: 'info' });
                                     navigator.geolocation.getCurrentPosition(
-                                        (pos) => { setUserLat(pos.coords.latitude); setUserLng(pos.coords.longitude); setToast({ message: 'Location updated', type: 'success' }); },
-                                        () => setToast({ message: 'Location access denied or unavailable', type: 'error' }),
+                                        (pos) => { setUserLat(pos.coords.latitude); setUserLng(pos.coords.longitude); setToast({ message: t('locationUpdated'), type: 'success' }); },
+                                        () => setToast({ message: t('locationDenied'), type: 'error' }),
                                         { enableHighAccuracy: true }
                                     );
                                 }}
                                 style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.68rem', fontWeight: 700, padding: '5px 12px', background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', color: '#FFFFFF', border: 'none', cursor: 'pointer', borderRadius: 10, boxShadow: '0 2px 8px rgba(108,99,255,0.25)' }}
                             >
-                                <NearMe size={10} /> Locate Me
+                                <NearMe size={10} /> {t('locateMe')}
                             </button>
-                            {[{ label: 'Safe', color: C.safe }, { label: 'Moderate', color: C.moderate }, { label: 'Restricted', color: C.high }].map(l => (
+                            {[{ label: t('safe'), color: C.safe }, { label: t('moderate'), color: C.moderate }, { label: t('restricted'), color: C.high }].map(l => (
                                 <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.65rem', fontWeight: 700, padding: '5px 10px', background: C.surfaceAlt, color: C.text, borderRadius: 10, border: `1px solid ${C.border}` }}>
                                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: l.color }} />{l.label}
                                 </div>
@@ -349,7 +351,7 @@ export default function TouristDashboard() {
                         <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 100, width: 260 }}>
                             <div style={{ position: 'relative' }}>
                                 <MapPin size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.textMuted }} />
-                                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search zones..." style={{ width: '100%', padding: '10px 14px 10px 32px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: '0 4px 12px rgba(27,29,42,0.08)', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '0.82rem', fontWeight: 600, outline: 'none', color: C.text }} />
+                                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={t('searchZones')} style={{ width: '100%', padding: '10px 14px 10px 32px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: '0 4px 12px rgba(27,29,42,0.08)', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '0.82rem', fontWeight: 600, outline: 'none', color: C.text }} />
                             </div>
                             {searchQuery.trim() && filteredZones.length > 0 && (
                                 <div style={{ background: C.surface, borderRadius: '0 0 14px 14px', border: `1px solid ${C.border}`, borderTop: 'none', maxHeight: 180, overflowY: 'auto', boxShadow: '0 4px 12px rgba(27,29,42,0.08)' }}>
@@ -370,28 +372,28 @@ export default function TouristDashboard() {
                     {/* Trip info */}
                     <div style={{ ...clayCard, overflow: 'hidden', padding: 0 }}>
                         <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, background: 'linear-gradient(135deg, rgba(108,99,255,0.08), rgba(139,133,255,0.04))', display: 'flex', alignItems: 'center', gap: 8, borderRadius: '20px 20px 0 0' }}>
-                            <Calendar size={15} color={C.primary} /><h3 style={{ fontWeight: 800, color: C.text, margin: 0, fontSize: '0.88rem' }}>Active Itinerary</h3>
+                            <Calendar size={15} color={C.primary} /><h3 style={{ fontWeight: 800, color: C.text, margin: 0, fontSize: '0.88rem' }}>{t('activeItinerary')}</h3>
                         </div>
                         <div style={{ padding: 18 }}>
                             {activeTrip ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', ...clayCardInner, padding: '12px 14px' }}>
-                                        <div><p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, margin: 0 }}>Destination</p><p style={{ fontWeight: 700, color: C.text, margin: '2px 0 0', fontSize: '0.9rem' }}>{activeTrip.destination_region}</p></div>
-                                        <div style={{ textAlign: 'right' }}><p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, margin: 0 }}>Duration</p><p style={{ fontWeight: 600, color: C.text, margin: '2px 0 0', fontSize: '0.78rem' }}>{new Date(activeTrip.start_date).toLocaleDateString()} – {new Date(activeTrip.end_date).toLocaleDateString()}</p></div>
+                                        <div><p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, margin: 0 }}>{t('destination')}</p><p style={{ fontWeight: 700, color: C.text, margin: '2px 0 0', fontSize: '0.9rem' }}>{activeTrip.destination_region}</p></div>
+                                        <div style={{ textAlign: 'right' }}><p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textMuted, margin: 0 }}>{t('duration')}</p><p style={{ fontWeight: 600, color: C.text, margin: '2px 0 0', fontSize: '0.78rem' }}>{new Date(activeTrip.start_date).toLocaleDateString()} – {new Date(activeTrip.end_date).toLocaleDateString()}</p></div>
                                     </div>
                                     {verifyResult && <div style={{ padding: '10px 14px', background: 'rgba(108,99,255,0.06)', borderRadius: 12, border: `1px solid rgba(108,99,255,0.15)`, fontSize: '0.82rem', fontWeight: 600, color: C.primary }}>{verifyResult}</div>}
                                     <div style={{ display: 'flex', gap: 8 }}>
-                                        <button onClick={() => setUpdateTripModalOpen(true)} style={{ flex: 1, padding: 10, background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', border: 'none', borderRadius: 12, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase', color: '#FFFFFF', boxShadow: '0 4px 12px rgba(108,99,255,0.25)' }}>Update Plan</button>
+                                        <button onClick={() => setUpdateTripModalOpen(true)} style={{ flex: 1, padding: 10, background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', border: 'none', borderRadius: 12, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase', color: '#FFFFFF', boxShadow: '0 4px 12px rgba(108,99,255,0.25)' }}>{t('updatePlan')}</button>
                                         <button onClick={handleVerifyStay} disabled={verifyLoading} style={{ flex: 1, padding: 10, background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: verifyLoading ? 'default' : 'pointer', textTransform: 'uppercase', color: C.text, boxShadow: '4px 4px 8px rgba(27,29,42,0.08), -2px -2px 6px rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: verifyLoading ? 0.7 : 1 }}>
-                                            {verifyLoading ? <Loader2 size={14} className="animate-spin" /> : 'Verify Stay'}
+                                            {verifyLoading ? <Loader2 size={14} className="animate-spin" /> : t('verifyStay')}
                                         </button>
                                     </div>
                                 </div>
                             ) : (
                                 <div style={{ padding: 24, textAlign: 'center', border: `2px dashed ${C.border}`, borderRadius: 14 }}>
-                                    <p style={{ fontSize: '0.85rem', color: C.textMuted, marginBottom: 14, fontWeight: 500 }}>No active trip found for your profile.</p>
+                                    <p style={{ fontSize: '0.85rem', color: C.textMuted, marginBottom: 14, fontWeight: 500 }}>{t('noActiveTrip')}</p>
                                     <Link to="/tourist/plan" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', borderRadius: 12, padding: '10px 20px', textDecoration: 'none', color: '#FFFFFF', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', boxShadow: '0 4px 12px rgba(108,99,255,0.25)' }}>
-                                        <NearMe size={14} /> Start Planning
+                                        <NearMe size={14} /> {t('startPlanning')}
                                     </Link>
                                 </div>
                             )}
@@ -400,13 +402,13 @@ export default function TouristDashboard() {
 
                     {/* Quick Actions */}
                     <div style={{ ...clayCard, padding: 18 }}>
-                        <h3 style={{ fontWeight: 800, color: C.text, margin: '0 0 14px', fontSize: '0.88rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Safety Services</h3>
+                        <h3 style={{ fontWeight: 800, color: C.text, margin: '0 0 14px', fontSize: '0.88rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t('safetyServices')}</h3>
                         <div className="responsive-flex-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                             {[
-                                { icon: checkinDone ? <Check size={22} color={C.safe} /> : checkinLoading ? <Loader2 size={22} style={{ animation: 'spin-slow 1s linear infinite' }} /> : <CheckCircle2 size={22} color={C.primary} />, label: checkinDone ? 'Checked In ✓' : 'Daily Check-in', action: handleCheckin, gradient: 'rgba(108,99,255,0.06)' },
-                                { icon: <AlertTriangle size={22} color={C.moderate} />, label: 'Report Anomaly', action: () => setReportModalOpen(true), gradient: 'rgba(251,191,36,0.08)' },
-                                { icon: <Watch size={22} color={C.primary} />, label: 'IoT Sync', action: () => setIotModalOpen(true), gradient: 'rgba(108,99,255,0.06)' },
-                                { icon: <ShieldAlert size={22} color={C.restricted} />, label: 'Safe House', action: handleSafeHouse, gradient: 'rgba(167,139,250,0.08)' },
+                                { icon: checkinDone ? <Check size={22} color={C.safe} /> : checkinLoading ? <Loader2 size={22} style={{ animation: 'spin-slow 1s linear infinite' }} /> : <CheckCircle2 size={22} color={C.primary} />, label: checkinDone ? t('checkedIn') : t('dailyCheckin'), action: handleCheckin, gradient: 'rgba(108,99,255,0.06)' },
+                                { icon: <AlertTriangle size={22} color={C.moderate} />, label: t('reportAnomaly'), action: () => setReportModalOpen(true), gradient: 'rgba(251,191,36,0.08)' },
+                                { icon: <Watch size={22} color={C.primary} />, label: t('iotSync'), action: () => setIotModalOpen(true), gradient: 'rgba(108,99,255,0.06)' },
+                                { icon: <ShieldAlert size={22} color={C.restricted} />, label: t('safeHouse'), action: handleSafeHouse, gradient: 'rgba(167,139,250,0.08)' },
                             ].map((btn, i) => (
                                 <button key={i} onClick={btn.action} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 8px', background: btn.gradient, border: `1px solid ${C.border}`, borderRadius: 16, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s', boxShadow: '4px 4px 8px rgba(27,29,42,0.06), -2px -2px 6px rgba(255,255,255,0.9)' }}
                                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '6px 6px 14px rgba(27,29,42,0.1), -3px -3px 10px rgba(255,255,255,0.9)'; }}
@@ -422,10 +424,10 @@ export default function TouristDashboard() {
                     {/* Alerts */}
                     <div style={{ ...clayCard, flex: 1, overflow: 'hidden', padding: 0 }}>
                         <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, background: C.surfaceAlt, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '20px 20px 0 0' }}>
-                            <h3 style={{ fontWeight: 800, color: C.text, margin: 0, fontSize: '0.88rem' }}>Safety Broadcasts</h3>
+                            <h3 style={{ fontWeight: 800, color: C.text, margin: 0, fontSize: '0.88rem' }}>{t('safetyBroadcasts')}</h3>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <button onClick={fetchTouristData} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted }}><RefreshCw size={13} className={loading ? 'animate-spin' : ''} /></button>
-                                {(alerts.length + proximityAlerts.length) > 0 && <span style={{ padding: '3px 10px', background: 'linear-gradient(135deg, #F87171, #EF4444)', color: '#FFFFFF', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', borderRadius: 20 }}>{alerts.length + proximityAlerts.length} Active</span>}
+                                {(alerts.length + proximityAlerts.length) > 0 && <span style={{ padding: '3px 10px', background: 'linear-gradient(135deg, #F87171, #EF4444)', color: '#FFFFFF', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', borderRadius: 20 }}>{alerts.length + proximityAlerts.length} {t('active')}</span>}
                             </div>
                         </div>
                         <div style={{ padding: 14, maxHeight: 280, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -436,7 +438,7 @@ export default function TouristDashboard() {
                                         <ShieldAlert size={16} color="#FFFFFF" />
                                     </div>
                                     <div style={{ flex: 1 }}>
-                                        <p style={{ fontWeight: 800, color: C.critical, margin: 0, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>⚡ RED ZONE NEARBY</p>
+                                        <p style={{ fontWeight: 800, color: C.critical, margin: 0, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t('redZoneNearby')}</p>
                                         <p style={{ fontWeight: 700, color: C.text, margin: '2px 0 0', fontSize: '0.82rem' }}>{pa.zone?.name} — {pa.distance_meters}m away</p>
                                         <p style={{ fontSize: '0.68rem', color: C.textMuted, margin: '2px 0 0', fontWeight: 500 }}>{pa.zone?.risk_level} zone · {new Date(pa.timestamp).toLocaleTimeString()}</p>
                                     </div>
@@ -459,7 +461,7 @@ export default function TouristDashboard() {
                             }) : proximityAlerts.length === 0 && (
                                 <div style={{ padding: 24, textAlign: 'center', border: `2px dashed ${C.border}`, borderRadius: 14 }}>
                                     <Check size={20} color={C.safe} style={{ margin: '0 auto 6px' }} />
-                                    <p style={{ fontSize: '0.78rem', color: C.textMuted, fontWeight: 600 }}>All sectors clear. Enjoy your trip!</p>
+                                    <p style={{ fontSize: '0.78rem', color: C.textMuted, fontWeight: 600 }}>{t('allSectorsClear')}</p>
                                 </div>
                             )}
                         </div>
@@ -471,16 +473,16 @@ export default function TouristDashboard() {
             <div style={{ position: 'fixed', bottom: 80, right: 32, zIndex: 1000 }}>
                 {sosSuccess ? (
                     <div style={{ width: 80, height: 80, background: 'linear-gradient(135deg, #34D399, #2DD4BF)', borderRadius: '50%', boxShadow: '0 8px 24px rgba(52,211,153,0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: '#FFFFFF' }}>
-                        <Check size={28} /><span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase' }}>Alert Sent</span>
+                        <Check size={28} /><span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase' }}>{t('alertSent')}</span>
                     </div>
                 ) : (
                     <button onMouseDown={handleSOSStart} onMouseUp={handleSOSEnd} onMouseLeave={handleSOSEnd} onTouchStart={handleSOSStart} onTouchEnd={handleSOSEnd}
                         style={{ width: 80, height: 80, background: 'linear-gradient(135deg, #F87171, #EF4444)', border: 'none', borderRadius: '50%', boxShadow: countdown > 0 ? '0 0 0 10px rgba(239,68,68,0.3), 0 8px 24px rgba(239,68,68,0.4)' : '0 8px 24px rgba(239,68,68,0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', color: '#FFFFFF', transform: countdown > 0 ? 'scale(1.1)' : undefined, transition: 'all 0.2s', outline: 'none', animation: countdown === 0 ? 'pulse-glow 2s ease-in-out infinite' : undefined }}
                     >
-                        {sosLoading ? <Loader2 size={28} style={{ animation: 'spin-slow 1s linear infinite' }} /> : countdown > 0 ? <span style={{ fontSize: '1.8rem', fontWeight: 800 }}>{countdown}</span> : <><ShieldAlert size={28} /><span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase' }}>Hold 3s</span></>}
+                        {sosLoading ? <Loader2 size={28} style={{ animation: 'spin-slow 1s linear infinite' }} /> : countdown > 0 ? <span style={{ fontSize: '1.8rem', fontWeight: 800 }}>{countdown}</span> : <><ShieldAlert size={28} /><span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase' }}>{t('holdSOS')}</span></>}
                     </button>
                 )}
-                {countdown > 0 && <div style={{ position: 'absolute', top: 10, right: '110%', whiteSpace: 'nowrap', background: 'linear-gradient(135deg, #F87171, #EF4444)', color: '#FFFFFF', borderRadius: 12, padding: '8px 16px', fontWeight: 800, fontSize: '0.78rem', boxShadow: '0 4px 12px rgba(239,68,68,0.3)' }}>HOLDING ({countdown}s)</div>}
+                {countdown > 0 && <div style={{ position: 'absolute', top: 10, right: '110%', whiteSpace: 'nowrap', background: 'linear-gradient(135deg, #F87171, #EF4444)', color: '#FFFFFF', borderRadius: 12, padding: '8px 16px', fontWeight: 800, fontSize: '0.78rem', boxShadow: '0 4px 12px rgba(239,68,68,0.3)' }}>{t('holding')} ({countdown}s)</div>}
             </div>
 
             {/* Report Modal */}

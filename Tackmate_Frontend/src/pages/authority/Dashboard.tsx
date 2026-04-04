@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
+import { useLanguage } from '../../i18n';
 import api from '../../lib/api';
 import { AlertTriangle, RefreshCw, Loader2, TrendingUp, Search, Users, Zap, Shield, MapPin, Eye, Activity, Globe, CheckCircle2, Clock } from 'lucide-react';
 import AuthorityMap from '../../components/maps/AuthorityMap';
@@ -299,17 +300,19 @@ export default function AuthorityDashboard() {
         return acc;
     }, { tourists: 0, residents: 0, businesses: 0 });
 
+    const { t } = useLanguage();
+
     const statCards = [
-        { label: 'Live Users', value: Object.keys(userLocations).length, icon: <Eye size={20} />, color: C.primary, colorBg: 'rgba(108,99,255,0.08)', pulse: false },
-        { label: 'Open Incidents', value: summary.openIncidents, icon: <AlertTriangle size={20} />, color: C.high, colorBg: 'rgba(248,113,113,0.08)', pulse: summary.openIncidents > 0 },
-        { label: 'SOS (Last Hour)', value: summary.sosLastHour, icon: <Zap size={20} />, color: C.critical, colorBg: 'rgba(239,68,68,0.08)', pulse: summary.sosLastHour > 0 },
-        { label: 'Total Profiles', value: summary.totalUsers, icon: <Shield size={20} />, color: C.safe, colorBg: 'rgba(52,211,153,0.08)', pulse: false },
+        { label: t('liveUsers'), value: Object.keys(userLocations).length, icon: <Eye size={20} />, color: C.primary, colorBg: 'rgba(108,99,255,0.08)', pulse: false },
+        { label: t('openIncidents'), value: summary.openIncidents, icon: <AlertTriangle size={20} />, color: C.high, colorBg: 'rgba(248,113,113,0.08)', pulse: summary.openIncidents > 0 },
+        { label: t('sosLastHour'), value: summary.sosLastHour, icon: <Zap size={20} />, color: C.critical, colorBg: 'rgba(239,68,68,0.08)', pulse: summary.sosLastHour > 0 },
+        { label: t('totalProfiles'), value: summary.totalUsers, icon: <Shield size={20} />, color: C.safe, colorBg: 'rgba(52,211,153,0.08)', pulse: false },
     ];
 
     const roleBadges = [
-        { label: 'Tourists', count: liveRoleCounts.tourists, color: C.primary, icon: <Globe size={14} /> },
-        { label: 'Residents', count: liveRoleCounts.residents, color: C.safe, icon: <Users size={14} /> },
-        { label: 'Businesses', count: liveRoleCounts.businesses, color: C.moderate, icon: <Activity size={14} /> },
+        { label: t('tourists'), count: liveRoleCounts.tourists, color: C.primary, icon: <Globe size={14} /> },
+        { label: t('residents'), count: liveRoleCounts.residents, color: C.safe, icon: <Users size={14} /> },
+        { label: t('businesses'), count: liveRoleCounts.businesses, color: C.moderate, icon: <Activity size={14} /> },
     ];
 
     const pulseTrend = String(riskPulse?.trend || 'stable').toLowerCase();
@@ -327,9 +330,9 @@ export default function AuthorityDashboard() {
                 {/* Top bar */}
                 <div className="top-header responsive-container" style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '16px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 12px rgba(27,29,42,0.04)' }}>
                     <div>
-                        <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: C.text, margin: 0, letterSpacing: '-0.01em' }}>Command Dashboard</h1>
+                        <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: C.text, margin: 0, letterSpacing: '-0.01em' }}>{t('commandDashboard')}</h1>
                         <p style={{ fontSize: '0.75rem', color: C.textMuted, margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                            {user?.full_name} · {user?.designation || 'Authority Officer'}
+                            {user?.full_name} · {user?.designation || t('authorityOfficer')}
                         </p>
                     </div>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -342,7 +345,7 @@ export default function AuthorityDashboard() {
                             </div>
                         ))}
                         <button onClick={fetchDashboardData} style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.78rem', color: C.text, boxShadow: '4px 4px 8px rgba(27,29,42,0.06), -2px -2px 6px rgba(255,255,255,0.9)', transition: 'all 0.15s' }}>
-                            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> <span className="refresh-text">Refresh</span>
+                            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> <span className="refresh-text">{t('refresh')}</span>
                         </button>
                     </div>
                 </div>
@@ -711,16 +714,16 @@ export default function AuthorityDashboard() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                         <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: C.text, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
                             <div style={{ width: 4, height: 24, borderRadius: 4, background: 'linear-gradient(180deg, #34D399, #2DD4BF)', display: 'inline-block' }} />
-                            Daily Check-Ins
-                            {checkins.length > 0 && <span style={{ padding: '3px 10px', background: 'linear-gradient(135deg, #34D399, #2DD4BF)', color: '#FFFFFF', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', borderRadius: 20 }}>{checkins.length} today</span>}
+                            {t('dailyCheckins')}
+                            {checkins.length > 0 && <span style={{ padding: '3px 10px', background: 'linear-gradient(135deg, #34D399, #2DD4BF)', color: '#FFFFFF', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', borderRadius: 20 }}>{checkins.length} {t('checkinToday')}</span>}
                         </h2>
-                        <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: C.textMuted }}>Tourist safety check-ins from last 24h</p>
+                        <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: C.textMuted }}>{t('touristCheckins24h')}</p>
                     </div>
                     <div style={{ ...clayCard, overflow: 'hidden', padding: 0 }}>
                         {checkins.length === 0 ? (
                             <div style={{ padding: 28, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                                 <CheckCircle2 size={24} color={C.textMuted} />
-                                <p style={{ fontSize: '0.78rem', fontWeight: 700, color: C.textMuted }}>No check-ins recorded in the last 24 hours.</p>
+                                <p style={{ fontSize: '0.78rem', fontWeight: 700, color: C.textMuted }}>{t('noCheckins24h')}</p>
                             </div>
                         ) : (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 0 }}>
@@ -760,7 +763,7 @@ export default function AuthorityDashboard() {
                                             </div>
                                             <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
                                                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.safe }} />
-                                                <span style={{ fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase', color: C.safe }}>Checked In</span>
+                                                <span style={{ fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase', color: C.safe }}>{t('checkedInStatus')}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -775,21 +778,21 @@ export default function AuthorityDashboard() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                         <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: C.text, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
                             <div style={{ width: 4, height: 24, borderRadius: 4, background: 'linear-gradient(180deg, #EF4444, #F87171)', display: 'inline-block' }} />
-                            Live Alert Feed
+                            {t('liveAlertFeed')}
                         </h2>
-                        <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: C.textMuted }}>Click a row to isolate reporter on map</p>
+                        <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: C.textMuted }}>{t('clickRowToIsolate')}</p>
                     </div>
                     <div style={{ ...clayCard, overflow: 'hidden', padding: 0 }}>
                         {loading && incidents.length === 0 ? (
                             <div style={{ padding: 40, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                                 <Loader2 size={28} style={{ animation: 'spin-slow 1s linear infinite', color: C.primary }} />
-                                <p style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.textMuted }}>Connecting to node feed...</p>
+                                <p style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.textMuted }}>{t('connectingToFeed')}</p>
                             </div>
                         ) : (
                             <table className="geo-table">
                                 <thead>
                                     <tr>
-                                        <th>Severity</th><th>Title / Zone</th><th>Reporter</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th>
+                                        <th>{t('severityCol')}</th><th>{t('titleZone')}</th><th>{t('reporter')}</th><th>{t('status')}</th><th style={{ textAlign: 'right' }}>{t('actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -823,10 +826,10 @@ export default function AuthorityDashboard() {
                                                 </td>
                                                 <td>
                                                     <p style={{ fontWeight: 700, color: C.text, margin: 0, fontSize: '0.88rem' }}>{incident.title}</p>
-                                                    <p style={{ fontSize: '0.72rem', color: C.textMuted, margin: 0, fontWeight: 500 }}>{incident.zone?.name || 'Unknown Location'}</p>
+                                                    <p style={{ fontSize: '0.72rem', color: C.textMuted, margin: 0, fontWeight: 500 }}>{incident.zone?.name || t('unknownLocation')}</p>
                                                 </td>
                                                 <td onClick={e => { e.stopPropagation(); if (incident.reporter?._id) navigate(`/authority/user/${incident.reporter._id}`); }} style={{ cursor: incident.reporter?._id ? 'pointer' : 'default' }}>
-                                                    <p style={{ fontWeight: 600, color: incident.reporter?._id ? C.primary : C.text, margin: 0, fontSize: '0.85rem', textDecoration: incident.reporter?._id ? 'underline' : 'none' }}>{incident.reporter?.full_name || 'System'}</p>
+                                                    <p style={{ fontWeight: 600, color: incident.reporter?._id ? C.primary : C.text, margin: 0, fontSize: '0.85rem', textDecoration: incident.reporter?._id ? 'underline' : 'none' }}>{incident.reporter?.full_name || t('system')}</p>
                                                     <p style={{ fontSize: '0.7rem', color: C.primary, margin: 0, fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }}>{incident.reporter?.blockchain_id || 'LOCAL-AI'}</p>
                                                 </td>
                                                 <td>
@@ -844,21 +847,21 @@ export default function AuthorityDashboard() {
                                                         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                                                             {incident.status !== 'acknowledged' && (
                                                                 <button onClick={() => handleUpdateIncident(incident._id, 'acknowledged')} style={{ background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', color: '#FFFFFF', border: 'none', borderRadius: 10, padding: '6px 14px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(108,99,255,0.25)' }}>
-                                                                    Acknowledge
+                                                                    {t('acknowledge')}
                                                                 </button>
                                                             )}
                                                             <button onClick={() => handleUpdateIncident(incident._id, 'resolved')} style={{ background: 'linear-gradient(135deg, #34D399, #2DD4BF)', color: '#FFFFFF', border: 'none', borderRadius: 10, padding: '6px 14px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(52,211,153,0.25)' }}>
-                                                                Resolve
+                                                                {t('resolve')}
                                                             </button>
                                                         </div>
                                                     )}
-                                                    {incident.status === 'resolved' && <span style={{ fontSize: '0.72rem', fontWeight: 700, color: C.safe }}>✓ Done</span>}
+                                                    {incident.status === 'resolved' && <span style={{ fontSize: '0.72rem', fontWeight: 700, color: C.safe }}>{t('done')}</span>}
                                                 </td>
                                             </tr>
                                         );
                                     })}
                                     {incidents.length === 0 && (
-                                        <tr><td colSpan={5} style={{ textAlign: 'center', padding: 28, color: C.textMuted, fontWeight: 600 }}>No active incidents in this sector.</td></tr>
+                                        <tr><td colSpan={5} style={{ textAlign: 'center', padding: 28, color: C.textMuted, fontWeight: 600 }}>{t('noActiveIncidents')}</td></tr>
                                     )}
                                 </tbody>
                             </table>

@@ -1,4 +1,6 @@
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useLanguage, LANGUAGES } from '../i18n';
 import {
     Shield,
     Zap,
@@ -10,6 +12,8 @@ import {
     CheckCircle2,
     Sparkles,
     Radar,
+    Globe,
+    ChevronDown,
 } from 'lucide-react';
 
 const C = {
@@ -37,57 +41,71 @@ const clayCard: React.CSSProperties = {
     boxShadow: '8px 8px 16px rgba(27,29,42,0.08), -4px -4px 12px rgba(255,255,255,0.9)',
 };
 
-const roles = [
-    {
-        label: 'Tourist',
-        role: 'tourist',
-        icon: <Map size={24} color="#FFFFFF" />,
-        color: C.primary,
-        desc: 'Travel confidently with real-time alerts, live route intelligence, and SOS support.',
-    },
-    {
-        label: 'Resident',
-        role: 'resident',
-        icon: <Users size={24} color="#FFFFFF" />,
-        color: C.safe,
-        desc: 'Protect your neighborhood with instant incident reporting and verified local updates.',
-    },
-    {
-        label: 'Business',
-        role: 'business',
-        icon: <Building2 size={24} color="#FFFFFF" />,
-        color: C.moderate,
-        desc: 'Monitor risk around your property using predictive AI and smart compliance flows.',
-    },
-    {
-        label: 'Authority',
-        role: 'authority',
-        icon: <Shield size={24} color="#FFFFFF" />,
-        color: C.accent,
-        desc: 'Coordinate city-wide safety operations with command analytics, check-ins, and E-FIR.',
-    },
-];
-
-const features = [
-    {
-        icon: <Radar size={26} color={C.primary} />,
-        title: 'Live Monitoring Grid',
-        desc: 'Track movement, zone risk, and emerging events through a unified operations layer.',
-    },
-    {
-        icon: <Zap size={26} color={C.accent} />,
-        title: 'Anomaly Detection',
-        desc: 'AI models flag unusual patterns early so teams can respond before escalation.',
-    },
-    {
-        icon: <Lock size={26} color={C.safe} />,
-        title: 'Trusted Identity',
-        desc: 'Secure verification workflows ensure the right responders act on the right incidents.',
-    },
-];
-
 export default function LandingPage() {
     const navigate = useNavigate();
+    const { t, language, setLanguage, currentLang } = useLanguage();
+    const [langOpen, setLangOpen] = useState(false);
+    const langRef = useRef<HTMLDivElement>(null);
+
+    const roles = [
+        {
+            label: t('touristLabel'),
+            role: 'tourist',
+            icon: <Map size={24} color="#FFFFFF" />,
+            color: C.primary,
+            desc: t('touristDesc'),
+        },
+        {
+            label: t('residentLabel'),
+            role: 'resident',
+            icon: <Users size={24} color="#FFFFFF" />,
+            color: C.safe,
+            desc: t('residentDesc'),
+        },
+        {
+            label: t('businessLabel'),
+            role: 'business',
+            icon: <Building2 size={24} color="#FFFFFF" />,
+            color: C.moderate,
+            desc: t('businessDesc'),
+        },
+        {
+            label: t('authorityLabel'),
+            role: 'authority',
+            icon: <Shield size={24} color="#FFFFFF" />,
+            color: C.accent,
+            desc: t('authorityDesc'),
+        },
+    ];
+
+    const features = [
+        {
+            icon: <Radar size={26} color={C.primary} />,
+            title: t('liveMonitoringGrid'),
+            desc: t('liveMonitoringGridDesc'),
+        },
+        {
+            icon: <Zap size={26} color={C.accent} />,
+            title: t('anomalyDetection'),
+            desc: t('anomalyDetectionDesc'),
+        },
+        {
+            icon: <Lock size={26} color={C.safe} />,
+            title: t('trustedIdentity'),
+            desc: t('trustedIdentityDesc'),
+        },
+    ];
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (langRef.current && !langRef.current.contains(e.target as Node)) {
+                setLangOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
     return (
         <div
@@ -140,6 +158,78 @@ export default function LandingPage() {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        {/* Language Selector */}
+                        <div ref={langRef} style={{ position: 'relative' }}>
+                            <button
+                                aria-label="Change language"
+                                onClick={() => setLangOpen(!langOpen)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    padding: '6px 12px',
+                                    background: langOpen ? C.surfaceAlt : 'transparent',
+                                    border: `1px solid ${C.border}`,
+                                    borderRadius: 10,
+                                    cursor: 'pointer',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 700,
+                                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                                    color: C.text,
+                                    transition: 'all 0.2s ease',
+                                    height: '40px',
+                                }}
+                            >
+                                <Globe size={16} color={C.primary} />
+                                <span>{currentLang.nativeName}</span>
+                                <ChevronDown size={14} style={{ transform: langOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                            </button>
+
+                            {langOpen && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 'calc(100% + 6px)',
+                                    right: 0,
+                                    width: 220,
+                                    background: C.surface,
+                                    border: `1px solid ${C.border}`,
+                                    borderRadius: 14,
+                                    boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
+                                    zIndex: 9999,
+                                    padding: '6px',
+                                    maxHeight: 340,
+                                    overflowY: 'auto',
+                                }}>
+                                    <div style={{ padding: '6px 10px 8px', fontSize: '0.65rem', fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                        {t('selectLanguage')}
+                                    </div>
+                                    {LANGUAGES.map((lang) => (
+                                        <button
+                                            key={lang.code}
+                                            onClick={() => { setLanguage(lang.code); setLangOpen(false); }}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                width: '100%', padding: '8px 12px',
+                                                background: language === lang.code ? 'linear-gradient(135deg, #6C63FF12, #8B85FF12)' : 'transparent',
+                                                border: language === lang.code ? '1px solid #6C63FF30' : '1px solid transparent',
+                                                borderRadius: 10,
+                                                cursor: 'pointer',
+                                                fontSize: '0.82rem',
+                                                fontWeight: language === lang.code ? 800 : 600,
+                                                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                                                color: language === lang.code ? C.primary : C.text,
+                                                transition: 'all 0.15s ease',
+                                                marginBottom: 2,
+                                            }}
+                                            onMouseEnter={e => { if (language !== lang.code) (e.target as HTMLElement).style.background = C.surfaceAlt; }}
+                                            onMouseLeave={e => { if (language !== lang.code) (e.target as HTMLElement).style.background = 'transparent'; }}
+                                        >
+                                            <span>{lang.nativeName}</span>
+                                            <span style={{ fontSize: '0.68rem', color: C.textMuted, fontWeight: 600 }}>{lang.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
                         <button
                             onClick={() => navigate('/auth?mode=login')}
                             style={{
@@ -152,7 +242,7 @@ export default function LandingPage() {
                                 color: C.text,
                             }}
                         >
-                            Login
+                            {t('login')}
                         </button>
                         <button
                             onClick={() => navigate('/auth')}
@@ -167,7 +257,7 @@ export default function LandingPage() {
                                 boxShadow: '0 8px 16px rgba(108,99,255,0.3)',
                             }}
                         >
-                            Get Started
+                            {t('getStarted')}
                         </button>
                     </div>
                 </div>
@@ -224,7 +314,7 @@ export default function LandingPage() {
                             }}
                         >
                             <CheckCircle2 size={14} />
-                            Unified Safety Platform v3
+                            {t('unifiedSafetyPlatform')}
                         </div>
 
                         <h1
@@ -237,8 +327,8 @@ export default function LandingPage() {
                                 maxWidth: 820,
                             }}
                         >
-                            Real-time city safety intelligence for
-                            <span style={{ color: '#8B85FF' }}> residents, visitors, and response teams</span>
+                            {t('heroTitle')}
+                            <span style={{ color: '#8B85FF' }}> {t('heroTitleHighlight')}</span>
                         </h1>
 
                         <p
@@ -252,7 +342,7 @@ export default function LandingPage() {
                                 fontWeight: 500,
                             }}
                         >
-                            TrackMate connects live maps, AI anomaly detection, secure identity, and emergency workflows in one coordinated operating system.
+                            {t('heroDescription')}
                         </p>
 
                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -272,7 +362,7 @@ export default function LandingPage() {
                                     boxShadow: '0 10px 18px rgba(108,99,255,0.35)',
                                 }}
                             >
-                                Enter Platform <ArrowRight size={16} />
+                                {t('enterPlatform')} <ArrowRight size={16} />
                             </button>
                             <button
                                 onClick={() => navigate('/auth?mode=login')}
@@ -286,7 +376,7 @@ export default function LandingPage() {
                                     cursor: 'pointer',
                                 }}
                             >
-                                Already have access
+                                {t('alreadyHaveAccess')}
                             </button>
                         </div>
                     </div>
@@ -313,13 +403,13 @@ export default function LandingPage() {
                             }}
                         >
                             <Sparkles size={13} />
-                            Select Your Access Role
+                            {t('selectAccessRole')}
                         </p>
                         <h2 style={{ margin: '14px 0 4px', fontSize: 'clamp(1.7rem, 3.5vw, 2.6rem)', color: C.text }}>
-                            One platform, role-specific workflows
+                            {t('onePlatform')}
                         </h2>
                         <p style={{ margin: 0, color: C.textSecondary, fontWeight: 500 }}>
-                            Use the role that matches your responsibilities to unlock the right tools.
+                            {t('roleDescription')}
                         </p>
                     </div>
 
@@ -374,7 +464,7 @@ export default function LandingPage() {
                                         letterSpacing: '0.05em',
                                     }}
                                 >
-                                    Continue as {role.label}
+                                    {t('continueAs')} {role.label}
                                 </p>
                             </Link>
                         ))}
@@ -392,9 +482,9 @@ export default function LandingPage() {
                         }}
                     >
                         <div style={{ marginBottom: 18 }}>
-                            <h3 style={{ margin: '0 0 6px', fontSize: '1.35rem' }}>Core Capabilities</h3>
-                            <p style={{ margin: 0, color: C.textSecondary, fontWeight: 500 }}>
-                                Built for rapid coordination between public users and command teams.
+                            <h3 style={{ margin: '0 0 6px', fontSize: '1.35rem' }}>{t('coreCapabilities')}</h3>
+                            <p style={{ margin: 0, color: C.textSecondary, fontWeight: 500, maxWidth: 500 }}>
+                                {t('coreCapabilitiesDesc')}
                             </p>
                         </div>
 
@@ -462,13 +552,13 @@ export default function LandingPage() {
                             <Shield size={14} color="#FFFFFF" />
                         </div>
                         <p style={{ margin: 0, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>
-                            TrackMate Civic Security Platform
+                            {t('footerBrand')}
                         </p>
                     </div>
 
-                    <p style={{ margin: 0, color: 'rgba(255,255,255,0.55)', fontSize: '0.8rem', fontWeight: 600 }}>
-                        © 2026 TrackMate. Coordinated safety for connected cities.
-                    </p>
+                    <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.8rem', fontWeight: 600 }}>
+                        {t('footerCopyright')}
+                    </div>
                 </div>
             </footer>
         </div>

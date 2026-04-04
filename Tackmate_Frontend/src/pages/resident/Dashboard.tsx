@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
+import { useLanguage } from '../../i18n';
 import { Link } from 'react-router-dom';
-import { Shield, AlertTriangle, TrendingUp, Plus, Layers, Activity, Loader2, Users, Check, ShieldAlert, X } from 'lucide-react';
+import { Shield, AlertTriangle, TrendingUp, Plus, Layers, Activity, Loader2, Users, Check, ShieldAlert } from 'lucide-react';
 import AlertPanel from '../../components/alerts/AlertPanel';
 import TouristMap, { type ZoneData } from '../../components/maps/TouristMap';
 import { enqueueOfflineSos, flushOfflineSosQueue, getOfflineSosQueueCount } from '../../lib/offlineSos';
@@ -19,6 +20,7 @@ const clayCard: React.CSSProperties = { background: C.surface, borderRadius: 20,
 
 export default function ResidentDashboard() {
     const { user } = useAuth();
+    const { t } = useLanguage();
     const [incidents, setIncidents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [wardData, setWardData] = useState<any>(null);
@@ -173,7 +175,7 @@ export default function ResidentDashboard() {
     if (loading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: C.bg, flexDirection: 'column', gap: 12 }}>
             <Loader2 size={32} style={{ animation: 'spin-slow 1s linear infinite', color: C.primary }} />
-            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Loading ward data...</p>
+            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('loadingWardData')}</p>
         </div>
     );
 
@@ -199,7 +201,7 @@ export default function ResidentDashboard() {
             <section className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 160px', gap: 16, marginBottom: 20 }}>
                 <div style={{ ...clayCard, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: C.text, margin: 0 }}>{wardData?.name || 'Your Area'}</h2>
+                        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: C.text, margin: 0 }}>{wardData?.name || t('yourArea')}</h2>
                         <p style={{ margin: '4px 0 0', color: C.textMuted, fontSize: '0.8rem', fontWeight: 500 }}>
                             {wardData ? `Live Monitoring · ${wardData.district}, ${wardData.state}` : 'General Monitoring · All Areas'}
                         </p>
@@ -238,7 +240,7 @@ export default function ResidentDashboard() {
                 ) : sosSuccess ? (
                     <div style={{ background: 'linear-gradient(135deg, #1B1D2A, #252840)', padding: '20px', borderRadius: 20, color: C.safe, textAlign: 'center', boxShadow: '6px 6px 14px rgba(27,29,42,0.10), -3px -3px 10px rgba(255,255,255,0.9)' }}>
                         <Check size={32} style={{ margin: '0 auto 10px' }} />
-                        <h3 style={{ fontSize: '1.2rem', margin: '0 0 4px', fontWeight: 800 }}>HELP DISPATCHED</h3>
+                        <h3 style={{ fontSize: '1.2rem', margin: '0 0 4px', fontWeight: 800 }}>{t('helpDispatched')}</h3>
                         <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Authorities notified and mapped to your live location.</p>
                     </div>
                 ) : (
@@ -249,8 +251,8 @@ export default function ResidentDashboard() {
                         style={{ width: '100%', padding: '20px', background: 'linear-gradient(135deg, #F87171, #EF4444)', border: 'none', borderRadius: 20, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, opacity: sosLoading ? 0.7 : 1, boxShadow: '0 8px 24px rgba(239,68,68,0.3)', transition: 'all 0.15s' }}
                     >
                         <ShieldAlert size={28} color="#FFFFFF" />
-                        <span style={{ fontWeight: 800, fontSize: '1.2rem', color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Hold for Emergency</span>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.05em' }}>Hold for 3 seconds to dispatch help</span>
+                        <span style={{ fontWeight: 800, fontSize: '1.2rem', color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('holdForEmergency')}</span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.05em' }}>{t('holdFor3Seconds')}</span>
                     </button>
                 )}
             </section>
@@ -306,7 +308,7 @@ export default function ResidentDashboard() {
             <section className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
                 <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <h3 style={{ fontWeight: 800, color: C.text, margin: 0 }}>Recent Incidents</h3>
+                        <h3 style={{ fontWeight: 800, color: C.text, margin: 0 }}>{t('recentIncidents')}</h3>
                         <Link to="/resident/incidents" style={{ fontSize: '0.72rem', fontWeight: 700, color: C.primary, textDecoration: 'none', textTransform: 'uppercase' }}>View Map</Link>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -331,7 +333,7 @@ export default function ResidentDashboard() {
                 </div>
 
                 <div>
-                    <h3 style={{ fontWeight: 800, color: C.text, margin: '0 0 12px' }}>Community Vitals</h3>
+                    <h3 style={{ fontWeight: 800, color: C.text, margin: '0 0 12px' }}>{t('communityVitals')}</h3>
                     <div style={{ ...clayCard, padding: 0, overflow: 'hidden' }}>
                         {[
                             { icon: <Activity size={18} color={C.primary} />, label: 'Police Patrol Frequency', sub: 'Community verified', value: 'High', trend: '+12%', tc: C.safe },

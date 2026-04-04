@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
+import { LanguageProvider } from './i18n';
 import AuthGuard from './components/AuthGuard';
 
 // Public Pages
@@ -30,6 +31,7 @@ import DailyCheckins from './pages/authority/DailyCheckins';
 
 export default function App() {
     return (
+        <LanguageProvider>
         <BrowserRouter>
             <AuthProvider>
                 <SocketProvider>
@@ -109,5 +111,6 @@ export default function App() {
                 </SocketProvider>
             </AuthProvider>
         </BrowserRouter>
+        </LanguageProvider>
     );
 }

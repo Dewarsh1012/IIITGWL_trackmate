@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import api from '../../lib/api';
+import { useLanguage } from '../../i18n';
 import { Loader2, Shield, TrendingUp, MapPin, Users, Bell, AlertTriangle, Search, Check, Fingerprint, PlusCircle, Info, Globe, ShieldAlert } from 'lucide-react';
 import AlertPanel from '../../components/alerts/AlertPanel';
 import { enqueueOfflineSos, flushOfflineSosQueue, getOfflineSosQueueCount } from '../../lib/offlineSos';
@@ -14,11 +15,11 @@ const C = {
 };
 
 const clayCard: React.CSSProperties = { background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: '6px 6px 14px rgba(27,29,42,0.10), -3px -3px 10px rgba(255,255,255,0.9)' };
-const clayInput: React.CSSProperties = { width: '100%', padding: '12px 14px 12px 38px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '0.88rem', fontWeight: 500, color: C.text, outline: 'none', boxShadow: 'inset 3px 3px 6px rgba(27,29,42,0.06), inset -2px -2px 4px rgba(255,255,255,0.8)' };
 
 export default function BusinessDashboard() {
     const { user } = useAuth();
     const { socket } = useSocket();
+    const { t } = useLanguage();
     const [verificationId, setVerificationId] = useState('');
     const [verificationResult, setVerificationResult] = useState<any>(null);
     const [isVerifying, setIsVerifying] = useState(false);
@@ -217,7 +218,7 @@ export default function BusinessDashboard() {
                         style={{ width: '100%', padding: '20px', background: 'linear-gradient(135deg, #F87171, #EF4444)', border: 'none', borderRadius: 20, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, opacity: sosLoading ? 0.7 : 1, boxShadow: '0 8px 24px rgba(239,68,68,0.3)', transition: 'all 0.15s' }}
                     >
                         <ShieldAlert size={28} color="#FFFFFF" />
-                        <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Hold for Business Emergency SOS</span>
+                        <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('holdForBusinessSOS')}</span>
                         <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.72)', letterSpacing: '0.05em' }}>Hold for 3 seconds to trigger authority red alarm</span>
                     </button>
                 )}
@@ -229,7 +230,7 @@ export default function BusinessDashboard() {
                 <div style={{ ...clayCard, padding: '24px', borderTop: `4px solid ${C.primary}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                         <div>
-                            <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.textMuted, margin: 0 }}>Zone Safety Status</p>
+                            <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.textMuted, margin: 0 }}>{t('zoneSafetyStatus')}</p>
                             <h3 style={{ fontWeight: 800, color: C.text, margin: '4px 0 0', display: 'flex', alignItems: 'center', gap: 6, fontSize: '1.1rem' }}>
                                 <MapPin size={16} color={C.primary} /> {user?.business_name || 'Business Zone'}
                             </h3>
@@ -254,7 +255,7 @@ export default function BusinessDashboard() {
                 <div style={{ ...clayCard, padding: '24px', borderTop: `4px solid ${C.moderate}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                         <div>
-                            <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.textMuted, margin: 0 }}>Footfall Overview</p>
+                            <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.textMuted, margin: 0 }}>{t('footfallOverview')}</p>
                             <h3 style={{ fontWeight: 800, color: C.text, margin: '4px 0 0', fontSize: '1.1rem' }}>Real-time Traffic</h3>
                         </div>
                         <div style={{ textAlign: 'right' }}>
@@ -277,7 +278,7 @@ export default function BusinessDashboard() {
                 {/* Nearby tourists */}
                 <div style={{ ...clayCard, overflow: 'hidden', padding: 0 }}>
                     <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, background: C.surfaceAlt, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '20px 20px 0 0' }}>
-                        <h3 style={{ fontWeight: 800, color: C.text, margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}><Globe size={15} color={C.primary} /> Nearby Tourists</h3>
+                        <h3 style={{ fontWeight: 800, color: C.text, margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}><Globe size={15} color={C.primary} /> {t('nearbyTourists')}</h3>
                         <span style={{ background: 'rgba(108,99,255,0.08)', color: C.primary, fontSize: '0.6rem', fontWeight: 700, padding: '3px 10px', borderRadius: 10 }}>200m Radius</span>
                     </div>
                     <div style={{ position: 'relative', height: 200, background: C.surfaceAlt }}>
@@ -295,7 +296,7 @@ export default function BusinessDashboard() {
                 {/* Advisories */}
                 <div style={{ ...clayCard, overflow: 'hidden', padding: 0 }}>
                     <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, background: C.surfaceAlt, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '20px 20px 0 0' }}>
-                        <h3 style={{ fontWeight: 800, color: C.text, margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}><Bell size={15} color={C.moderate} /> Safety Advisories</h3>
+                        <h3 style={{ fontWeight: 800, color: C.text, margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}><Bell size={15} color={C.moderate} /> {t('safetyAdvisories')}</h3>
                         <button style={{ background: 'linear-gradient(135deg, #FBBF24, #F59E0B)', border: 'none', borderRadius: 12, padding: '8px 16px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textTransform: 'uppercase', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 12px rgba(251,191,36,0.25)' }}>
                             <PlusCircle size={13} /> Post Advisory
                         </button>
@@ -360,7 +361,7 @@ export default function BusinessDashboard() {
                 <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                         <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(108,99,255,0.3)' }}><Fingerprint size={22} color="#FFFFFF" /></div>
-                        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>Blockchain Identity Proof</h3>
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>{t('blockchainIdentityProof')}</h3>
                     </div>
                     <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', margin: '0 0 20px', fontWeight: 400 }}>Validate traveler credentials against the Trackmate ledger.</p>
                     <div style={{ display: 'flex', gap: 10 }}>

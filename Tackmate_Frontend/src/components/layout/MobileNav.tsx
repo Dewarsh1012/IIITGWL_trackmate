@@ -1,9 +1,11 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../i18n';
 import { Map, AlertTriangle, User, Navigation, Bell, BarChart3 } from 'lucide-react';
 
 export default function MobileNav() {
     const { user } = useAuth();
+    const { t } = useLanguage();
     if (!user || user.role === 'authority' || user.role === 'admin') return null;
 
     const C = {
@@ -17,19 +19,19 @@ export default function MobileNav() {
 
     const links = {
         tourist: [
-            { to: '/tourist/dashboard', icon: <Map size={22} />, label: 'Map' },
-            { to: '/tourist/itinerary', icon: <Navigation size={22} />, label: 'Trip' },
-            { to: '/tourist/profile', icon: <User size={22} />, label: 'Profile' },
+            { to: '/tourist/dashboard', icon: <Map size={22} />, label: t('map') },
+            { to: '/tourist/itinerary', icon: <Navigation size={22} />, label: t('trip') },
+            { to: '/tourist/profile', icon: <User size={22} />, label: t('profile') },
         ],
         resident: [
-            { to: '/resident/dashboard', icon: <Map size={22} />, label: 'Local' },
-            { to: '/resident/feed', icon: <Bell size={22} />, label: 'Feed' },
-            { to: '/resident/report', icon: <AlertTriangle size={22} />, label: 'Report' },
-            { to: '/resident/profile', icon: <User size={22} />, label: 'Profile' },
+            { to: '/resident/dashboard', icon: <Map size={22} />, label: t('local') },
+            { to: '/resident/feed', icon: <Bell size={22} />, label: t('feed') },
+            { to: '/resident/report', icon: <AlertTriangle size={22} />, label: t('report') },
+            { to: '/resident/profile', icon: <User size={22} />, label: t('profile') },
         ],
         business: [
-            { to: '/business/dashboard', icon: <BarChart3 size={22} />, label: 'Intel' },
-            { to: '/business/profile', icon: <User size={22} />, label: 'Business' },
+            { to: '/business/dashboard', icon: <BarChart3 size={22} />, label: t('intel') },
+            { to: '/business/profile', icon: <User size={22} />, label: t('business') },
         ],
     }[user.role as 'tourist' | 'resident' | 'business'] || [];
 
