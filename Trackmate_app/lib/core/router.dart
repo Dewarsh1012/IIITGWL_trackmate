@@ -13,6 +13,8 @@ import '../features/authority/presentation/authority_efir.dart';
 import '../features/authority/presentation/authority_incidents.dart';
 import '../features/authority/presentation/authority_rosters.dart';
 import '../features/authority/presentation/authority_zones.dart';
+import '../features/authority/presentation/authority_alerts.dart';
+import '../features/authority/presentation/authority_checkins.dart';
 import '../features/authority/presentation/user_detail.dart';
 
 final goRouter = GoRouter(
@@ -41,6 +43,8 @@ final goRouter = GoRouter(
       ),
     ),
     GoRoute(path: '/authority/incidents', builder: (context, state) => const AuthorityIncidentsPage()),
+    GoRoute(path: '/authority/alerts', builder: (context, state) => const AuthorityAlertComposerPage()),
+    GoRoute(path: '/authority/checkins', builder: (context, state) => const AuthorityDailyCheckinsPage()),
     GoRoute(path: '/authority/tourists', builder: (context, state) => const AuthorityRostersPage(role: 'tourist')),
     GoRoute(path: '/authority/residents', builder: (context, state) => const AuthorityRostersPage(role: 'resident')),
     GoRoute(path: '/authority/businesses', builder: (context, state) => const AuthorityRostersPage(role: 'business')),

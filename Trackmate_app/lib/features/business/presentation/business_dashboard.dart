@@ -22,6 +22,7 @@ class _BusinessDashboardState extends ConsumerState<BusinessDashboard> {
 
   Map<String, dynamic>? _stats;
   List<dynamic> _incidents = [];
+  List<dynamic> _advisories = [];
   bool _isLoading = true;
 
   @override
@@ -32,7 +33,27 @@ class _BusinessDashboardState extends ConsumerState<BusinessDashboard> {
 
   Future<void> _fetchData() async {
     try {
-      final statRes = await ApiClient.get('/analytics/summary');
+      final user = ref.read(authProvider).user;
+      final wardRaw = user?['ward'];
+      String? wardId;
+
+      if (wardRaw is String) {
+        wardId = wardRaw;
+      } else if (wardRaw is Map) {
+        wardId = wardRaw['_id']?.toString();
+      }
+
+      dynamic statRes;
+      if (wardId != null && wardId.isNotEmpty) {
+        try {
+          statRes = await ApiClient.get('/analytics/ward/$wardId');
+        } catch (_) {
+          statRes = await ApiClient.get('/analytics/summary');
+        }
+      } else {
+        statRes = await ApiClient.get('/analytics/summary');
+      }
+
       if (statRes['success'] == true) {
         _stats = statRes['data'];
       }
@@ -40,6 +61,11 @@ class _BusinessDashboardState extends ConsumerState<BusinessDashboard> {
       final incRes = await ApiClient.get('/incidents?limit=5');
       if (incRes['success'] == true) {
         _incidents = incRes['data'] ?? [];
+      }
+
+      final advisoryRes = await ApiClient.get('/alerts/my');
+      if (advisoryRes['success'] == true) {
+        _advisories = List<dynamic>.from(advisoryRes['data'] ?? const []);
       }
     } catch (_) {
       // ignore
@@ -226,6 +252,65 @@ class _BusinessDashboardState extends ConsumerState<BusinessDashboard> {
                     ),
                   ],
                 ),
+
+                const SizedBox(height: 16),
+
+                const Text('Safety Advisories', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Clay.text)),
+                const SizedBox(height: 8),
+
+                if (_advisories.isEmpty)
+                  const Center(child: Text('No advisories delivered yet.', style: TextStyle(fontWeight: FontWeight.w600, color: Clay.textMuted)))
+                else
+                  ..._advisories.take(3).map((entry) {
+                    final item = entry is Map ? entry.cast<dynamic, dynamic>() : <dynamic, dynamic>{};
+                    final alertRaw = item['alert'];
+                    final alert = alertRaw is Map ? alertRaw.cast<dynamic, dynamic>() : item;
+                    final title = alert['title']?.toString() ?? 'Advisory';
+                    final message = alert['message']?.toString() ?? 'No details provided.';
+                    final deliveredAt = item['delivered_at']?.toString() ?? alert['created_at']?.toString();
+                    final ack = item['is_acknowledged'] == true;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: ClayCard(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              margin: const EdgeInsets.only(top: 4),
+                              decoration: BoxDecoration(
+                                color: ack ? Clay.safe : Clay.moderate,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Clay.text)),
+                                  const SizedBox(height: 4),
+                                  Text(message, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10, color: Clay.textMuted)),
+                                  if (deliveredAt != null) ...[
+                                    const SizedBox(height: 4),
+                                    Text(deliveredAt, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 9, color: Clay.textSecondary)),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            ClayBadge(
+                              label: ack ? 'ACK' : 'NEW',
+                              color: ack ? Clay.safe.withOpacity(0.12) : Clay.surface,
+                              textColor: ack ? Clay.safe : Clay.textMuted,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
 
                 const SizedBox(height: 16),
 

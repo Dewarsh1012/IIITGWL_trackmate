@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/clay_widgets.dart';
@@ -14,6 +17,11 @@ class AuthorityAnalyticsPage extends StatefulWidget {
 class _AuthorityAnalyticsPageState extends State<AuthorityAnalyticsPage> {
   bool _loading = true;
   String? _error;
+  bool _modelActionLoading = false;
+  bool _sandboxLoading = false;
+  bool _auditLoading = false;
+  String? _modelNotice;
+  bool _modelNoticeIsError = false;
 
   Map<String, dynamic> _summary = {
     'totalUsers': 0,
@@ -24,11 +32,77 @@ class _AuthorityAnalyticsPageState extends State<AuthorityAnalyticsPage> {
   Map<String, dynamic> _incidentStats = {};
   Map<String, dynamic> _touristStats = {};
   List<dynamic> _zoneStats = [];
+  Map<String, dynamic>? _modelStatus;
+  Map<String, dynamic>? _sandboxResult;
+
+  final TextEditingController _maxSamplesCtrl = TextEditingController(text: '500');
+  final TextEditingController _iterationsCtrl = TextEditingController(text: '700');
+  final TextEditingController _learningRateCtrl = TextEditingController(text: '0.1');
+  final TextEditingController _inactivityCtrl = TextEditingController(text: '42');
+  final TextEditingController _speedCtrl = TextEditingController(text: '24');
+  final TextEditingController _nearbyIncidentsCtrl = TextEditingController(text: '1');
+  final TextEditingController _nearbyCriticalCtrl = TextEditingController(text: '0');
+  final TextEditingController _anomaliesCtrl = TextEditingController(text: '0');
+  final TextEditingController _ruleScoreCtrl = TextEditingController(text: '0.8');
+  bool _outsideZone = false;
 
   @override
   void initState() {
     super.initState();
     _fetchAnalytics();
+  }
+
+  Future<void> _generateAuditReport() async {
+    try {
+      setState(() => _auditLoading = true);
+      final token = await ApiClient.getToken();
+
+      final res = await http.post(
+        Uri.parse('${ApiClient.baseUrl}/reports/audit'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/pdf',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'sections': ['incidents', 'zones'],
+        }),
+      );
+
+      if (!mounted) return;
+
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final kb = (res.bodyBytes.length / 1024).toStringAsFixed(1);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Audit PDF generated (${kb} KB).')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Audit export failed (${res.statusCode}).')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Audit export failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _auditLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _maxSamplesCtrl.dispose();
+    _iterationsCtrl.dispose();
+    _learningRateCtrl.dispose();
+    _inactivityCtrl.dispose();
+    _speedCtrl.dispose();
+    _nearbyIncidentsCtrl.dispose();
+    _nearbyCriticalCtrl.dispose();
+    _anomaliesCtrl.dispose();
+    _ruleScoreCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchAnalytics() async {
@@ -52,6 +126,15 @@ class _AuthorityAnalyticsPageState extends State<AuthorityAnalyticsPage> {
       final zones = responses[2];
       final summary = responses[3];
 
+      try {
+        final modelRes = await ApiClient.get('/analytics/anomaly-model');
+        if (modelRes['success'] == true) {
+          _modelStatus = (modelRes['data'] as Map?)?.cast<String, dynamic>();
+        }
+      } catch (_) {
+        // model endpoints are optional for degraded modes.
+      }
+
       setState(() {
         _incidentStats = (incidents['data'] as Map?)?.cast<String, dynamic>() ?? {};
         _touristStats = (tourists['data'] as Map?)?.cast<String, dynamic>() ?? {};
@@ -67,6 +150,99 @@ class _AuthorityAnalyticsPageState extends State<AuthorityAnalyticsPage> {
       if (mounted) {
         setState(() => _loading = false);
       }
+    }
+  }
+
+  Future<void> _trainModel() async {
+    final maxSamples = int.tryParse(_maxSamplesCtrl.text.trim());
+    final iterations = int.tryParse(_iterationsCtrl.text.trim());
+    final learningRate = double.tryParse(_learningRateCtrl.text.trim());
+
+    if (maxSamples == null || iterations == null || learningRate == null) {
+      setState(() {
+        _modelNotice = 'Training config must be numeric values.';
+        _modelNoticeIsError = true;
+      });
+      return;
+    }
+
+    setState(() {
+      _modelActionLoading = true;
+      _modelNotice = null;
+    });
+
+    try {
+      final res = await ApiClient.post('/analytics/anomaly-model/train', {
+        'maxSamples': maxSamples,
+        'iterations': iterations,
+        'learningRate': learningRate,
+      });
+
+      if (res['success'] == true) {
+        final data = (res['data'] as Map?)?.cast<String, dynamic>() ?? {};
+        final accuracy = (data['accuracy'] is num)
+            ? ((data['accuracy'] as num) * 100).toStringAsFixed(2)
+            : 'n/a';
+        setState(() {
+          _modelNotice = 'Model ${data['modelVersion'] ?? ''} trained: $accuracy% accuracy';
+          _modelNoticeIsError = false;
+        });
+        await _fetchAnalytics();
+      }
+    } catch (e) {
+      setState(() {
+        _modelNotice = 'Model training failed: $e';
+        _modelNoticeIsError = true;
+      });
+    } finally {
+      if (mounted) setState(() => _modelActionLoading = false);
+    }
+  }
+
+  Future<void> _scoreSandbox() async {
+    final inactivity = int.tryParse(_inactivityCtrl.text.trim());
+    final speed = double.tryParse(_speedCtrl.text.trim());
+    final nearbyIncidents = int.tryParse(_nearbyIncidentsCtrl.text.trim());
+    final nearbyCritical = int.tryParse(_nearbyCriticalCtrl.text.trim());
+    final anomalies = int.tryParse(_anomaliesCtrl.text.trim());
+    final ruleScore = double.tryParse(_ruleScoreCtrl.text.trim());
+
+    if (inactivity == null || speed == null || nearbyIncidents == null || nearbyCritical == null || anomalies == null || ruleScore == null) {
+      setState(() {
+        _modelNotice = 'Sandbox inputs must be numeric.';
+        _modelNoticeIsError = true;
+      });
+      return;
+    }
+
+    setState(() {
+      _sandboxLoading = true;
+      _modelNotice = null;
+    });
+
+    try {
+      final res = await ApiClient.post('/analytics/anomaly-model/score', {
+        'inactivityMinutes': inactivity,
+        'speedKmh': speed,
+        'isOutsideZone': _outsideZone,
+        'nearbyIncidents15m': nearbyIncidents,
+        'nearbyCriticalIncidents15m': nearbyCritical,
+        'userAnomalies24h': anomalies,
+        'ruleScore': ruleScore,
+      });
+
+      if (res['success'] == true) {
+        setState(() {
+          _sandboxResult = (res['data'] as Map?)?.cast<String, dynamic>() ?? {};
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _modelNotice = 'Sandbox scoring failed: $e';
+        _modelNoticeIsError = true;
+      });
+    } finally {
+      if (mounted) setState(() => _sandboxLoading = false);
     }
   }
 
@@ -447,9 +623,157 @@ class _AuthorityAnalyticsPageState extends State<AuthorityAnalyticsPage> {
           ),
           const SizedBox(height: 12),
           ClayButton(
+            label: 'GENERATE AUDIT PDF',
+            icon: Icons.picture_as_pdf_outlined,
+            variant: ClayButtonVariant.ghost,
+            isLoading: _auditLoading,
+            onTap: _auditLoading ? null : _generateAuditReport,
+          ),
+          const SizedBox(height: 8),
+          ClayButton(
             label: 'OPEN EFIR DESK',
             icon: Icons.open_in_new,
             onTap: () => context.push('/authority/efir'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _modelControlCard() {
+    final modelVersion = _modelStatus?['activeModelVersion']?.toString() ?? 'Unavailable';
+    final accuracy = (_modelStatus?['accuracy'] is num)
+        ? '${((_modelStatus!['accuracy'] as num) * 100).toStringAsFixed(2)}%'
+        : 'N/A';
+
+    return ClayCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Anomaly Model Control', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Clay.text)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: ClayInset(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('ACTIVE MODEL', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 9, color: Clay.textMuted)),
+                      const SizedBox(height: 2),
+                      Text(modelVersion, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Clay.text)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ClayInset(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('ACCURACY', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 9, color: Clay.textMuted)),
+                      const SizedBox(height: 2),
+                      Text(accuracy, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Clay.text)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: TextField(controller: _maxSamplesCtrl, decoration: const InputDecoration(labelText: 'Max Samples', isDense: true, border: OutlineInputBorder()))),
+              const SizedBox(width: 8),
+              Expanded(child: TextField(controller: _iterationsCtrl, decoration: const InputDecoration(labelText: 'Iterations', isDense: true, border: OutlineInputBorder()))),
+              const SizedBox(width: 8),
+              Expanded(child: TextField(controller: _learningRateCtrl, decoration: const InputDecoration(labelText: 'Learning Rate', isDense: true, border: OutlineInputBorder()))),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClayButton(
+            label: 'TRAIN MODEL',
+            variant: ClayButtonVariant.primary,
+            isLoading: _modelActionLoading,
+            onTap: _modelActionLoading ? null : _trainModel,
+          ),
+          if (_modelNotice != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _modelNotice!,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+                color: _modelNoticeIsError ? Clay.high : Clay.safe,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _sandboxCard() {
+    final modelScore = (_sandboxResult?['modelScore'] is num)
+        ? '${(((_sandboxResult!['modelScore'] as num) * 100)).toStringAsFixed(2)}%'
+        : '--';
+    final hybridScore = (_sandboxResult?['hybridScore'] is num)
+        ? '${(((_sandboxResult!['hybridScore'] as num) * 100)).toStringAsFixed(2)}%'
+        : '--';
+
+    return ClayCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Anomaly Sandbox', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Clay.text)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: TextField(controller: _inactivityCtrl, decoration: const InputDecoration(labelText: 'Inactivity (min)', isDense: true, border: OutlineInputBorder()))),
+              const SizedBox(width: 8),
+              Expanded(child: TextField(controller: _speedCtrl, decoration: const InputDecoration(labelText: 'Speed (km/h)', isDense: true, border: OutlineInputBorder()))),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: TextField(controller: _nearbyIncidentsCtrl, decoration: const InputDecoration(labelText: 'Nearby Incidents', isDense: true, border: OutlineInputBorder()))),
+              const SizedBox(width: 8),
+              Expanded(child: TextField(controller: _nearbyCriticalCtrl, decoration: const InputDecoration(labelText: 'Nearby Critical', isDense: true, border: OutlineInputBorder()))),
+              const SizedBox(width: 8),
+              Expanded(child: TextField(controller: _anomaliesCtrl, decoration: const InputDecoration(labelText: 'Anomalies 24h', isDense: true, border: OutlineInputBorder()))),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: TextField(controller: _ruleScoreCtrl, decoration: const InputDecoration(labelText: 'Rule Score', isDense: true, border: OutlineInputBorder()))),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Row(
+                  children: [
+                    Checkbox(value: _outsideZone, onChanged: (v) => setState(() => _outsideZone = v ?? false)),
+                    const Text('Outside Zone', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Clay.textMuted)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClayButton(
+            label: 'SCORE PAYLOAD',
+            variant: ClayButtonVariant.ghost,
+            isLoading: _sandboxLoading,
+            onTap: _sandboxLoading ? null : _scoreSandbox,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: ClayInset(child: Text('Model Score: $modelScore', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Clay.text)))),
+              const SizedBox(width: 8),
+              Expanded(child: ClayInset(child: Text('Hybrid Score: $hybridScore', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Clay.text)))),
+            ],
           ),
         ],
       ),
@@ -556,6 +880,10 @@ class _AuthorityAnalyticsPageState extends State<AuthorityAnalyticsPage> {
                   ),
                   const SizedBox(height: 12),
                   _lifecycleCard(),
+                  const SizedBox(height: 12),
+                  _modelControlCard(),
+                  const SizedBox(height: 12),
+                  _sandboxCard(),
                   const SizedBox(height: 12),
                   _exportCard(),
                 ],

@@ -30,6 +30,7 @@ class _AuthorityDashboardState extends ConsumerState<AuthorityDashboard> {
   List<dynamic> _zones = [];
   Map<String, dynamic> _liveUsers = {};
   Map<String, dynamic>? _activeSos;
+  Map<String, dynamic>? _riskPulse;
   bool _isLoading = true;
 
   @override
@@ -65,6 +66,13 @@ class _AuthorityDashboardState extends ConsumerState<AuthorityDashboard> {
     SocketService.instance.on('new-incident', (_) {
       if (mounted) _fetchIncidents();
     });
+
+    SocketService.instance.on('risk:pulse', (data) {
+      if (!mounted || data == null) return;
+      if (data is Map) {
+        setState(() => _riskPulse = data.cast<String, dynamic>());
+      }
+    });
   }
 
   @override
@@ -72,6 +80,7 @@ class _AuthorityDashboardState extends ConsumerState<AuthorityDashboard> {
     SocketService.instance.off('location:update');
     SocketService.instance.off('sos:triggered');
     SocketService.instance.off('new-incident');
+    SocketService.instance.off('risk:pulse');
     super.dispose();
   }
 
@@ -80,6 +89,8 @@ class _AuthorityDashboardState extends ConsumerState<AuthorityDashboard> {
       _fetchSummary(),
       _fetchIncidents(),
       _fetchZones(),
+      _fetchLiveLocations(),
+      _fetchRiskPulse(),
     ]);
     if (mounted) setState(() => _isLoading = false);
   }
@@ -109,6 +120,53 @@ class _AuthorityDashboardState extends ConsumerState<AuthorityDashboard> {
         setState(() => _zones = res['data'] ?? []);
       }
     } catch (_) {}
+  }
+
+  Future<void> _fetchLiveLocations() async {
+    try {
+      final res = await ApiClient.get('/locations/all');
+      if (res['success'] != true || !mounted) return;
+
+      final logs = List<dynamic>.from(res['data'] ?? const []);
+      final mapped = <String, dynamic>{};
+
+      for (final raw in logs) {
+        if (raw is! Map) continue;
+        final entry = raw.cast<dynamic, dynamic>();
+        final userRaw = entry['user'];
+        if (userRaw is! Map) continue;
+        final user = userRaw.cast<dynamic, dynamic>();
+
+        final userId = user['_id']?.toString();
+        final lat = entry['latitude'];
+        final lng = entry['longitude'];
+        if (userId == null || userId.isEmpty || lat is! num || lng is! num) continue;
+
+        if (!mapped.containsKey(userId)) {
+          mapped[userId] = {
+            'lat': lat.toDouble(),
+            'lng': lng.toDouble(),
+            'role': user['role']?.toString() ?? 'tourist',
+            'name': user['full_name']?.toString() ?? 'Unknown',
+            'timestamp': entry['recorded_at']?.toString(),
+          };
+        }
+      }
+
+      setState(() => _liveUsers = mapped);
+    } catch (_) {}
+  }
+
+  Future<void> _fetchRiskPulse() async {
+    try {
+      final res = await ApiClient.get('/analytics/risk-pulse');
+      if (res['success'] == true && mounted) {
+        final data = (res['data'] as Map?)?.cast<String, dynamic>();
+        setState(() => _riskPulse = data);
+      }
+    } catch (_) {
+      // Keep dashboard functional when pulse service is unavailable.
+    }
   }
 
   void _focusOnFirstLive() {
@@ -201,6 +259,8 @@ class _AuthorityDashboardState extends ConsumerState<AuthorityDashboard> {
                 const SizedBox(height: 16),
                 _buildStatsGrid(),
                 const SizedBox(height: 16),
+                _buildRiskPulseCard(),
+                const SizedBox(height: 12),
                 _buildLiveMonitoringPanel(),
                 const SizedBox(height: 12),
                 _buildMapPanel(),
@@ -297,6 +357,127 @@ class _AuthorityDashboardState extends ConsumerState<AuthorityDashboard> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRiskPulseCard() {
+    final trend = (_riskPulse?['trend'] ?? 'stable').toString().toLowerCase();
+    final trendLabel = trend == 'rising'
+        ? 'RISING'
+        : trend == 'falling'
+            ? 'COOLING'
+            : 'STABLE';
+    final trendColor = trend == 'rising'
+        ? Clay.high
+        : trend == 'falling'
+            ? Clay.safe
+            : Clay.primary;
+
+    final globalRisk = _riskPulse?['global_risk_score'];
+    final forecastRisk = _riskPulse?['forecast_risk_score'];
+    final hotspots = _riskPulse?['hotspots'] is List
+        ? List<dynamic>.from(_riskPulse?['hotspots'] ?? const [])
+        : <dynamic>[];
+
+    final globalPct = globalRisk is num ? (globalRisk * 100).toStringAsFixed(1) : '--';
+    final forecastPct = forecastRisk is num ? (forecastRisk * 100).toStringAsFixed(1) : '--';
+
+    return ClayCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.trending_up, color: Clay.primary, size: 18),
+              const SizedBox(width: 8),
+              const Text(
+                'Predictive Risk Pulse',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Clay.text),
+              ),
+              const Spacer(),
+              ClayBadge(
+                label: trendLabel,
+                color: trendColor.withOpacity(0.12),
+                textColor: trendColor,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: ClayInset(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('GLOBAL RISK', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 9, color: Clay.textMuted)),
+                      const SizedBox(height: 2),
+                      Text('$globalPct%', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Clay.text)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ClayInset(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('FORECAST', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 9, color: Clay.textMuted)),
+                      const SizedBox(height: 2),
+                      Text('$forecastPct%', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Clay.text)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (hotspots.isEmpty)
+            const Text(
+              'No hotspot forecast available.',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Clay.textMuted),
+            )
+          else
+            ...hotspots.take(3).map((raw) {
+              if (raw is! Map) {
+                return const SizedBox.shrink();
+              }
+              final hotspot = raw.cast<dynamic, dynamic>();
+              final zoneName = hotspot['zone_name']?.toString() ?? hotspot['label']?.toString() ?? 'Unknown zone';
+              final risk = hotspot['risk_score'];
+              final riskText = risk is num ? '${(risk * 100).toStringAsFixed(1)}%' : '--';
+
+              return Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Clay.surfaceAlt,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Clay.border),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.place_outlined, size: 14, color: Clay.textMuted),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        zoneName,
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Clay.text),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      riskText,
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Clay.high),
+                    ),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );
@@ -553,6 +734,8 @@ class _AuthorityDashboardState extends ConsumerState<AuthorityDashboard> {
           _drawerItem(icon: Icons.warning, title: 'Incidents', onTap: () { context.pop(); context.push('/authority/incidents'); }),
           _drawerItem(icon: Icons.gavel, title: 'eFIR Desk', onTap: () { context.pop(); context.push('/authority/efir'); }),
           _drawerItem(icon: Icons.map, title: 'Zone Management', onTap: () { context.pop(); context.push('/authority/zones'); }),
+          _drawerItem(icon: Icons.campaign, title: 'Alert Composer', onTap: () { context.pop(); context.push('/authority/alerts'); }),
+          _drawerItem(icon: Icons.fact_check, title: 'Daily Check-Ins', onTap: () { context.pop(); context.push('/authority/checkins'); }),
           const Divider(color: Clay.border, height: 32),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),

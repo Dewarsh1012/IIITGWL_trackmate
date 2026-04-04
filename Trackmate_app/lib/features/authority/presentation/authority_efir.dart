@@ -14,6 +14,7 @@ class AuthorityEfirPage extends StatefulWidget {
 
 class _AuthorityEfirPageState extends State<AuthorityEfirPage> {
   final TextEditingController _subjectSearchController = TextEditingController();
+  final TextEditingController _voiceTranscriptController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
@@ -21,6 +22,8 @@ class _AuthorityEfirPageState extends State<AuthorityEfirPage> {
 
   bool _loading = true;
   bool _submitting = false;
+  bool _voiceDraftLoading = false;
+  bool _verifyingHash = false;
   String _status = 'draft';
   String _incidentType = 'Theft/Larceny';
   DateTime? _incidentTime;
@@ -33,6 +36,10 @@ class _AuthorityEfirPageState extends State<AuthorityEfirPage> {
   String? _notice;
   bool _isNoticeError = false;
   String? _blockchainHash;
+  String? _lastEfirId;
+  String? _voiceDraftSource;
+  String? _verifyMessage;
+  bool _verifyMessageIsError = false;
 
   @override
   void initState() {
@@ -43,6 +50,7 @@ class _AuthorityEfirPageState extends State<AuthorityEfirPage> {
   @override
   void dispose() {
     _subjectSearchController.dispose();
+    _voiceTranscriptController.dispose();
     _titleController.dispose();
     _descriptionController.dispose();
     _locationController.dispose();
@@ -109,6 +117,130 @@ class _AuthorityEfirPageState extends State<AuthorityEfirPage> {
       _notice = message;
       _isNoticeError = isError;
     });
+  }
+
+  Future<void> _generateVoiceDraft() async {
+    final transcript = _voiceTranscriptController.text.trim();
+    if (transcript.length < 25) {
+      _showNotice('Provide at least 25 characters of transcript before generating a draft.', isError: true);
+      return;
+    }
+
+    try {
+      setState(() {
+        _voiceDraftLoading = true;
+        _notice = null;
+      });
+
+      final res = await ApiClient.post('/efirs/voice-draft', {
+        'transcript': transcript,
+        'incident_hint': _incidentType,
+        'locale': 'en-IN',
+      });
+
+      if (res['success'] != true) {
+        _showNotice('Voice draft generation failed.', isError: true);
+        return;
+      }
+
+      final draft = (res['data'] as Map?)?.cast<String, dynamic>() ?? {};
+
+      List<Map<String, String>> parsedWitnesses = [];
+      final witnessList = draft['witness_statements'];
+      if (witnessList is List) {
+        parsedWitnesses = witnessList.whereType<Map>().map((raw) {
+          final map = raw.cast<dynamic, dynamic>();
+          return {
+            'name': (map['name'] ?? '').toString(),
+            'contact': (map['contact'] ?? '').toString(),
+            'statement': (map['statement'] ?? '').toString(),
+          };
+        }).toList();
+      }
+
+      setState(() {
+        final title = draft['title']?.toString();
+        if (title != null && title.trim().isNotEmpty) {
+          _titleController.text = title;
+        }
+
+        final description = draft['description']?.toString();
+        if (description != null && description.trim().isNotEmpty) {
+          _descriptionController.text = description;
+        }
+
+        final incidentType = draft['incident_type']?.toString();
+        if (incidentType != null && incidentType.trim().isNotEmpty) {
+          _incidentType = incidentType;
+        }
+
+        final location = draft['incident_location']?.toString();
+        if (location != null && location.trim().isNotEmpty) {
+          _locationController.text = location;
+        }
+
+        final incidentTime = draft['incident_time']?.toString();
+        if (incidentTime != null && incidentTime.trim().isNotEmpty) {
+          final parsed = DateTime.tryParse(incidentTime);
+          if (parsed != null) {
+            _incidentTime = parsed;
+          }
+        }
+
+        if (parsedWitnesses.isNotEmpty) {
+          _witnesses = parsedWitnesses;
+        }
+
+        _voiceDraftSource = draft['source']?.toString();
+      });
+
+      _showNotice(
+        'Voice draft generated${_voiceDraftSource != null ? ' (${_voiceDraftSource!})' : ''}. Review fields before submit.',
+        isError: false,
+      );
+    } catch (e) {
+      _showNotice('Voice draft failed: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _voiceDraftLoading = false);
+    }
+  }
+
+  Future<void> _verifyHash(String efirId) async {
+    if (efirId.isEmpty) return;
+
+    try {
+      setState(() {
+        _verifyingHash = true;
+        _verifyMessage = null;
+      });
+
+      final res = await ApiClient.post('/efirs/$efirId/verify-hash', {});
+      if (res['success'] != true) {
+        _showNotice('Hash verification failed.', isError: true);
+        return;
+      }
+
+      final data = (res['data'] as Map?)?.cast<String, dynamic>() ?? {};
+      final verified = data['verified'] == true;
+      final message = data['message']?.toString() ?? (verified ? 'Hash verified successfully.' : 'Hash verification failed.');
+
+      setState(() {
+        _lastEfirId = efirId;
+        _verifyMessage = message;
+        _verifyMessageIsError = !verified;
+
+        final storedHash = data['storedHash']?.toString();
+        if (storedHash != null && storedHash.isNotEmpty) {
+          _blockchainHash = storedHash;
+        }
+      });
+
+      _showNotice(message, isError: !verified);
+    } catch (e) {
+      _showNotice('Verification request failed: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _verifyingHash = false);
+    }
   }
 
   Future<void> _findSubject() async {
@@ -309,6 +441,8 @@ class _AuthorityEfirPageState extends State<AuthorityEfirPage> {
       setState(() {
         _status = finalStatus;
         _blockchainHash = hash;
+        _lastEfirId = created['_id']?.toString();
+        _verifyMessage = null;
       });
 
       _showNotice(
@@ -518,6 +652,64 @@ class _AuthorityEfirPageState extends State<AuthorityEfirPage> {
     );
   }
 
+  Widget _voiceDraftCard() {
+    return ClayCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle(Icons.mic_none_outlined, 'Voice-to-eFIR Draft'),
+          const SizedBox(height: 8),
+          const Text(
+            'Paste speech transcript or dictated notes (min 25 chars).',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Clay.textMuted),
+          ),
+          const SizedBox(height: 8),
+          ClayInput(
+            controller: _voiceTranscriptController,
+            hint: 'Describe what happened, when, and where...',
+            maxLines: 4,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: ClayButton(
+                  label: 'GENERATE DRAFT',
+                  icon: Icons.auto_awesome,
+                  variant: ClayButtonVariant.primary,
+                  isLoading: _voiceDraftLoading,
+                  onTap: _voiceDraftLoading ? null : _generateVoiceDraft,
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 92,
+                child: ClayButton(
+                  label: 'CLEAR',
+                  icon: Icons.close,
+                  variant: ClayButtonVariant.ghost,
+                  fullWidth: true,
+                  onTap: _voiceDraftLoading
+                      ? null
+                      : () {
+                          setState(() => _voiceTranscriptController.clear());
+                        },
+                ),
+              ),
+            ],
+          ),
+          if (_voiceDraftSource != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Draft source: ${_voiceDraftSource!.toUpperCase()}',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: Clay.primary),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _witnessCard() {
     return ClayCard(
       child: Column(
@@ -662,6 +854,35 @@ class _AuthorityEfirPageState extends State<AuthorityEfirPage> {
                     color: Clay.textSecondary,
                   ),
                 ),
+                const SizedBox(height: 8),
+                ClayButton(
+                  label: 'VERIFY HASH',
+                  icon: Icons.verified_user_outlined,
+                  variant: ClayButtonVariant.ghost,
+                  isLoading: _verifyingHash,
+                  onTap: (_verifyingHash || _lastEfirId == null || _lastEfirId!.isEmpty)
+                      ? null
+                      : () => _verifyHash(_lastEfirId!),
+                ),
+                if (_lastEfirId == null || _lastEfirId!.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6),
+                    child: Text(
+                      'Submit an eFIR first to enable one-tap verification.',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 10, color: Clay.textMuted),
+                    ),
+                  ),
+                if (_verifyMessage != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    _verifyMessage!,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                      color: _verifyMessageIsError ? Clay.high : Clay.safe,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -751,6 +972,7 @@ class _AuthorityEfirPageState extends State<AuthorityEfirPage> {
               final status = efir['status']?.toString() ?? 'draft';
               final subjectName = efir['user']?['full_name']?.toString() ?? 'Unknown Subject';
               final hash = efir['blockchain_hash']?.toString();
+              final efirId = efir['_id']?.toString() ?? '';
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
@@ -792,6 +1014,15 @@ class _AuthorityEfirPageState extends State<AuthorityEfirPage> {
                           hash,
                           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 9, color: Clay.textSecondary),
                           overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    if (hash != null && hash.isNotEmpty && efirId.isNotEmpty)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: _verifyingHash ? null : () => _verifyHash(efirId),
+                          icon: const Icon(Icons.verified_outlined, size: 14),
+                          label: const Text('Verify'),
                         ),
                       ),
                   ],
@@ -891,6 +1122,8 @@ class _AuthorityEfirPageState extends State<AuthorityEfirPage> {
                           children: [
                             _subjectCard(),
                             const SizedBox(height: 10),
+                            _voiceDraftCard(),
+                            const SizedBox(height: 10),
                             _incidentDetailsCard(),
                             const SizedBox(height: 10),
                             _witnessCard(),
@@ -912,6 +1145,8 @@ class _AuthorityEfirPageState extends State<AuthorityEfirPage> {
                             child: Column(
                               children: [
                                 _subjectCard(),
+                                const SizedBox(height: 10),
+                                _voiceDraftCard(),
                                 const SizedBox(height: 10),
                                 _incidentDetailsCard(),
                                 const SizedBox(height: 10),

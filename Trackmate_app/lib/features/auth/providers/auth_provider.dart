@@ -56,6 +56,7 @@ class AuthNotifier extends Notifier<AuthState> {
           final user = res['data'] as Map<String, dynamic>;
           await ApiClient.saveUserProfile(user);
           await SocketService.instance.connect();
+          SocketService.instance.updateIdentity(user);
           state = state.copyWith(
             isLoading: false,
             isAuthenticated: true,
@@ -86,6 +87,7 @@ class AuthNotifier extends Notifier<AuthState> {
         await ApiClient.setToken(token);
         await ApiClient.saveUserProfile(user);
         await SocketService.instance.connect();
+        SocketService.instance.updateIdentity(user);
 
         state = state.copyWith(
           isLoading: false,
@@ -120,6 +122,7 @@ class AuthNotifier extends Notifier<AuthState> {
         await ApiClient.setToken(token);
         await ApiClient.saveUserProfile(user);
         await SocketService.instance.connect();
+        SocketService.instance.updateIdentity(user);
 
         state = state.copyWith(
           isLoading: false,
@@ -142,6 +145,7 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    SocketService.instance.updateIdentity(null);
     SocketService.instance.disconnect();
     await ApiClient.clearToken();
     state = AuthState();

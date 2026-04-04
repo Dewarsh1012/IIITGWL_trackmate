@@ -6,6 +6,7 @@ class SocketService {
   static SocketService? _instance;
   io.Socket? _socket;
   String? _token;
+  Map<String, dynamic>? _identity;
 
   SocketService._();
 
@@ -21,6 +22,9 @@ class SocketService {
     _token = await ApiClient.getToken();
     if (_token == null) return;
 
+    // Ensure old socket instance does not leak listeners.
+    disconnect();
+
     final url = ApiClient.socketUrl;
     debugPrint('[Socket] Connecting to $url');
 
@@ -33,6 +37,7 @@ class SocketService {
 
     _socket!.onConnect((_) {
       debugPrint('[Socket] Connected');
+      _joinIdentityRooms();
     });
 
     _socket!.onDisconnect((_) {
@@ -46,8 +51,51 @@ class SocketService {
     _socket!.connect();
   }
 
+  void updateIdentity(Map<String, dynamic>? user) {
+    _identity = user;
+    _joinIdentityRooms();
+  }
+
+  void _joinIdentityRooms() {
+    if (!isConnected || _identity == null) return;
+
+    final userId = _identity!['_id']?.toString() ?? _identity!['id']?.toString();
+    final role = (_identity!['role'] ?? '').toString().toLowerCase();
+    final wardRaw = _identity!['ward'];
+    final wardId = wardRaw is Map<String, dynamic>
+        ? wardRaw['_id']?.toString()
+        : wardRaw?.toString();
+
+    if (userId == null || userId.isEmpty) return;
+
+    if (role == 'authority') {
+      _socket?.emit('join:authority');
+    } else if (role == 'tourist') {
+      _socket?.emit('join:tourist', userId);
+    } else if (role == 'resident') {
+      _socket?.emit('join:resident', userId);
+    } else if (role == 'business') {
+      _socket?.emit('join:business', userId);
+    }
+
+    _socket?.emit('join:user', userId);
+
+    if (wardId != null && wardId.isNotEmpty) {
+      _socket?.emit('join:ward', wardId);
+    }
+  }
+
   void joinRoom(String room) {
-    _socket?.emit('join_room', room);
+    if (!isConnected) return;
+    if (room.startsWith('incident_')) {
+      _socket?.emit('join:incident', room.replaceFirst('incident_', ''));
+      return;
+    }
+    if (room.startsWith('zone_')) {
+      _socket?.emit('join:zone', room.replaceFirst('zone_', ''));
+      return;
+    }
+    _socket?.emit('join:user', room);
   }
 
   void emit(String event, dynamic data) {
@@ -63,6 +111,7 @@ class SocketService {
   }
 
   void disconnect() {
+    _identity = null;
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
