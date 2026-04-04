@@ -17,7 +17,13 @@ export function initSocket(httpServer: HTTPServer): SocketIOServer {
 
     io = new SocketIOServer(httpServer, {
         cors: {
-            origin: corsOrigins,
+            origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+                if (!origin || origin.startsWith('http://localhost:') || corsOrigins.includes(origin)) {
+                    callback(null, true);
+                } else {
+                    callback(new Error(`Socket CORS policy origin ${origin} is not allowed`));
+                }
+            },
             methods: ['GET', 'POST'],
             credentials: true,
         },

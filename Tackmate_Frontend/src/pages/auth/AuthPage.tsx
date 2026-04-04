@@ -75,6 +75,16 @@ export default function AuthPage() {
     const [langOpen, setLangOpen] = useState(false);
     const langRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (langRef.current && !langRef.current.contains(e.target as Node)) {
+                setLangOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
     const handleCopy = () => {
         if (blockchainId) { navigator.clipboard.writeText(blockchainId); setCopied(true); setTimeout(() => setCopied(false), 2000); }
     };
@@ -131,15 +141,7 @@ export default function AuthPage() {
         );
     }
 
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (langRef.current && !langRef.current.contains(e.target as Node)) {
-                setLangOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, []);
+
 
     return (
         <div style={{ minHeight: '100vh', background: C.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
