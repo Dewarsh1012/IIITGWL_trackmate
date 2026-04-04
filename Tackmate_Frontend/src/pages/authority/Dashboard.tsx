@@ -84,16 +84,22 @@ export default function AuthorityDashboard() {
     const [drawColor, setDrawColor] = useState(C.high);
     const [emergencyAlerts, setEmergencyAlerts] = useState<any[]>([]);
     const [checkins, setCheckins] = useState<any[]>([]);
+    const [riskPulse, setRiskPulse] = useState<any>(null);
+    const [crisisTimeline, setCrisisTimeline] = useState<any[]>([]);
+    const [responderAssignments, setResponderAssignments] = useState<any[]>([]);
+    const [guardianSummaries, setGuardianSummaries] = useState<any[]>([]);
+    const [misuseFlags, setMisuseFlags] = useState<any[]>([]);
 
     const fetchDashboardData = async () => {
         setLoading(true);
         try {
-            const [incidentsRes, summaryRes, zonesRes, locationsRes, checkinsRes] = await Promise.all([
+            const [incidentsRes, summaryRes, zonesRes, locationsRes, checkinsRes, riskPulseRes] = await Promise.all([
                 api.get('/incidents?limit=10'),
                 api.get('/analytics/summary'),
                 api.get('/zones'),
                 api.get('/locations/all'),
                 api.get('/locations/checkins/all').catch(() => ({ data: { success: false, data: [] } })),
+                api.get('/analytics/risk-pulse').catch(() => ({ data: { success: false, data: null } })),
             ]);
 
             if (incidentsRes.data.success) setIncidents(incidentsRes.data.data);
@@ -127,6 +133,7 @@ export default function AuthorityDashboard() {
                 setUserLocations(locMap);
             }
             if (checkinsRes.data.success) setCheckins(checkinsRes.data.data || []);
+            if (riskPulseRes.data.success) setRiskPulse(riskPulseRes.data.data || null);
         } catch (err) { console.error(err); } finally { setLoading(false); }
     };
 
@@ -134,21 +141,23 @@ export default function AuthorityDashboard() {
         fetchDashboardData();
         const interval = setInterval(fetchDashboardData, 60000);
         if (socket) {
-            socket.on('new-incident', (incident: any) => {
+            const onNewIncident = (incident: any) => {
                 setIncidents(prev => [incident, ...prev.slice(0, 9)]);
                 if (incident.incident_type === 'checkin') {
                     setCheckins(prev => [incident, ...prev.slice(0, 49)]);
                 }
                 fetchDashboardData();
-            });
-            socket.on('sos:triggered', (incident: any) => {
+            };
+
+            const onSosTriggered = (incident: any) => {
                 setEmergencyAlerts(prev => {
                     const deduped = prev.filter((item) => item._id !== incident._id);
                     return [incident, ...deduped].slice(0, 6);
                 });
                 setIncidents(prev => [incident, ...prev.slice(0, 9)]);
-            });
-            socket.on('location:update', (data: any) => {
+            };
+
+            const onLocationUpdate = (data: any) => {
                 const lat = data.latitude || (data.location?.coordinates && data.location.coordinates[1]);
                 const lng = data.longitude || (data.location?.coordinates && data.location.coordinates[0]);
                 if (data.userId && lat && lng) {
@@ -157,9 +166,61 @@ export default function AuthorityDashboard() {
                         [data.userId]: { lat, lng, role: data.role, name: data.name, timestamp: Date.now() }
                     }));
                 }
-            });
+            };
+
+            const onRiskPulse = (payload: any) => {
+                setRiskPulse(payload);
+            };
+
+            const onCrisisTimeline = (payload: any) => {
+                const events = Array.isArray(payload?.events) ? payload.events : [];
+                if (!events.length) return;
+
+                const enrichedEvents = events.map((event: any) => ({
+                    ...event,
+                    incident_id: payload.incident_id,
+                }));
+
+                setCrisisTimeline((prev) => [...enrichedEvents.reverse(), ...prev].slice(0, 24));
+            };
+
+            const onResponderAssigned = (payload: any) => {
+                setResponderAssignments((prev) => [payload, ...prev].slice(0, 8));
+            };
+
+            const onGuardianDispatchSummary = (payload: any) => {
+                setGuardianSummaries((prev) => [payload, ...prev].slice(0, 8));
+            };
+
+            const onMisuseFlagged = (payload: any) => {
+                setMisuseFlags((prev) => [payload, ...prev].slice(0, 8));
+            };
+
+            socket.on('new-incident', onNewIncident);
+            socket.on('sos:triggered', onSosTriggered);
+            socket.on('location:update', onLocationUpdate);
+            socket.on('risk:pulse', onRiskPulse);
+            socket.on('crisis:timeline', onCrisisTimeline);
+            socket.on('responder:auto-assigned', onResponderAssigned);
+            socket.on('guardian:dispatch-summary', onGuardianDispatchSummary);
+            socket.on('sos:misuse-flagged', onMisuseFlagged);
+
+            return () => {
+                clearInterval(interval);
+                socket.off('new-incident', onNewIncident);
+                socket.off('sos:triggered', onSosTriggered);
+                socket.off('location:update', onLocationUpdate);
+                socket.off('risk:pulse', onRiskPulse);
+                socket.off('crisis:timeline', onCrisisTimeline);
+                socket.off('responder:auto-assigned', onResponderAssigned);
+                socket.off('guardian:dispatch-summary', onGuardianDispatchSummary);
+                socket.off('sos:misuse-flagged', onMisuseFlagged);
+            };
         }
-        return () => { clearInterval(interval); if (socket) { socket.off('new-incident'); socket.off('sos:triggered'); socket.off('location:update'); } };
+
+        return () => {
+            clearInterval(interval);
+        };
     }, [socket]);
 
     const handleUpdateIncident = async (id: string, status: string) => {
@@ -250,6 +311,13 @@ export default function AuthorityDashboard() {
         { label: 'Residents', count: liveRoleCounts.residents, color: C.safe, icon: <Users size={14} /> },
         { label: 'Businesses', count: liveRoleCounts.businesses, color: C.moderate, icon: <Activity size={14} /> },
     ];
+
+    const pulseTrend = String(riskPulse?.trend || 'stable').toLowerCase();
+    const pulseTrendColor = pulseTrend === 'rising' ? C.high : pulseTrend === 'falling' ? C.safe : C.primary;
+    const pulseTrendLabel = pulseTrend === 'rising' ? 'Rising' : pulseTrend === 'falling' ? 'Cooling' : 'Stable';
+    const pulseGlobal = Number(riskPulse?.global_risk_score || 0);
+    const pulseForecast = Number(riskPulse?.forecast_risk_score || 0);
+    const pulseHotspots = Array.isArray(riskPulse?.hotspots) ? riskPulse.hotspots.slice(0, 4) : [];
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: C.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -389,6 +457,140 @@ export default function AuthorityDashboard() {
                             {!s.pulse && <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, color: C.safe, fontSize: '0.65rem', fontWeight: 700 }}><TrendingUp size={11} /> Live tracking active</div>}
                         </div>
                     ))}
+                </div>
+
+                <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, padding: '16px 28px 0' }}>
+                    <div style={{ ...clayCard, padding: '16px 18px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                            <div>
+                                <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.textMuted }}>
+                                    Predictive Risk Pulse
+                                </p>
+                                <h3 style={{ margin: '4px 0 0', fontWeight: 800, color: C.text, fontSize: '1rem' }}>
+                                    Live Forecast Engine
+                                </h3>
+                            </div>
+                            <span style={{ background: `${pulseTrendColor}18`, color: pulseTrendColor, border: `1px solid ${pulseTrendColor}25`, borderRadius: 999, padding: '4px 10px', fontSize: '0.66rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                                {pulseTrendLabel}
+                            </span>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                            <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 12px' }}>
+                                <p style={{ margin: 0, fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', color: C.textMuted }}>Current Risk</p>
+                                <p style={{ margin: '2px 0 0', fontSize: '1.5rem', fontWeight: 800, color: pulseGlobal >= 70 ? C.high : pulseGlobal >= 45 ? C.moderate : C.safe, fontFamily: "'JetBrains Mono', monospace" }}>
+                                    {pulseGlobal}
+                                </p>
+                            </div>
+                            <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 12px' }}>
+                                <p style={{ margin: 0, fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', color: C.textMuted }}>+60m Forecast</p>
+                                <p style={{ margin: '2px 0 0', fontSize: '1.5rem', fontWeight: 800, color: pulseForecast >= 70 ? C.high : pulseForecast >= 45 ? C.moderate : C.safe, fontFamily: "'JetBrains Mono', monospace" }}>
+                                    {pulseForecast}
+                                </p>
+                            </div>
+                        </div>
+
+                        {pulseHotspots.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {pulseHotspots.map((hotspot: any) => (
+                                    <div key={hotspot.zone_id} style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '8px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <p style={{ margin: 0, fontSize: '0.78rem', fontWeight: 700, color: C.text }}>{hotspot.zone_name}</p>
+                                            <p style={{ margin: '2px 0 0', fontSize: '0.64rem', fontWeight: 700, color: C.textMuted, textTransform: 'uppercase' }}>{hotspot.trend} trend</p>
+                                        </div>
+                                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: hotspot.risk_score >= 65 ? C.high : C.primary }}>
+                                            {hotspot.risk_score}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p style={{ margin: 0, fontSize: '0.76rem', color: C.textMuted, fontWeight: 600 }}>Risk pulse warming up. No hotspot forecast yet.</p>
+                        )}
+                    </div>
+
+                    <div style={{ ...clayCard, padding: '16px 18px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                            <h3 style={{ margin: 0, fontSize: '0.82rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.text }}>
+                                Auto Responder Queue
+                            </h3>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 700, color: C.textMuted }}>{responderAssignments.length} live</span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 228, overflowY: 'auto' }}>
+                            {responderAssignments.length > 0 ? responderAssignments.map((assignment, idx) => (
+                                <div key={`${assignment.incident_id || 'assignment'}-${idx}`} style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '8px 10px' }}>
+                                    <p style={{ margin: 0, fontSize: '0.74rem', fontWeight: 700, color: C.text }}>Incident {String(assignment.incident_id || '').slice(-6).toUpperCase()}</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.68rem', color: C.textMuted, fontWeight: 600 }}>
+                                        Primary: {assignment.primary_responder?.full_name || 'Pending'}
+                                    </p>
+                                </div>
+                            )) : (
+                                <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '12px' }}>
+                                    <p style={{ margin: 0, fontSize: '0.74rem', color: C.textMuted, fontWeight: 600 }}>No active auto-assignments yet.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, padding: '16px 28px 0' }}>
+                    <div style={{ ...clayCard, padding: '16px 18px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                            <h3 style={{ margin: 0, fontSize: '0.82rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.text }}>
+                                Live Crisis Timeline
+                            </h3>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 700, color: C.textMuted }}>{crisisTimeline.length} events</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 228, overflowY: 'auto' }}>
+                            {crisisTimeline.length > 0 ? crisisTimeline.map((event, idx) => (
+                                <div key={`${event.event_id || idx}`} style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '8px 10px' }}>
+                                    <p style={{ margin: 0, fontSize: '0.74rem', fontWeight: 700, color: C.text }}>{event.label}</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.64rem', color: C.textMuted, fontWeight: 600 }}>
+                                        {event.actor_role || 'system'} · {event.incident_id ? `#${String(event.incident_id).slice(-6).toUpperCase()}` : 'global'}
+                                    </p>
+                                </div>
+                            )) : (
+                                <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '12px' }}>
+                                    <p style={{ margin: 0, fontSize: '0.74rem', color: C.textMuted, fontWeight: 600 }}>Timeline feed waiting for incident events.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div style={{ ...clayCard, padding: '16px 18px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                            <h3 style={{ margin: 0, fontSize: '0.82rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.text }}>
+                                Guardian + Misuse Shield
+                            </h3>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 700, color: C.textMuted }}>
+                                {guardianSummaries.length + misuseFlags.length} signals
+                            </span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 228, overflowY: 'auto' }}>
+                            {guardianSummaries.map((item, idx) => (
+                                <div key={`guardian-${idx}`} style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)', borderRadius: 12, padding: '8px 10px' }}>
+                                    <p style={{ margin: 0, fontSize: '0.74rem', fontWeight: 700, color: C.text }}>Guardian dispatch sent</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.64rem', color: C.textMuted, fontWeight: 600 }}>
+                                        #{String(item.incident_id || '').slice(-6).toUpperCase()} · {item.recipient_count || 0} recipients
+                                    </p>
+                                </div>
+                            ))}
+                            {misuseFlags.map((item, idx) => (
+                                <div key={`misuse-${idx}`} style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 12, padding: '8px 10px' }}>
+                                    <p style={{ margin: 0, fontSize: '0.74rem', fontWeight: 700, color: C.high }}>Misuse shield flagged SOS</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.64rem', color: C.textMuted, fontWeight: 600 }}>
+                                        #{String(item.incident_id || '').slice(-6).toUpperCase()} · score {Math.round(Number(item.misuse_risk_score || 0) * 100)}%
+                                    </p>
+                                </div>
+                            ))}
+                            {guardianSummaries.length === 0 && misuseFlags.length === 0 && (
+                                <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '12px' }}>
+                                    <p style={{ margin: 0, fontSize: '0.74rem', color: C.textMuted, fontWeight: 600 }}>No guardian or misuse alerts at the moment.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Live Monitoring Panel */}

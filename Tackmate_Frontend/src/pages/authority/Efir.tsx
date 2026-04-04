@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Trash2, Upload, Eye, Send, Save, MapPin, Calendar, FileText, Loader2, Fingerprint, Users, Mail, Phone, Info, AlertTriangle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Trash2, Upload, Eye, Send, Save, MapPin, Calendar, FileText, Loader2, Fingerprint, Users, Mail, Phone, Info, AlertTriangle, Mic, StopCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../lib/api';
 import { useSearchParams } from 'react-router-dom';
@@ -58,10 +58,22 @@ export default function AuthorityEfir() {
     const [location, setLocation] = useState('');
     const [incidentTime, setIncidentTime] = useState('');
     const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [voiceTranscript, setVoiceTranscript] = useState('');
+    const [isListening, setIsListening] = useState(false);
+    const [voiceGenerating, setVoiceGenerating] = useState(false);
+    const recognitionRef = useRef<any>(null);
 
     useEffect(() => {
         if (incidentId) { fetchIncident(incidentId); } else { setLoading(false); }
     }, [incidentId]);
+
+    useEffect(() => {
+        return () => {
+            if (recognitionRef.current && typeof recognitionRef.current.stop === 'function') {
+                recognitionRef.current.stop();
+            }
+        };
+    }, []);
 
     const fetchIncident = async (id: string) => {
         try {
@@ -96,6 +108,92 @@ export default function AuthorityEfir() {
     const addWitness = () => setWitnesses([...witnesses, { name: '', contact: '', statement: '' }]);
     const updateWitness = (i: number, field: string, value: string) => { const w = [...witnesses]; w[i][field] = value; setWitnesses(w); };
     const removeWitness = (i: number) => setWitnesses(witnesses.filter((_, idx) => idx !== i));
+
+    const startVoiceCapture = () => {
+        const SpeechRecognitionImpl = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognitionImpl) {
+            setNotice({ type: 'error', message: 'Voice input is not supported in this browser.' });
+            return;
+        }
+
+        const recognition = recognitionRef.current || new SpeechRecognitionImpl();
+        recognition.lang = 'en-IN';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = (event: any) => {
+            const transcript = Array.from(event.results || [])
+                .map((result: any) => result?.[0]?.transcript || '')
+                .join(' ')
+                .trim();
+            setVoiceTranscript(transcript);
+        };
+
+        recognition.onerror = () => {
+            setIsListening(false);
+            setNotice({ type: 'error', message: 'Voice capture failed. Check microphone permissions.' });
+        };
+
+        recognition.onend = () => {
+            setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+        setIsListening(true);
+        setNotice(null);
+    };
+
+    const stopVoiceCapture = () => {
+        if (recognitionRef.current && typeof recognitionRef.current.stop === 'function') {
+            recognitionRef.current.stop();
+        }
+        setIsListening(false);
+    };
+
+    const generateVoiceDraft = async () => {
+        if (!voiceTranscript || voiceTranscript.trim().length < 25) {
+            setNotice({ type: 'error', message: 'Record at least 25 characters of voice transcript before drafting.' });
+            return;
+        }
+
+        try {
+            setNotice(null);
+            setVoiceGenerating(true);
+            const res = await api.post('/efirs/voice-draft', {
+                transcript: voiceTranscript,
+                incident_hint: incidentType,
+            });
+
+            if (res.data.success) {
+                const draft = res.data.data || {};
+                if (draft.title) setTitle(draft.title);
+                if (draft.description) setDescription(draft.description);
+                if (draft.incident_type) setIncidentType(draft.incident_type);
+                if (draft.incident_location) setLocation(draft.incident_location);
+                if (draft.incident_time) {
+                    const parsed = new Date(draft.incident_time);
+                    if (!Number.isNaN(parsed.getTime())) setIncidentTime(parsed.toISOString().slice(0, 16));
+                }
+                if (Array.isArray(draft.witness_statements) && draft.witness_statements.length > 0) {
+                    setWitnesses(draft.witness_statements.map((w: any) => ({
+                        name: w.name || '',
+                        contact: w.contact || '',
+                        statement: w.statement || '',
+                    })));
+                }
+
+                setNotice({
+                    type: 'success',
+                    message: `Voice draft generated (${draft.source || 'heuristic'} mode). Review before submit.`,
+                });
+            }
+        } catch {
+            setNotice({ type: 'error', message: 'Unable to generate voice draft. Try again.' });
+        } finally {
+            setVoiceGenerating(false);
+        }
+    };
 
     const handleSubmit = async (_submitStatus: string) => {
         if (!subject) { setNotice({ type: 'error', message: 'Please select a subject first.' }); return; }
@@ -198,6 +296,34 @@ export default function AuthorityEfir() {
                                         <p style={{ fontSize: '0.88rem', fontWeight: 600 }}>No subject selected. Use search to find a verified user.</p>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+
+                        {/* Incident details */}
+                        <div style={{ ...clayCard }}>
+                            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, background: C.surfaceAlt, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '20px 20px 0 0' }}>
+                                <h3 style={{ fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem', color: C.text }}><Mic size={16} /> Voice-to-eFIR Draft</h3>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    {!isListening ? (
+                                        <button onClick={startVoiceCapture} style={{ background: C.primary, color: '#FFFFFF', border: 'none', padding: '6px 12px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.7rem', cursor: 'pointer', textTransform: 'uppercase', borderRadius: 10, boxShadow: '0 6px 12px rgba(108,99,255,0.25)' }}>
+                                            Start Listening
+                                        </button>
+                                    ) : (
+                                        <button onClick={stopVoiceCapture} style={{ background: C.high, color: '#FFFFFF', border: 'none', padding: '6px 12px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.7rem', cursor: 'pointer', textTransform: 'uppercase', borderRadius: 10 }}>
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><StopCircle size={12} /> Stop</span>
+                                        </button>
+                                    )}
+                                    <button onClick={generateVoiceDraft} disabled={voiceGenerating} style={{ background: C.safe, color: '#0B3B2A', border: 'none', padding: '6px 12px', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.7rem', cursor: voiceGenerating ? 'not-allowed' : 'pointer', textTransform: 'uppercase', borderRadius: 10, opacity: voiceGenerating ? 0.7 : 1 }}>
+                                        {voiceGenerating ? 'Generating...' : 'Generate Draft'}
+                                    </button>
+                                </div>
+                            </div>
+                            <div style={{ padding: '20px' }}>
+                                <label style={labelS}>Captured Transcript</label>
+                                <textarea value={voiceTranscript} onChange={e => setVoiceTranscript(e.target.value)} style={{ ...inputStyle, minHeight: 88, resize: 'vertical' }} placeholder="Speak incident details or paste transcript here..." />
+                                <p style={{ margin: '8px 0 0', fontSize: '0.72rem', color: isListening ? C.high : C.textMuted, fontWeight: 700 }}>
+                                    {isListening ? 'Listening live. Speak clearly and include location/time cues.' : 'Tip: mention place, time, and what happened for better draft quality.'}
+                                </p>
                             </div>
                         </div>
 

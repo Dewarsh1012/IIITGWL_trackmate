@@ -12,6 +12,7 @@ import {
     X, Send, MapPin, Radio, Bluetooth, Wifi
 } from 'lucide-react';
 import AlertPanel from '../../components/alerts/AlertPanel';
+import { enqueueOfflineSos, flushOfflineSosQueue, getOfflineSosQueueCount } from '../../lib/offlineSos';
 
 /* ── Clay color palette (correct) ── */
 const C = {
@@ -167,6 +168,27 @@ export default function TouristDashboard() {
         return () => { clearInterval(interval); if (socket) socket.off('new-incident'); };
     }, [socket, fetchTouristData]);
 
+    useEffect(() => {
+        const flushQueuedSos = async () => {
+            if (!navigator.onLine) return;
+            const result = await flushOfflineSosQueue();
+            if (result.sent > 0) {
+                setToast({ message: `${result.sent} offline SOS alert(s) sent`, type: 'success' });
+            }
+        };
+
+        void flushQueuedSos();
+
+        const onOnline = () => {
+            void flushQueuedSos();
+        };
+
+        window.addEventListener('online', onOnline);
+        return () => {
+            window.removeEventListener('online', onOnline);
+        };
+    }, []);
+
     const handleCheckin = async () => {
         if (!userLat || !userLng) { setToast({ message: 'Unable to get your location', type: 'error' }); return; }
         setCheckinLoading(true);
@@ -233,23 +255,44 @@ export default function TouristDashboard() {
 
     const triggerSOS = async () => {
         setSosLoading(true);
+        const payload: Record<string, any> = {
+            title: 'EMERGENCY SOS TRIGGERED',
+            incident_type: 'sos_emergency',
+            severity: 'critical',
+            source: 'sos_panic',
+            latitude: userLat || 27.5855,
+            longitude: userLng || 91.8594,
+            is_public: true,
+            metadata: {
+                triggered_by_role: 'tourist',
+                triggered_by_name: user?.full_name || 'Tourist User',
+            },
+        };
+
         try {
             const pos = await new Promise<GeolocationPosition>((res, rej) => navigator.geolocation.getCurrentPosition(res, rej)).catch(() => null);
-            await api.post('/incidents', {
-                title: 'EMERGENCY SOS TRIGGERED',
-                incident_type: 'sos_emergency',
-                severity: 'critical',
-                source: 'sos_panic',
-                latitude: pos?.coords.latitude || userLat || 27.5855,
-                longitude: pos?.coords.longitude || userLng || 91.8594,
-                is_public: true,
-                metadata: {
-                    triggered_by_role: 'tourist',
-                    triggered_by_name: user?.full_name || 'Tourist User',
-                },
-            });
+
+            payload.latitude = pos?.coords.latitude || payload.latitude;
+            payload.longitude = pos?.coords.longitude || payload.longitude;
+
+            if (!navigator.onLine) {
+                enqueueOfflineSos(payload, 'tourist');
+                setToast({
+                    message: `No network. SOS saved offline (${getOfflineSosQueueCount()} queued).`,
+                    type: 'info',
+                });
+                return;
+            }
+
+            await api.post('/incidents', payload);
             setSosSuccess(true); setTimeout(() => setSosSuccess(false), 5000);
-        } catch { setToast({ message: 'SOS transmission failed!', type: 'error' }); } finally { setSosLoading(false); }
+        } catch {
+            enqueueOfflineSos(payload, 'tourist');
+            setToast({
+                message: `Network unstable. SOS cached safely (${getOfflineSosQueueCount()} queued).`,
+                type: 'info',
+            });
+        } finally { setSosLoading(false); }
     };
 
     const filteredZones = searchQuery.trim() ? zones.filter(z => z.name.toLowerCase().includes(searchQuery.toLowerCase())) : zones;

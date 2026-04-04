@@ -1,6 +1,6 @@
 import { Server as HTTPServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
-import { LocationLog, Zone, Profile } from '../models';
+import { Incident, LocationLog, Zone, Profile } from '../models';
 import { findZoneForPoint } from '../lib/geofence';
 
 let io: SocketIOServer | null = null;
@@ -64,8 +64,16 @@ export function initSocket(httpServer: HTTPServer): SocketIOServer {
             socket.join(`zone_${zoneId}`);
         });
 
+        socket.on('join:incident', (incidentId: string) => {
+            socket.join(`incident_${incidentId}`);
+        });
+
+        socket.on('leave:incident', (incidentId: string) => {
+            socket.leave(`incident_${incidentId}`);
+        });
+
         // ─── Location Update via Socket (5s interval from clients) ───
-        socket.on('location_update', async (data: { userId: string; latitude: number; longitude: number; accuracy?: number; speed?: number; battery?: number }) => {
+        socket.on('location_update', async (data: { userId: string; latitude: number; longitude: number; accuracy?: number; speed?: number; battery?: number; role?: string; name?: string }) => {
             try {
                 if (!data || !data.userId) return;
                 userLastSeen.set(data.userId, Date.now());
@@ -164,6 +172,48 @@ export function initSocket(httpServer: HTTPServer): SocketIOServer {
                     zone: matchingZone ? { id: matchingZone._id, name: matchingZone.name, risk_level: matchingZone.risk_level } : null,
                     timestamp: new Date().toISOString(),
                 });
+
+                // Crisis timeline movement pings for active SOS incidents where this user
+                // is the reporter or currently assigned responder.
+                if (count % 2 === 0) {
+                    const recentSosIncidents = await Incident.find({
+                        incident_type: 'sos_emergency',
+                        status: { $in: ['active', 'acknowledged', 'assigned', 'escalated'] },
+                        created_at: { $gte: new Date(Date.now() - 12 * 60 * 60 * 1000) },
+                        $or: [{ reporter: data.userId }, { assigned_to: data.userId }],
+                    })
+                        .select('_id reporter assigned_to')
+                        .limit(4)
+                        .lean();
+
+                    for (const incident of recentSosIncidents) {
+                        const incidentId = String(incident._id);
+                        io!.to('authority_room').to(`incident_${incidentId}`).emit('crisis:timeline', {
+                            incident_id: incidentId,
+                            events: [
+                                {
+                                    event_id: `loc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                                    type: 'live_location_ping',
+                                    label: 'Live location update received',
+                                    timestamp: new Date().toISOString(),
+                                    actor_role: data.role || 'user',
+                                    actor_id: data.userId,
+                                    details: {
+                                        latitude: data.latitude,
+                                        longitude: data.longitude,
+                                        zone: matchingZone
+                                            ? {
+                                                id: String(matchingZone._id),
+                                                name: matchingZone.name,
+                                                risk_level: matchingZone.risk_level,
+                                            }
+                                            : null,
+                                    },
+                                },
+                            ],
+                        });
+                    }
+                }
             } catch (err) {
                 console.error('Socket location_update error:', err);
             }

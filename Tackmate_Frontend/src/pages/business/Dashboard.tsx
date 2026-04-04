@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import api from '../../lib/api';
 import { Loader2, Shield, TrendingUp, MapPin, Users, Bell, AlertTriangle, Search, Check, Fingerprint, PlusCircle, Info, Globe, ShieldAlert } from 'lucide-react';
 import AlertPanel from '../../components/alerts/AlertPanel';
+import { enqueueOfflineSos, flushOfflineSosQueue, getOfflineSosQueueCount } from '../../lib/offlineSos';
 
 const C = {
     bg: '#F0EDFA', surface: '#FFFFFF', surfaceAlt: '#F7F5FF', dark: '#1B1D2A', text: '#1B1D2A',
@@ -16,6 +18,7 @@ const clayInput: React.CSSProperties = { width: '100%', padding: '12px 14px 12px
 
 export default function BusinessDashboard() {
     const { user } = useAuth();
+    const { socket } = useSocket();
     const [verificationId, setVerificationId] = useState('');
     const [verificationResult, setVerificationResult] = useState<any>(null);
     const [isVerifying, setIsVerifying] = useState(false);
@@ -26,12 +29,50 @@ export default function BusinessDashboard() {
     const [sosSuccess, setSosSuccess] = useState(false);
     const [countdown, setCountdown] = useState(0);
     const sosIntervalRef = useRef<number | null>(null);
+    const [guardianDispatches, setGuardianDispatches] = useState<any[]>([]);
+    const [notice, setNotice] = useState<string | null>(null);
 
     useEffect(() => {
         fetchBusinessData();
         const interval = setInterval(fetchBusinessData, 60000);
         return () => clearInterval(interval);
     }, [user]);
+
+    useEffect(() => {
+        if (!socket) return;
+        const onGuardianDispatch = (dispatch: any) => {
+            setGuardianDispatches((prev) => [dispatch, ...prev].slice(0, 6));
+            setNotice('Guardian emergency assist request received.');
+        };
+        socket.on('guardian:dispatch', onGuardianDispatch);
+        return () => {
+            socket.off('guardian:dispatch', onGuardianDispatch);
+        };
+    }, [socket]);
+
+    useEffect(() => {
+        if (!notice) return;
+        const timer = window.setTimeout(() => setNotice(null), 4200);
+        return () => window.clearTimeout(timer);
+    }, [notice]);
+
+    useEffect(() => {
+        const flushQueuedSos = async () => {
+            if (!navigator.onLine) return;
+            const result = await flushOfflineSosQueue();
+            if (result.sent > 0) {
+                setNotice(`${result.sent} offline SOS alert(s) sent.`);
+            }
+        };
+
+        void flushQueuedSos();
+        const onOnline = () => void flushQueuedSos();
+
+        window.addEventListener('online', onOnline);
+        return () => {
+            window.removeEventListener('online', onOnline);
+        };
+    }, []);
 
     useEffect(() => {
         if (countdown === 0 && sosIntervalRef.current) {
@@ -96,26 +137,37 @@ export default function BusinessDashboard() {
 
     const triggerSOS = async () => {
         setSosLoading(true);
+        const payload: Record<string, any> = {
+            title: 'BUSINESS EMERGENCY SOS TRIGGERED',
+            incident_type: 'sos_emergency',
+            severity: 'critical',
+            source: 'sos_panic',
+            is_public: true,
+            metadata: {
+                triggered_by_role: 'business',
+                triggered_by_name: user?.full_name || 'Business User',
+                business_name: (user as any)?.business_name || null,
+            },
+        };
+
         try {
             const pos = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject)).catch(() => null);
-            await api.post('/incidents', {
-                title: 'BUSINESS EMERGENCY SOS TRIGGERED',
-                incident_type: 'sos_emergency',
-                severity: 'critical',
-                source: 'sos_panic',
-                latitude: pos?.coords.latitude,
-                longitude: pos?.coords.longitude,
-                is_public: true,
-                metadata: {
-                    triggered_by_role: 'business',
-                    triggered_by_name: user?.full_name || 'Business User',
-                    business_name: (user as any)?.business_name || null,
-                },
-            });
+
+            payload.latitude = pos?.coords.latitude;
+            payload.longitude = pos?.coords.longitude;
+
+            if (!navigator.onLine) {
+                enqueueOfflineSos(payload, 'business');
+                setNotice(`No network. SOS saved offline (${getOfflineSosQueueCount()} queued).`);
+                return;
+            }
+
+            await api.post('/incidents', payload);
             setSosSuccess(true);
             setTimeout(() => setSosSuccess(false), 5000);
         } catch {
-            alert('SOS transmission failed!');
+            enqueueOfflineSos(payload, 'business');
+            setNotice(`Network unstable. SOS cached safely (${getOfflineSosQueueCount()} queued).`);
         } finally {
             setSosLoading(false);
         }
@@ -134,6 +186,12 @@ export default function BusinessDashboard() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
                 <AlertPanel />
             </div>
+
+            {notice && (
+                <div style={{ marginBottom: 14, background: 'rgba(108,99,255,0.08)', border: '1px solid rgba(108,99,255,0.2)', borderRadius: 14, padding: '10px 14px', fontSize: '0.8rem', fontWeight: 700, color: C.primary }}>
+                    {notice}
+                </div>
+            )}
 
             {/* SOS Trigger */}
             <section style={{ marginBottom: 24 }}>
@@ -267,6 +325,35 @@ export default function BusinessDashboard() {
                     </div>
                 </div>
             </section>
+
+            {guardianDispatches.length > 0 && (
+                <section style={{ ...clayCard, padding: 0, overflow: 'hidden', marginBottom: 24 }}>
+                    <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, background: C.surfaceAlt, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '20px 20px 0 0' }}>
+                        <h3 style={{ margin: 0, fontWeight: 800, color: C.text, fontSize: '0.88rem' }}>Guardian Network Tasks</h3>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: C.textMuted }}>{guardianDispatches.length} pending</span>
+                    </div>
+                    <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {guardianDispatches.map((dispatch, index) => (
+                            <div key={`${dispatch.incident_id || 'dispatch'}-${index}`} style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                                <div style={{ minWidth: 0 }}>
+                                    <p style={{ margin: 0, fontWeight: 700, color: C.text, fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {dispatch.incident_title || 'Emergency Assistance'}
+                                    </p>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: C.textMuted, fontWeight: 600 }}>
+                                        {dispatch.message || 'Nearby support requested by command center.'}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setGuardianDispatches((prev) => prev.filter((_, i) => i !== index))}
+                                    style={{ background: 'linear-gradient(135deg, #34D399, #2DD4BF)', border: 'none', color: '#FFFFFF', borderRadius: 10, padding: '6px 12px', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer' }}
+                                >
+                                    Accept
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* Identity Verification */}
             <section className="responsive-flex-col" style={{ ...clayCard, background: 'linear-gradient(135deg, #1B1D2A, #252840)', padding: '28px', display: 'flex', gap: 32, alignItems: 'flex-start', borderRadius: 20, border: 'none' }}>

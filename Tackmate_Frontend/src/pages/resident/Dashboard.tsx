@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { Shield, AlertTriangle, TrendingUp, Plus, Layers, Activity, Loader2, Users, Check, ShieldAlert, X } from 'lucide-react';
 import AlertPanel from '../../components/alerts/AlertPanel';
 import TouristMap, { type ZoneData } from '../../components/maps/TouristMap';
+import { enqueueOfflineSos, flushOfflineSosQueue, getOfflineSosQueueCount } from '../../lib/offlineSos';
 
 const C = {
     bg: '#F0EDFA', surface: '#FFFFFF', surfaceAlt: '#F7F5FF', dark: '#1B1D2A', text: '#1B1D2A',
@@ -31,6 +32,8 @@ export default function ResidentDashboard() {
     const [sosSuccess, setSosSuccess] = useState(false);
     const sosIntervalRef = useRef<number | null>(null);
     const [countdown, setCountdown] = useState(0);
+    const [guardianDispatches, setGuardianDispatches] = useState<any[]>([]);
+    const [notice, setNotice] = useState<string | null>(null);
 
     useEffect(() => {
         if ('geolocation' in navigator) {
@@ -51,6 +54,12 @@ export default function ResidentDashboard() {
         return () => clearInterval(interval);
     }, [socket, user, userLat, userLng]);
 
+    useEffect(() => {
+        if (!notice) return;
+        const timer = window.setTimeout(() => setNotice(null), 4200);
+        return () => window.clearTimeout(timer);
+    }, [notice]);
+
     const handleSOSStart = () => { if (sosIntervalRef.current) clearInterval(sosIntervalRef.current); setCountdown(3); sosIntervalRef.current = window.setInterval(() => { setCountdown((prev) => prev - 1); }, 1000); };
     const handleSOSEnd = () => { if (sosIntervalRef.current) { clearInterval(sosIntervalRef.current); sosIntervalRef.current = null; } setCountdown(0); };
 
@@ -58,23 +67,37 @@ export default function ResidentDashboard() {
 
     const triggerSOS = async () => {
         setSosLoading(true);
+        const payload: Record<string, any> = {
+            title: 'EMERGENCY SOS TRIGGERED',
+            incident_type: 'sos_emergency',
+            severity: 'critical',
+            source: 'sos_panic',
+            latitude: userLat || 27.5855,
+            longitude: userLng || 91.8594,
+            is_public: true,
+            metadata: {
+                triggered_by_role: 'resident',
+                triggered_by_name: user?.full_name || 'Resident User',
+            },
+        };
+
         try {
             const pos = await new Promise<GeolocationPosition>((res, rej) => navigator.geolocation.getCurrentPosition(res, rej)).catch(() => null);
-            await api.post('/incidents', {
-                title: 'EMERGENCY SOS TRIGGERED',
-                incident_type: 'sos_emergency',
-                severity: 'critical',
-                source: 'sos_panic',
-                latitude: pos?.coords.latitude || userLat || 27.5855,
-                longitude: pos?.coords.longitude || userLng || 91.8594,
-                is_public: true,
-                metadata: {
-                    triggered_by_role: 'resident',
-                    triggered_by_name: user?.full_name || 'Resident User',
-                },
-            });
+            payload.latitude = pos?.coords.latitude || payload.latitude;
+            payload.longitude = pos?.coords.longitude || payload.longitude;
+
+            if (!navigator.onLine) {
+                enqueueOfflineSos(payload, 'resident');
+                setNotice(`No network. SOS saved offline (${getOfflineSosQueueCount()} queued).`);
+                return;
+            }
+
+            await api.post('/incidents', payload);
             setSosSuccess(true); setTimeout(() => setSosSuccess(false), 5000);
-        } catch { alert('SOS transmission failed!'); } finally { setSosLoading(false); }
+        } catch {
+            enqueueOfflineSos(payload, 'resident');
+            setNotice(`Network unstable. SOS cached safely (${getOfflineSosQueueCount()} queued).`);
+        } finally { setSosLoading(false); }
     };
 
     useEffect(() => {
@@ -83,14 +106,45 @@ export default function ResidentDashboard() {
             const interval = setInterval(fetchWardData, 60000);
             if (socket) {
                 const wardId = typeof user.ward === 'object' ? user.ward._id : user.ward;
-                socket.on('new-incident', (incident: any) => {
+                const onNewIncident = (incident: any) => {
                     const incWardId = typeof incident.ward === 'object' ? incident.ward?._id : incident.ward;
                     if (incWardId === wardId) setIncidents(prev => [incident, ...prev.slice(0, 9)]);
-                });
+                };
+                const onGuardianDispatch = (dispatch: any) => {
+                    setGuardianDispatches((prev) => [dispatch, ...prev].slice(0, 5));
+                    setNotice('Guardian assist request received nearby.');
+                };
+
+                socket.on('new-incident', onNewIncident);
+                socket.on('guardian:dispatch', onGuardianDispatch);
+
+                return () => {
+                    clearInterval(interval);
+                    socket.off('new-incident', onNewIncident);
+                    socket.off('guardian:dispatch', onGuardianDispatch);
+                };
             }
-            return () => { clearInterval(interval); if (socket) socket.off('new-incident'); };
+            return () => { clearInterval(interval); };
         } else { fetchGeneralData(); }
     }, [user, socket]);
+
+    useEffect(() => {
+        const flushQueuedSos = async () => {
+            if (!navigator.onLine) return;
+            const result = await flushOfflineSosQueue();
+            if (result.sent > 0) {
+                setNotice(`${result.sent} offline SOS alert(s) sent.`);
+            }
+        };
+
+        void flushQueuedSos();
+        const onOnline = () => void flushQueuedSos();
+
+        window.addEventListener('online', onOnline);
+        return () => {
+            window.removeEventListener('online', onOnline);
+        };
+    }, []);
 
     const fetchGeneralData = async () => {
         try {
@@ -132,6 +186,12 @@ export default function ResidentDashboard() {
                 <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 16, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', fontWeight: 600, color: '#92400E' }}>
                     <AlertTriangle size={16} color={C.moderate} />
                     No ward assigned to your account. Showing general area data. Contact local authority to get assigned.
+                </div>
+            )}
+
+            {notice && (
+                <div style={{ background: 'rgba(108,99,255,0.08)', border: '1px solid rgba(108,99,255,0.2)', borderRadius: 14, padding: '10px 14px', marginBottom: 16, fontSize: '0.78rem', fontWeight: 700, color: C.primary }}>
+                    {notice}
                 </div>
             )}
 
@@ -208,6 +268,39 @@ export default function ResidentDashboard() {
                     ))}
                 </div>
             </section>
+
+            {guardianDispatches.length > 0 && (
+                <section style={{ ...clayCard, padding: '14px 16px', marginBottom: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <h3 style={{ margin: 0, fontSize: '0.86rem', fontWeight: 800, color: C.text, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            Guardian Dispatch Queue
+                        </h3>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: C.textMuted }}>
+                            {guardianDispatches.length} live
+                        </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {guardianDispatches.map((dispatch, index) => (
+                            <div key={`${dispatch.incident_id || 'dispatch'}-${index}`} style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                                <div style={{ minWidth: 0 }}>
+                                    <p style={{ margin: 0, fontWeight: 700, color: C.text, fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {dispatch.incident_title || 'Emergency Nearby'}
+                                    </p>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: C.textMuted, fontWeight: 600 }}>
+                                        {dispatch.message || 'Local guardian assistance requested.'}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setGuardianDispatches((prev) => prev.filter((_, i) => i !== index))}
+                                    style={{ background: 'linear-gradient(135deg, #34D399, #2DD4BF)', color: '#FFFFFF', border: 'none', borderRadius: 10, padding: '6px 12px', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer' }}
+                                >
+                                    On Way
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* Bottom row */}
             <section className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>

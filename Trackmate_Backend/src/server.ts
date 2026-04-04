@@ -6,6 +6,7 @@ import app from './app';
 import { connectDatabase } from './config/database';
 import { initSocket } from './socket';
 import { startAnomalyDetection } from './lib/anomalyDetection';
+import { startRiskPulseBroadcast } from './lib/riskPulse';
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 
@@ -23,6 +24,9 @@ async function bootstrap() {
     // Start the anomaly detection cron
     startAnomalyDetection();
 
+    // Start periodic predictive risk pulse broadcasts
+    const stopRiskPulse = startRiskPulseBroadcast(io);
+
     // Start listening
     httpServer.listen(PORT, '0.0.0.0', () => {
         console.log(`\n🚀 SafeTravel API v3.0 running on port ${PORT}`);
@@ -34,6 +38,7 @@ async function bootstrap() {
     // Graceful shutdown
     const shutdown = async (signal: string) => {
         console.log(`\n🛑 Received ${signal}, shutting down gracefully...`);
+        stopRiskPulse();
         httpServer.close(async () => {
             const { disconnectDatabase } = await import('./config/database');
             await disconnectDatabase();

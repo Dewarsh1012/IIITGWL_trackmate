@@ -8,6 +8,7 @@ import {
     scoreAnomalyRisk,
     trainAndPersistAnomalyModel,
 } from '../lib/anomalyModel';
+import { buildRiskPulseSnapshot } from '../lib/riskPulse';
 
 const router: Router = express.Router();
 
@@ -278,6 +279,23 @@ router.post(
                     normalizedFeatures: scored.normalizedFeatures,
                 },
             });
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+// ─── Predictive risk pulse snapshot ─────────────────────────────────
+
+router.get(
+    '/risk-pulse',
+    authenticate,
+    requireRole(UserRole.AUTHORITY, UserRole.ADMIN),
+    async (req: AuthRequest, res: Response, next) => {
+        try {
+            const wardId = typeof req.query.ward === 'string' ? req.query.ward : undefined;
+            const snapshot = await buildRiskPulseSnapshot(wardId);
+            res.json({ success: true, data: snapshot });
         } catch (err) {
             next(err);
         }
